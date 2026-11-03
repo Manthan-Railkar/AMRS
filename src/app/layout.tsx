@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hyperspeed",
-  description: "Responsive 3D Hyperspeed background",
+  title: "AMRS — Adaptive Model Recovery System",
+  description: "Automate the diagnosis and targeted recovery of underperforming ML models.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
