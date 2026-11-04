@@ -214,9 +214,18 @@ svg use { pointer-events: none; }
   flex-shrink: 0;
 }
 .nav__brand-mark {
-  width: 20px;
-  height: 20px;
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
   color: #fff;
+  flex-shrink: 0;
+}
+.brand__mark {
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
   flex-shrink: 0;
 }
 .nav__brand-title {
@@ -323,14 +332,14 @@ svg use { pointer-events: none; }
 }
 
 @media (max-width: 820px) {
-  .nav__links { display: none; }
-  .menu-btn { display: inline-flex; }
+  .nav__links { display: none !important; }
+  .menu-btn { display: inline-flex !important; }
 }
 @media (max-width: 520px) {
-  .nav__action-link { display: none; }
-  .nav { width: calc(100% - 20px); }
-  .nav__inner { padding: 0 8px 0 16px; }
-  .nav__cta-btn { padding: 0 14px; font-size: 11px; height: 34px; }
+  .nav__action-link { display: none !important; }
+  .nav { width: calc(100% - 20px) !important; }
+  .nav__inner { padding: 0 8px 0 16px !important; }
+  .nav__cta-btn { padding: 0 14px !important; font-size: 11px !important; height: 34px !important; }
 }
 
 .mobile-menu {

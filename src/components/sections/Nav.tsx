@@ -42,65 +42,246 @@ export function Nav() {
 
   return (
     <>
-      <div className={`nav-wrapper ${scrolled ? 'is-scrolled' : ''}`}>
-        <header className="nav" id="top" data-in style={{ '--i': 0 } as React.CSSProperties}>
-          <div className="nav__inner">
-            {/* Left: Brand logo */}
-            <a className="nav__brand" href="#top" aria-label="AMRS — Adaptive Model Recovery System">
-              <svg className="nav__brand-mark" aria-hidden="true">
-                <use href="#i-logo" />
-              </svg>
-              <span className="nav__brand-title">
-                AMR<span className="nav__brand-accent">S</span>
+      <div
+        className={`nav-wrapper fixed top-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none ${
+          scrolled ? 'is-scrolled pt-2.5 sm:pt-3' : 'pt-4 sm:pt-5'
+        }`}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          paddingTop: scrolled ? '12px' : '18px',
+          paddingBottom: '8px',
+          pointerEvents: 'none',
+          transition: 'padding 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        <header
+          className={`nav mx-auto flex items-center justify-between rounded-full border text-white transition-all duration-300 pointer-events-auto ${
+            scrolled
+              ? 'bg-[#0a0814]/85 border-white/15 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)] backdrop-blur-xl'
+              : 'bg-[#0e0c1a]/55 border-white/10 shadow-[0_8px_30px_-6px_rgba(0,0,0,0.35)] backdrop-blur-md'
+          }`}
+          id="top"
+          style={{
+            pointerEvents: 'auto',
+            width: 'min(1140px, calc(100% - 32px))',
+            marginInline: 'auto',
+            height: '52px',
+            padding: '0 8px 0 20px',
+            borderRadius: '9999px',
+            backgroundColor: scrolled ? 'rgba(10, 8, 20, 0.85)' : 'rgba(14, 12, 26, 0.55)',
+            backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'blur(14px)',
+            WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'blur(14px)',
+            border: scrolled ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.09)',
+            boxShadow: scrolled ? '0 16px 40px -10px rgba(0, 0, 0, 0.7)' : '0 8px 30px -6px rgba(0, 0, 0, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            color: '#ffffff',
+          }}
+        >
+          {/* Left: Brand logo */}
+          <a
+            className="nav__brand flex items-center gap-2.5 text-white no-underline shrink-0 group"
+            href="#top"
+            aria-label="AMRS — Adaptive Model Recovery System"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+              color: '#ffffff',
+              flexShrink: 0,
+            }}
+          >
+            <svg
+              className="nav__brand-mark w-5 h-5 shrink-0 text-white"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              style={{
+                width: '20px',
+                height: '20px',
+                minWidth: '20px',
+                minHeight: '20px',
+                maxWidth: '20px',
+                maxHeight: '20px',
+                display: 'block',
+                flexShrink: 0,
+                color: '#ffffff',
+              }}
+            >
+              <use href="#i-logo" />
+            </svg>
+            <span
+              className="nav__brand-title text-[15px] sm:text-base font-extrabold tracking-wider text-white flex items-center"
+              style={{
+                fontSize: '16px',
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                lineHeight: 1,
+              }}
+            >
+              AMR
+              <span
+                className="nav__brand-accent text-red-500 font-extrabold"
+                style={{ color: '#ef4444', fontWeight: 800 }}
+              >
+                S
               </span>
+            </span>
+          </a>
+
+          {/* Center: Navigation Links */}
+          <nav
+            className="nav__links hidden md:flex items-center gap-7 lg:gap-8 text-[12px] font-semibold uppercase tracking-[0.1em]"
+            aria-label="Primary"
+            style={{
+              alignItems: 'center',
+              textTransform: 'uppercase',
+              fontSize: '12px',
+              fontWeight: 600,
+              letterSpacing: '0.1em',
+            }}
+          >
+            <a
+              href="#features"
+              className="text-white/70 hover:text-white transition-colors duration-200"
+              style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
+            >
+              Features
+            </a>
+            <a
+              href="#templates"
+              className="text-white/70 hover:text-white transition-colors duration-200"
+              style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
+            >
+              Templates
+            </a>
+            <a
+              href="#pricing"
+              className="text-white/70 hover:text-white transition-colors duration-200"
+              style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
+            >
+              Pricing
+            </a>
+            <a
+              href="#resources"
+              className="text-white/70 hover:text-white transition-colors duration-200"
+              style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
+            >
+              Resources
+            </a>
+          </nav>
+
+          {/* Right: Contact & Action Button */}
+          <div
+            className="nav__right flex items-center gap-3 sm:gap-4 shrink-0"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              flexShrink: 0,
+            }}
+          >
+            <a
+              href="#waitlist"
+              className="nav__action-link hidden sm:inline-block text-[12px] font-semibold uppercase tracking-[0.1em] text-white/75 hover:text-white transition-colors duration-200"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: 'rgba(255, 255, 255, 0.75)',
+                textDecoration: 'none',
+              }}
+            >
+              Contact
+            </a>
+            <a
+              href="#waitlist"
+              className="nav__cta-btn inline-flex items-center gap-1.5 bg-white text-[#0b0914] hover:bg-neutral-100 hover:scale-[1.03] active:scale-[0.98] font-bold text-[12px] uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full transition-all duration-200 shadow-[0_2px_12px_rgba(255,255,255,0.2)]"
+              style={{
+                height: '38px',
+                padding: '0 18px',
+                borderRadius: '9999px',
+                backgroundColor: '#ffffff',
+                color: '#0b0914',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                textDecoration: 'none',
+                boxShadow: '0 4px 14px -2px rgba(255, 255, 255, 0.25)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>Get Started</span>
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 12 12"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                style={{
+                  width: '11px',
+                  height: '11px',
+                  minWidth: '11px',
+                  minHeight: '11px',
+                  display: 'inline-block',
+                }}
+              >
+                <path
+                  d="M2.5 9.5L9.5 2.5M9.5 2.5H4M9.5 2.5V8"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </a>
 
-            {/* Center: Navigation Links */}
-            <nav className="nav__links" aria-label="Primary">
-              <a href="#features">Features</a>
-              <a href="#templates">Templates</a>
-              <a href="#pricing">Pricing</a>
-              <a href="#resources">Resources</a>
-            </nav>
-
-            {/* Right: Contact & Action Button */}
-            <div className="nav__right">
-              <a href="#waitlist" className="nav__action-link">
-                Contact
-              </a>
-              <a href="#waitlist" className="nav__cta-btn">
-                <span>Get Started</span>
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M2.5 9.5L9.5 2.5M9.5 2.5H4M9.5 2.5V8"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </a>
-
-              <button
-                className="menu-btn"
-                type="button"
-                aria-expanded={isOpen}
-                aria-controls="mobile-menu"
-                onClick={() => setIsOpen(true)}
+            <button
+              className="menu-btn md:hidden w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-colors"
+              type="button"
+              aria-expanded={isOpen}
+              aria-controls="mobile-menu"
+              onClick={() => setIsOpen(true)}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                display: 'none', // Shown in CSS on mobile
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                cursor: 'pointer',
+              }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                style={{ width: '18px', height: '18px' }}
               >
-                <svg aria-hidden="true">
-                  <use href="#i-menu" />
-                </svg>
-                <span className="sr-only">Open menu</span>
-              </button>
-            </div>
+                <use href="#i-menu" />
+              </svg>
+              <span className="sr-only">Open menu</span>
+            </button>
           </div>
         </header>
       </div>
