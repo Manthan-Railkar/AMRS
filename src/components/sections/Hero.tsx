@@ -183,11 +183,7 @@ export function Hero() {
           Your AI Models Deserve a <em>Second Chance.</em>
         </h1>
 
-        <p className="hero__description" data-in style={{ '--i': 3 } as React.CSSProperties}>
-          Diagnose underperforming machine learning models, discover intelligent recovery strategies, and restore performance without starting from scratch.
-        </p>
-
-        <div className="hero__actions" data-in style={{ '--i': 4 } as React.CSSProperties}>
+        <div className="hero__actions" data-in style={{ '--i': 3 } as React.CSSProperties}>
           <a href="#prompt-form" className="hero__btn-primary">
             Start Recovering →
           </a>
@@ -201,7 +197,7 @@ export function Hero() {
           id="prompt-form"
           onSubmit={handleSubmit}
           data-in
-          style={{ '--i': 5 } as React.CSSProperties}
+          style={{ '--i': 4 } as React.CSSProperties}
           noValidate
         >
           <label className="sr-only" htmlFor="prompt">
@@ -306,13 +302,15 @@ export function Hero() {
           </div>
         </form>
 
-        <p className="hero__caption" id="prompt-caption" data-in style={{ '--i': 6 } as React.CSSProperties}>
+        <p className="hero__caption" id="prompt-caption" data-in style={{ '--i': 5 } as React.CSSProperties}>
           {caption}
         </p>
       </div>
 
-      <div className="hero__foot" data-in style={{ '--i': 7 } as React.CSSProperties}>
-        <p>Supports PyTorch models · Intelligent diagnosis · Verified recovery</p>
+      <div className="hero__foot" data-in style={{ '--i': 6 } as React.CSSProperties}>
+        <p>
+          Diagnose underperforming machine learning models, discover intelligent recovery strategies, and restore performance without starting from scratch.
+        </p>
         <a className="scroll-cue" href="#statement" aria-label="Scroll down">
           <svg aria-hidden="true">
             <use href="#i-arrow-down" />
