@@ -45,7 +45,7 @@ export default function Footer() {
       <div className="footer__base">
         <div className="wrap">
           <div className="footer__legal">
-            <p>© 2026 Kraft, Inc. All rights reserved.</p>
+            <p>© 2026 AMRS, Inc. All rights reserved.</p>
             <nav aria-label="Legal">
               <a href="#">Terms</a>
               <a href="#">Privacy</a>

@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 
 export function Nav() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -31,44 +42,68 @@ export function Nav() {
 
   return (
     <>
-      <header className="nav" id="top">
-        <div className="nav__inner">
-          <a className="brand" href="#top" aria-label="AMRS — Adaptive Model Recovery System" data-in style={{ '--i': 0 } as React.CSSProperties}>
-            <svg className="brand__mark" aria-hidden="true">
-              <use href="#i-logo" />
-            </svg>
-            <span className="brand__wrap">
-              <span className="brand__word">AMRS</span>
-              <span className="brand__sub">Adaptive Model Recovery System</span>
-            </span>
-          </a>
+      <div className={`nav-wrapper ${scrolled ? 'is-scrolled' : ''}`}>
+        <header className="nav" id="top" data-in style={{ '--i': 0 } as React.CSSProperties}>
+          <div className="nav__inner">
+            {/* Left: Brand logo */}
+            <a className="nav__brand" href="#top" aria-label="AMRS — Adaptive Model Recovery System">
+              <svg className="nav__brand-mark" aria-hidden="true">
+                <use href="#i-logo" />
+              </svg>
+              <span className="nav__brand-title">
+                AMR<span className="nav__brand-accent">S</span>
+              </span>
+            </a>
 
-          <nav className="nav__links" aria-label="Primary" data-in style={{ '--i': 1 } as React.CSSProperties}>
-            <a href="#features">Features</a>
-            <a href="#templates">Templates</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#resources">Resources</a>
-            <span className="nav__sep" aria-hidden="true" />
-            <a href="#waitlist">Contact</a>
-            <a href="#waitlist">Join</a>
-          </nav>
+            {/* Center: Navigation Links */}
+            <nav className="nav__links" aria-label="Primary">
+              <a href="#features">Features</a>
+              <a href="#templates">Templates</a>
+              <a href="#pricing">Pricing</a>
+              <a href="#resources">Resources</a>
+            </nav>
 
-          <button
-            className="menu-btn"
-            type="button"
-            aria-expanded={isOpen}
-            aria-controls="mobile-menu"
-            onClick={() => setIsOpen(true)}
-            data-in
-            style={{ '--i': 1 } as React.CSSProperties}
-          >
-            <svg aria-hidden="true">
-              <use href="#i-menu" />
-            </svg>
-            <span className="sr-only">Open menu</span>
-          </button>
-        </div>
-      </header>
+            {/* Right: Contact & Action Button */}
+            <div className="nav__right">
+              <a href="#waitlist" className="nav__action-link">
+                Contact
+              </a>
+              <a href="#waitlist" className="nav__cta-btn">
+                <span>Get Started</span>
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M2.5 9.5L9.5 2.5M9.5 2.5H4M9.5 2.5V8"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
+
+              <button
+                className="menu-btn"
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls="mobile-menu"
+                onClick={() => setIsOpen(true)}
+              >
+                <svg aria-hidden="true">
+                  <use href="#i-menu" />
+                </svg>
+                <span className="sr-only">Open menu</span>
+              </button>
+            </div>
+          </div>
+        </header>
+      </div>
 
       <div
         className={`mobile-menu ${isOpen ? 'is-open' : ''}`}
@@ -91,7 +126,7 @@ export function Nav() {
           <a href="#pricing" onClick={handleLinkClick}>Pricing</a>
           <a href="#resources" onClick={handleLinkClick}>Resources</a>
           <a href="#waitlist" onClick={handleLinkClick}>Contact</a>
-          <a href="#waitlist" onClick={handleLinkClick}>Join</a>
+          <a href="#waitlist" onClick={handleLinkClick}>Get Started</a>
         </nav>
       </div>
     </>
