@@ -8,7 +8,7 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-const STATEMENT_TEXT = 'If you can dream it, you can prompt it into existence.';
+const STATEMENT_TEXT = 'When Models Fail, AMRS Finds a Way Forward.';
 
 export function Statement() {
   const containerRef = useRef<HTMLElement>(null);
