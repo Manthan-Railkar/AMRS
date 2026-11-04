@@ -169,7 +169,7 @@ export function Hero() {
           style={{ '--i': 4 } as React.CSSProperties}
           noValidate
         >
-          <label className="sr-only" for="prompt">
+          <label className="sr-only" htmlFor="prompt">
             Describe what you want to design
           </label>
           <textarea

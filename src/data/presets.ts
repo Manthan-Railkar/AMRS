@@ -1,4 +1,4 @@
-4export interface PresetItem {
+export interface PresetItem {
   id: string;
   title: string;
   image: string;
