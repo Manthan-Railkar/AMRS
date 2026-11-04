@@ -62,7 +62,7 @@ export function Nav() {
           className={`nav mx-auto flex items-center justify-between rounded-full border text-white transition-all duration-300 pointer-events-auto ${
             scrolled
               ? 'bg-[#0a0814]/85 border-white/15 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)] backdrop-blur-xl'
-              : 'bg-[#0e0c1a]/55 border-white/10 shadow-[0_8px_30px_-6px_rgba(0,0,0,0.35)] backdrop-blur-md'
+              : 'bg-transparent border-transparent shadow-none backdrop-blur-none'
           }`}
           id="top"
           style={{
@@ -72,11 +72,12 @@ export function Nav() {
             height: '52px',
             padding: '0 8px 0 20px',
             borderRadius: '9999px',
-            backgroundColor: scrolled ? 'rgba(10, 8, 20, 0.85)' : 'rgba(14, 12, 26, 0.55)',
-            backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'blur(14px)',
-            WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'blur(14px)',
-            border: scrolled ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.09)',
-            boxShadow: scrolled ? '0 16px 40px -10px rgba(0, 0, 0, 0.7)' : '0 8px 30px -6px rgba(0, 0, 0, 0.35)',
+            backgroundColor: scrolled ? 'rgba(10, 8, 20, 0.85)' : 'transparent',
+            backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
+            WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
+            border: scrolled ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+            boxShadow: scrolled ? '0 16px 40px -10px rgba(0, 0, 0, 0.7)' : 'none',
+            transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
