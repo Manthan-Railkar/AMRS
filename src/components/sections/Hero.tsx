@@ -308,9 +308,6 @@ export function Hero() {
       </div>
 
       <div className="hero__foot" data-in style={{ '--i': 6 } as React.CSSProperties}>
-        <p>
-          Diagnose underperforming machine learning models, discover intelligent recovery strategies, and restore performance without starting from scratch.
-        </p>
         <a className="scroll-cue" href="#statement" aria-label="Scroll down">
           <svg aria-hidden="true">
             <use href="#i-arrow-down" />

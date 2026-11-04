@@ -188,8 +188,12 @@ svg use { pointer-events: none; }
 .hero {
   position: relative; isolation: isolate; overflow: hidden;
   min-height: max(100svh, 680px);
-  padding-top: clamp(96px, 14vh, 170px);
-  padding-bottom: clamp(100px, 14vh, 160px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: clamp(84px, 12vh, 140px);
+  padding-bottom: clamp(70px, 10vh, 110px);
   color: #fff;
 }
 .hero__bg {
@@ -213,28 +217,30 @@ svg use { pointer-events: none; }
   opacity: .88;
 }
 
-.hero__col { width: min(840px, calc(100% - 48px)); margin-inline: auto; position: relative; }
+.hero__col {
+  width: min(840px, calc(100% - 48px));
+  margin-inline: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
 .hero__title {
   font-size: clamp(2.6rem, 4.4vw + .4rem, 4.25rem);
   line-height: 1.2;
   font-weight: 400;
   letter-spacing: -.04em;
   color: #fff;
+  text-align: center;
+  margin-inline: auto;
 }
 .hero__title em { font-style: italic; color: rgba(255,255,255,.74); padding-right: .04em; }
-
-.hero__description {
-  margin-top: 18px;
-  font-size: clamp(1.05rem, 1.25vw + .25rem, 1.22rem);
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.84);
-  max-width: 760px;
-  letter-spacing: -.01em;
-}
 
 .hero__actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   margin-top: 24px;
   flex-wrap: wrap;
@@ -380,35 +386,23 @@ svg use { pointer-events: none; }
 }
 
 .hero__foot {
-  position: absolute; left: 50%; bottom: clamp(24px, 4vh, 48px); transform: translateX(-50%);
-  width: min(840px, calc(100% - 48px));
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  position: absolute;
+  left: 50%;
+  bottom: clamp(16px, 3vh, 36px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 .js .hero__foot[data-in] { animation-name: riseCentered; }
 @keyframes riseCentered {
   from { opacity: 0; filter: blur(14px); transform: translate3d(-50%, 14px, 0); }
   to   { opacity: 1; filter: blur(0);    transform: translate3d(-50%, 0, 0); }
 }
-.hero__foot p { max-width: 480px; font-size: 13.5px; line-height: 1.45; color: var(--hero-muted); }
-.scroll-cue { color: var(--hero-muted); margin-right: 5px; }
+.scroll-cue { color: var(--hero-muted); display: flex; align-items: center; justify-content: center; margin: 0; }
 .scroll-cue svg { width: 22px; height: 22px; animation: bob 2.6s ease-in-out infinite; }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
-
-@media (max-height: 860px) {
-  .hero { min-height: auto; padding-bottom: 40px; }
-  .hero__foot {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    transform: none;
-    margin: 32px auto 0;
-    width: min(840px, calc(100% - 48px));
-  }
-  .js .hero__foot[data-in] {
-    transform: none !important;
-    animation-name: rise;
-  }
-}
 
 /* =========================================================
    STATEMENT — scroll-linked word blur
