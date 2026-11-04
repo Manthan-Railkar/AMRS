@@ -12,18 +12,26 @@ export function Testimonials() {
   const [stepSize, setStepSize] = useState(0);
 
   useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
     const updateStep = () => {
-      if (!trackRef.current) return;
-      const firstCard = trackRef.current.querySelector<HTMLElement>('.t-card');
+      const firstCard = track.querySelector<HTMLElement>('.t-card');
       if (!firstCard) return;
-      const style = window.getComputedStyle(trackRef.current);
+      const style = window.getComputedStyle(track);
       const gap = parseFloat(style.columnGap || style.gap || '17');
       setStepSize(firstCard.offsetWidth + gap);
     };
 
     updateStep();
     window.addEventListener('resize', updateStep);
-    return () => window.removeEventListener('resize', updateStep);
+    const ro = new ResizeObserver(updateStep);
+    ro.observe(track);
+
+    return () => {
+      window.removeEventListener('resize', updateStep);
+      ro.disconnect();
+    };
   }, []);
 
   const goTo = useCallback((index: number) => {

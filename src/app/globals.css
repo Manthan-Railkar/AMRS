@@ -649,10 +649,40 @@ svg use { pointer-events: none; }
 }
 
 @media (max-width: 480px) {
-  .hero__foot { bottom: 40px; }
-  .hero__foot p { font-size: 10.5px; }
-  .prompt__left .pill { padding: 0 9px 0 8px; }
+  .hero { min-height: max(100svh, 560px); padding-top: clamp(80px, 16vh, 120px); }
+  .hero__foot { bottom: 24px; gap: 14px; }
+  .hero__foot p { font-size: 10px; line-height: 1.4; max-width: 200px; }
+  .prompt { padding: 12px 14px 10px; min-height: auto; }
+  .prompt__bar { flex-wrap: wrap; gap: 8px; }
+  .prompt__left { flex-wrap: wrap; gap: 4px; }
+  .prompt__left .pill { padding: 0 8px; font-size: 10.5px; }
   .pill svg { display: none; }
+  .logo-row li { flex: 1 1 calc(50% - 6px); }
+  .cta__card { padding: 24px 20px 22px; }
+  .cta__form { flex-direction: column; max-width: 100%; gap: 8px; }
+  .cta__form input { width: 100%; height: 38px; font-size: 13px; }
+  .cta__form button { width: 100%; height: 38px; font-size: 13px; }
+  .cta__note { max-width: 100%; }
+  .gallery { --k: calc(100vw / 480); }
+  .footer__cols { gap: 28px 16px; }
+  .theme-toggle { bottom: 16px; right: 16px; width: 40px; height: 40px; }
+}
+
+@media (max-width: 360px) {
+  .wrap { width: calc(100% - 24px); }
+  .wrap--logos { width: calc(100% - 24px); }
+  .statement__text { font-size: clamp(1.35rem, 5.5vw, 1.75rem); }
+  .bar { grid-template-columns: 74px 1fr 28px; gap: 6px; font-size: 10.5px; }
+  .prompt__left .pill { font-size: 10px; padding: 0 6px; }
+  .chip-reason { font-size: 10px; }
+  .logo-pill { padding: 6px 10px; font-size: 10.5px; }
+}
+
+@media (max-height: 640px) and (orientation: landscape) {
+  .hero { min-height: 520px; padding-top: 80px; }
+  .hero__foot { position: relative; left: auto; bottom: auto; transform: none; margin-top: 36px; }
+  .mobile-menu { justify-content: flex-start; padding-top: 60px; overflow-y: auto; }
+  .mobile-menu nav a { font-size: 1.5rem; padding: 4px 0; }
 }
 
 @media (hover: none) {
