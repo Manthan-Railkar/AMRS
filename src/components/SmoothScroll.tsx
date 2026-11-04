@@ -27,13 +27,6 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.add('js');
 
-    // Set up stagger delays
-    document.querySelectorAll<HTMLElement>('[data-stagger]').forEach((parent) => {
-      Array.from(parent.children).forEach((c, i) => {
-        (c as HTMLElement).style.setProperty('--d', `${i * 90}ms`);
-      });
-    });
-
     // Reveal on scroll
     const io = new IntersectionObserver(
       (entries) => {
