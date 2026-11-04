@@ -180,7 +180,8 @@ export function Hero() {
 
       <div className="hero__col">
         <h1 className="hero__title" id="hero-title" data-in style={{ '--i': 2 } as React.CSSProperties}>
-          Your AI Models Deserve a <em>Second Chance.</em>
+          Your AI Models Deserve a<br />
+          <em>Second Chance.</em>
         </h1>
 
         <div className="hero__actions" data-in style={{ '--i': 3 } as React.CSSProperties}>

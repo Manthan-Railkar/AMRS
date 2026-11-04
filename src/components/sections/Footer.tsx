@@ -74,7 +74,7 @@ export default function Footer() {
               lengthAdjust="spacingAndGlyphs"
               fill="url(#wm-fill)"
             >
-              KRAFT
+              AMRS
             </text>
           </svg>
         </div>
