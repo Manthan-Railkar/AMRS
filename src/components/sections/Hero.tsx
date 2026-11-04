@@ -9,14 +9,19 @@ export function Hero() {
   const blobIndigoRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [uploadedFile, setUploadedFile] = useState<string>('resnet18_cifar10_overfit.pt');
-  const [architecture, setArchitecture] = useState<string>('resnet18_cifar');
-  const [scenario, setScenario] = useState<string>('s1_overfit');
-  const [isBusy, setIsBusy] = useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>('Ready for holdout verification');
-  const [caption, setCaption] = useState<string>(
-    'Diagnose. Recover. Verify. Preserve what your model has learned.'
+  const [promptValue, setPromptValue] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+  const [activeTags, setActiveTags] = useState<string[]>(['Diagnose', 'Recover']);
+  const [caption, setCaption] = useState(
+    'Supports PyTorch models · Intelligent diagnosis · Verified recovery'
   );
+
+  const toggleTag = (tag: string) => {
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   // Blob pointer drift animation (faithful port of main.js lines 70-129)
   useEffect(() => {
@@ -132,35 +137,41 @@ export function Hero() {
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFile(file.name);
-      setStatusMessage(`Model uploaded: ${file.name}`);
+      setCaption(`Uploaded ${file.name} · Ready for diagnosis`);
     }
   };
 
-  const handleAnalyze = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isBusy) return;
 
     setIsBusy(true);
-    setStatusMessage('Inspecting PyTorch weights & architecture…');
-    setCaption('Analyzing model performance across validation & holdout splits…');
+    setCaption('AMRS is diagnosing model failure mode…');
 
     setTimeout(() => {
-      setStatusMessage('Diagnosis: Overfitting detected (train-val gap: +14.2%)');
+      setCaption('Testing candidate strategies: Checkpoint Averaging + L2-SP…');
 
       setTimeout(() => {
-        setStatusMessage('Evaluating cheapest recovery: Checkpoint Averaging + L2-SP…');
+        setIsBusy(false);
+        setPromptValue('');
+        setCaption('Holdout verification passed: +4.8% accuracy gain (0 regression)');
 
         setTimeout(() => {
-          setIsBusy(false);
-          setStatusMessage('Gate: ACCEPTED (+4.8% holdout accuracy, 0 regression)');
-          setCaption('Diagnose. Recover. Verify. Preserve what your model has learned.');
-        }, 1200);
-      }, 1100);
-    }, 1000);
+          setCaption('Supports PyTorch models · Intelligent diagnosis · Verified recovery');
+        }, 3200);
+      }, 1600);
+    }, 1400);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   return (
-    <section ref={heroRef} className="hero" id="quick-start" aria-labelledby="hero-title">
+    <section ref={heroRef} className="hero" id="top" aria-labelledby="hero-title">
       <div className="hero__bg" aria-hidden="true">
         <div ref={blobIndigoRef} className="blob blob--indigo" />
         <div ref={blobDarkRef} className="blob blob--dark" />
@@ -169,163 +180,129 @@ export function Hero() {
 
       <div className="hero__col">
         <h1 className="hero__title" id="hero-title" data-in style={{ '--i': 2 } as React.CSSProperties}>
-          Your AI Models Deserve a <em>Second Chance</em>.
+          Your AI Models Deserve a <em>Second Chance.</em>
         </h1>
 
-        <p className="hero__subheading" data-in style={{ '--i': 3 } as React.CSSProperties}>
-          Diagnose underperforming machine learning models, discover intelligent recovery strategies, and restore model performance without starting from scratch.
+        <p className="hero__description" data-in style={{ '--i': 3 } as React.CSSProperties}>
+          Diagnose underperforming machine learning models, discover intelligent recovery strategies, and restore performance without starting from scratch.
         </p>
 
         <div className="hero__actions" data-in style={{ '--i': 4 } as React.CSSProperties}>
-          <a href="#quick-start" className="hero__btn-primary">
-            Start Model Recovery
+          <a href="#prompt-form" className="hero__btn-primary">
+            Start Recovering →
           </a>
           <a href="#features" className="hero__btn-secondary">
-            Explore How It Works
+            Explore AMRS
           </a>
         </div>
 
-        {/* Model Recovery Quick-Start Panel */}
         <form
-          className="recovery-panel"
-          onSubmit={handleAnalyze}
+          className={`prompt ${isBusy ? 'is-busy' : ''}`}
+          id="prompt-form"
+          onSubmit={handleSubmit}
           data-in
           style={{ '--i': 5 } as React.CSSProperties}
           noValidate
         >
-          {/* 1. Upload your trained PyTorch model */}
-          <div className="recovery-panel__row">
-            <div className="recovery-panel__label">
-              <span>Upload your trained PyTorch model</span>
-              <span className="recovery-panel__badge">weights_only=True</span>
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".pt,.pth"
-              className="sr-only"
-              onChange={handleFileChange}
-              id="model-file-input"
-            />
-            <div
-              className="recovery-upload"
-              onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  fileInputRef.current?.click();
-                }
-              }}
-              aria-label="Upload your trained PyTorch model"
-            >
-              <div className="recovery-upload__info">
+          <label className="sr-only" htmlFor="prompt">
+            Describe your model&apos;s performance issue or upload a trained model...
+          </label>
+          <textarea
+            id="prompt"
+            name="prompt"
+            rows={2}
+            placeholder="Describe your model's performance issue or upload a trained model..."
+            autoComplete="off"
+            value={promptValue}
+            onChange={(e) => setPromptValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".pt,.pth"
+            className="sr-only"
+            onChange={handleFileChange}
+            id="hero-file-upload"
+          />
+
+          <div className="prompt__bar">
+            <div className="prompt__left">
+              <button
+                className="pill"
+                type="button"
+                aria-label="Upload Model"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <svg aria-hidden="true">
                   <use href="#i-clip" />
                 </svg>
-                <span>{uploadedFile}</span>
-              </div>
-              <span className="recovery-upload__btn">Browse file</span>
-            </div>
-          </div>
+                <span>{uploadedFile ? uploadedFile : 'Upload Model'}</span>
+              </button>
 
-          {/* 2. Select model architecture */}
-          <div className="recovery-panel__row">
-            <div className="recovery-panel__label">
-              <span>Select model architecture</span>
-              <span className="recovery-panel__badge">Registry</span>
-            </div>
-            <div className="recovery-pills" role="radiogroup" aria-label="Select model architecture">
-              {[
-                { id: 'resnet18_cifar', label: 'ResNet-18 (CIFAR)' },
-                { id: 'small_cnn', label: 'Small CNN' },
-                { id: 'mlp_small', label: 'MLP Small' },
-                { id: 'custom', label: 'Custom Architecture' },
-              ].map((arch) => (
-                <button
-                  key={arch.id}
-                  type="button"
-                  className={`recovery-pill ${architecture === arch.id ? 'is-active' : ''}`}
-                  role="radio"
-                  aria-checked={architecture === arch.id}
-                  onClick={() => setArchitecture(arch.id)}
-                >
-                  {arch.label}
-                </button>
-              ))}
-            </div>
-          </div>
+              <button
+                className="pill"
+                type="button"
+                aria-pressed={activeTags.includes('Diagnose')}
+                onClick={() => toggleTag('Diagnose')}
+              >
+                <svg aria-hidden="true">
+                  <use href="#i-bulb" />
+                </svg>
+                <span>Diagnose</span>
+              </button>
 
-          {/* 3. Choose recovery scenario */}
-          <div className="recovery-panel__row">
-            <div className="recovery-panel__label">
-              <span>Choose recovery scenario</span>
-              <span className="recovery-panel__badge">Benchmark Zoo</span>
-            </div>
-            <div className="recovery-pills" role="radiogroup" aria-label="Choose recovery scenario">
-              {[
-                { id: 's1_overfit', label: 'Overfitting (S1)' },
-                { id: 's2_miscalibration', label: 'Miscalibration (S2)' },
-                { id: 's3_bndrift', label: 'BN Drift (S3)' },
-                { id: 's4_unstable', label: 'Unstable Training (S4)' },
-                { id: 's5_degraded_head', label: 'Degraded Head (S5)' },
-                { id: 'auto', label: 'Auto-Diagnose' },
-              ].map((scen) => (
-                <button
-                  key={scen.id}
-                  type="button"
-                  className={`recovery-pill ${scenario === scen.id ? 'is-active' : ''}`}
-                  role="radio"
-                  aria-checked={scenario === scen.id}
-                  onClick={() => setScenario(scen.id)}
-                >
-                  {scen.label}
-                </button>
-              ))}
-            </div>
-          </div>
+              <button
+                className="pill"
+                type="button"
+                aria-pressed={activeTags.includes('Recover')}
+                onClick={() => toggleTag('Recover')}
+              >
+                <svg aria-hidden="true">
+                  <use href="#i-pen" />
+                </svg>
+                <span>Recover</span>
+              </button>
 
-          {/* 4. Analyze model performance */}
-          <div className="recovery-panel__row">
-            <div className="recovery-panel__label">
-              <span>Analyze model performance</span>
-              <span className="recovery-panel__badge">Holdout Gate</span>
-            </div>
-            <div className="recovery-perf">
-              <div className="recovery-perf__metrics">
-                <span className="recovery-perf__stat">
-                  <span>Verification:</span>
-                  <strong>Paired Bootstrap (95% CI)</strong>
-                </span>
-                <span className="recovery-perf__stat">
-                  <span>Retention Target:</span>
-                  <strong>≥ 95% Knowledge</strong>
-                </span>
-                <span className="recovery-perf__stat">
-                  <span>Cost Ceiling:</span>
-                  <strong>&lt; 0.5× Full Retrain</strong>
-                </span>
-              </div>
-            </div>
-          </div>
+              <button
+                className="pill"
+                type="button"
+                aria-pressed={activeTags.includes('Optimize')}
+                onClick={() => toggleTag('Optimize')}
+              >
+                <svg aria-hidden="true">
+                  <use href="#i-sparkle" />
+                </svg>
+                <span>Optimize</span>
+              </button>
 
-          {/* Panel footer with action button */}
-          <div className="recovery-panel__foot">
-            <div className="recovery-panel__status" aria-live="polite">
-              {statusMessage}
+              <button
+                className="pill"
+                type="button"
+                aria-pressed={activeTags.includes('Verify')}
+                onClick={() => toggleTag('Verify')}
+              >
+                <svg aria-hidden="true">
+                  <use href="#i-check" />
+                </svg>
+                <span>Verify</span>
+              </button>
             </div>
-            <button
-              type="submit"
-              className="recovery-submit-btn"
-              disabled={isBusy}
-              aria-label="Analyze My Model"
-            >
-              <span>{isBusy ? 'Analyzing Model…' : 'Analyze My Model'}</span>
-              <svg aria-hidden="true">
-                <use href="#i-arrow-right" />
-              </svg>
-            </button>
+
+            <div className="prompt__right">
+              <button
+                className="action-btn"
+                type="submit"
+                aria-label="Analyze Model"
+                disabled={isBusy}
+              >
+                <span>Analyze Model</span>
+                <svg aria-hidden="true">
+                  <use href="#i-arrow-right" />
+                </svg>
+              </button>
+            </div>
           </div>
         </form>
 
@@ -335,7 +312,7 @@ export function Hero() {
       </div>
 
       <div className="hero__foot" data-in style={{ '--i': 7 } as React.CSSProperties}>
-        <p>Diagnose. Recover. Verify. Preserve what your model has learned.</p>
+        <p>Supports PyTorch models · Intelligent diagnosis · Verified recovery</p>
         <a className="scroll-cue" href="#statement" aria-label="Scroll down">
           <svg aria-hidden="true">
             <use href="#i-arrow-down" />

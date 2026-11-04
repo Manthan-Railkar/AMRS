@@ -33,11 +33,14 @@ export function Nav() {
     <>
       <header className="nav" id="top">
         <div className="nav__inner">
-          <a className="brand" href="#top" aria-label="Kraft — home" data-in style={{ '--i': 0 } as React.CSSProperties}>
+          <a className="brand" href="#top" aria-label="AMRS — Adaptive Model Recovery System" data-in style={{ '--i': 0 } as React.CSSProperties}>
             <svg className="brand__mark" aria-hidden="true">
               <use href="#i-logo" />
             </svg>
-            <span className="brand__word">KRAFT</span>
+            <span className="brand__wrap">
+              <span className="brand__word">AMRS</span>
+              <span className="brand__sub">Adaptive Model Recovery System</span>
+            </span>
           </a>
 
           <nav className="nav__links" aria-label="Primary" data-in style={{ '--i': 1 } as React.CSSProperties}>

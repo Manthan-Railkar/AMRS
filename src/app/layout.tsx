@@ -13,9 +13,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Kraft — AI-powered design for everyone',
+  title: 'AMRS — Adaptive Model Recovery System',
   description:
-    'Turn simple descriptions into complete, editable designs. Kraft is the AI design workspace that keeps your brand consistent from first prompt to production.',
+    'Diagnose underperforming machine learning models, discover intelligent recovery strategies, and restore performance without starting from scratch.',
   icons: {
     icon: '/assets/icons/favicon.svg',
   },
