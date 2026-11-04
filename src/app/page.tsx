@@ -1,33 +1,35 @@
-import Hyperspeed from "@/components/Hyperspeed";
+import Nav from '@/components/sections/Nav';
+import Hero from '@/components/sections/Hero';
+import Statement from '@/components/sections/Statement';
+import Gallery from '@/components/sections/Gallery';
+import Logos from '@/components/sections/Logos';
+import Steps from '@/components/sections/Steps';
+import Presets from '@/components/sections/Presets';
+import Performance from '@/components/sections/Performance';
+import Testimonials from '@/components/sections/Testimonials';
+import Pricing from '@/components/sections/Pricing';
+import Faq from '@/components/sections/Faq';
+import Cta from '@/components/sections/Cta';
+import Footer from '@/components/sections/Footer';
 
 export default function Home() {
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-black">
-      <Hyperspeed
-        curve="winding"
-        curvature={1}
-        speed={1.1}
-        boost={3.5}
-        fov={90}
-        boostFov={130}
-        lanes={3}
-        roadWidth={10}
-        medianWidth={2}
-        density={42}
-        trailLength={1.1}
-        lightSize={1}
-        poles={22}
-        poleHeight={1}
-        dust={110}
-        glow={0.65}
-        reflections={0.5}
-        roadOpacity={0.15}
-        steer={0.35}
-        tailColors={["#d856bf", "#7c3aed", "#c247ac"]}
-        headColors={["#38bdf8", "#2563eb", "#0284c7"]}
-        poleColors={["#38bdf8"]}
-        interactive={true}
-      />
-    </main>
+    <>
+      <Nav />
+      <main>
+        <Hero />
+        <Statement />
+        <Gallery />
+        <Logos />
+        <Steps />
+        <Presets />
+        <Performance />
+        <Testimonials />
+        <Pricing />
+        <Faq />
+        <Cta />
+      </main>
+      <Footer />
+    </>
   );
 }
