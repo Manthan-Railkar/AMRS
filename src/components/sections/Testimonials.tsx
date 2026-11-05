@@ -152,12 +152,7 @@ export function Testimonials() {
                       <span className="t-exp-val">{item.recovery}</span>
                     </div>
                   </div>
-                  <blockquote>{item.quote}</blockquote>
-                  <footer className="t-person">
-                    <strong>{item.author}</strong>
-                    <span>{item.role}</span>
-                    <small>Reproducible Experiment Scenario</small>
-                  </footer>
+                  <blockquote className="t-quote">{item.quote}</blockquote>
                 </div>
 
                 <aside className="t-side">
