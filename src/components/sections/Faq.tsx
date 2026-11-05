@@ -35,16 +35,25 @@ export default function Faq() {
       if (!section || !title || !list) return;
 
       const getTravel = () => {
+        const vh = window.innerHeight;
         const listH = list.offsetHeight;
         const titleH = title.offsetHeight;
-        return Math.max(80, listH - titleH);
+
+        // Target: align with the bottom of the questions list
+        const listBottomAlign = Math.max(0, listH - titleH);
+
+        // Safety viewport clamp: ensure the bottom of the title stays well inside the viewport
+        const pinnedTop = 80;
+        const maxViewportTravel = Math.max(0, vh - pinnedTop - titleH - 50);
+
+        return Math.min(listBottomAlign, maxViewportTravel);
       };
 
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
-          start: 'top top+=90',
-          end: () => `+=${getTravel() + 180}`,
+          start: 'top top+=80',
+          end: () => `+=${getTravel() + 120}`,
           pin: true,
           scrub: 0.5,
           invalidateOnRefresh: true,
@@ -53,7 +62,7 @@ export default function Faq() {
 
       tl.to(title, {
         y: () => getTravel(),
-        ease: 'none',
+        ease: 'power1.out',
       });
 
       return () => {
@@ -69,7 +78,7 @@ export default function Faq() {
   return (
     <section ref={sectionRef} className="faq" id="resources" aria-labelledby="faq-title">
       <div className="wrap faq__grid">
-        <h2 ref={titleRef} className="h2 faq__title" id="faq-title" data-heading>
+        <h2 ref={titleRef} className="h2 faq__title" id="faq-title">
           Everything You Need to Know About AMRS.
         </h2>
 

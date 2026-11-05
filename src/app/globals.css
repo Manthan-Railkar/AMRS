@@ -967,9 +967,14 @@ svg use { pointer-events: none; }
 /* =========================================================
    FAQ
    ========================================================= */
-.faq { margin-top: 84px; padding-top: 90px; border-top: 1px solid var(--line); }
+.faq { margin-top: 60px; padding-top: 60px; padding-bottom: 60px; border-top: 1px solid var(--line); }
 .faq__grid { display: grid; grid-template-columns: 1fr 480px; gap: 60px; align-items: start; }
-.faq__title { position: static; will-change: transform; }
+.faq__title {
+  position: static;
+  will-change: transform;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
 .faq__list { display: grid; gap: 8px; }
 .faq__item { background: var(--surface); border-radius: 10px; transition: background .4s; }
 .faq__item button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; text-align: left; font-size: 14.5px; font-weight: 500; letter-spacing: -.005em; color: #1c1826; }
@@ -1119,6 +1124,7 @@ svg use { pointer-events: none; }
 [data-theme="dark"] .plan__price strong { color: #fff; }
 [data-theme="dark"] .plan__panel li { color: #e4e0f3; }
 [data-theme="dark"] .btn--dark { background: #f2f2f6; color: #0b0b0e; }
+[data-theme="dark"] .faq__title { color: #f2f2f6 !important; }
 [data-theme="dark"] .faq__item button { color: #f2f2f6; }
 [data-theme="dark"] .faq__panel p { color: #9b9ba8; }
 [data-theme="dark"] .cta__card { background: linear-gradient(90deg, #141418 0%, #141418 36%, #1b1a2a 55%, #2b2850 100%); box-shadow: none; }
