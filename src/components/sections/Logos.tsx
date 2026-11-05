@@ -1,32 +1,54 @@
+'use client';
+
+import React from 'react';
 import { logosData } from '@/data/logos';
 
 export function Logos() {
+  // Duplicate array to achieve an endless seamless loop in the horizontal strip
+  const repeatedLogos = [...logosData, ...logosData];
+
   return (
-    <section className="logos" aria-labelledby="logos-title">
+    <section className="logos" id="technologies" aria-labelledby="logos-title">
       <div className="wrap wrap--logos">
-        <div className="sec-head">
-          <h2 className="h2" id="logos-title" data-reveal data-heading>
-            Trusted by teams who ship faster with Kraft
+        <div className="logos__header">
+          <h2 className="h2 logos__title" id="logos-title" data-reveal data-heading>
+            Built on the Technologies Powering Modern Machine Learning.
           </h2>
-          <a className="see-all" href="#" data-reveal>
-            See all{' '}
-            <svg aria-hidden="true">
-              <use href="#i-arrow-right" />
-            </svg>
-          </a>
+          <p className="logos__lead lead" data-reveal>
+            An extensible recovery framework built for reproducible machine learning experimentation.
+          </p>
         </div>
-        <ul className="logo-row" data-stagger>
-          {logosData.map((logo) => (
-            <li key={logo.id} data-reveal>
-              <a className="logo-pill" href={logo.href}>
-                <svg aria-hidden="true">
-                  <use href={`#${logo.iconId}`} />
-                </svg>
-                <span>{logo.name}</span>
-              </a>
-            </li>
+      </div>
+
+      {/* Horizontal scrolling strip */}
+      <div
+        className="logos__strip-wrap"
+        data-reveal
+        role="region"
+        aria-label="Technologies powered by modern machine learning"
+      >
+        <div className="logos__marquee" aria-hidden="false">
+          {repeatedLogos.map((logo, index) => (
+            <a
+              key={`${logo.id}-${index}`}
+              className="logo-pill group"
+              href={logo.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={logo.name}
+              tabIndex={index >= logosData.length ? -1 : 0}
+            >
+              <svg
+                className="logo-pill__icon"
+                aria-hidden="true"
+                style={{ color: logo.color }}
+              >
+                <use href={`#${logo.iconId}`} />
+              </svg>
+              <span className="logo-pill__name">{logo.name}</span>
+            </a>
           ))}
-        </ul>
+        </div>
       </div>
     </section>
   );
