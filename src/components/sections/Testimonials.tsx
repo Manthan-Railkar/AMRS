@@ -153,6 +153,23 @@ export function Testimonials() {
                     </div>
                   </div>
                   <blockquote className="t-quote">{item.quote}</blockquote>
+                  {item.outcome && (
+                    <div className="t-outcome">
+                      <span className="t-outcome-badge">
+                        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M13.3334 4L6.00008 11.3333L2.66675 8"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        Recovery Outcome
+                      </span>
+                      <span className="t-outcome-text">{item.outcome}</span>
+                    </div>
+                  )}
                 </div>
 
                 <aside className="t-side">

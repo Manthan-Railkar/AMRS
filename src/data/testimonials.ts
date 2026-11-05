@@ -10,6 +10,7 @@ export interface TestimonialItem {
   quote: string;
   problem: string;
   recovery: string;
+  outcome: string;
   author: string;
   role: string;
   avatar: string;
@@ -27,6 +28,7 @@ export const testimonialsData: TestimonialItem[] = [
     recovery: 'Checkpoint averaging or selective fine-tuning with L2-SP.',
     quote:
       'AMRS arrests model degradation by identifying the divergence point in the training trajectory, combining proximal stationary checkpoints and selectively freezing earlier representation layers.',
+    outcome: 'Empirical holdout confirms restored generalization without full retraining.',
     author: 'ResNet18 CIFAR',
     role: 'Target Architecture',
     avatar: '/assets/img/g03-wave.jpg',
@@ -47,6 +49,7 @@ export const testimonialsData: TestimonialItem[] = [
     recovery: 'Temperature scaling.',
     quote:
       'Optimizes temperature scaling over validation logits to recalibrate predicted softmax probabilities, drastically reducing Expected Calibration Error without degrading classification accuracy.',
+    outcome: 'Post-hoc calibration minimizes ECE while strictly preserving top-1 accuracy.',
     author: 'Vision Classifier',
     role: 'Target Architecture',
     avatar: '/assets/img/g09-arch-glow.jpg',
@@ -67,6 +70,7 @@ export const testimonialsData: TestimonialItem[] = [
     recovery: 'Checkpoint reversion or averaging.',
     quote:
       'Audits parameter divergence after unexpected gradient shocks, restoring verified stable weights and averaging adjacent checkpoints with automated holdout verification.',
+    outcome: 'Weight averaging eliminates loss divergence and restores parameter stability.',
     author: 'PyTorch Vision Model',
     role: 'Target Architecture',
     avatar: '/assets/img/g07-swirl-road.jpg',
