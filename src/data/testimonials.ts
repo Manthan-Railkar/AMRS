@@ -8,6 +8,8 @@ export interface TestimonialItem {
   tag: string;
   company: string;
   quote: string;
+  problem: string;
+  recovery: string;
   author: string;
   role: string;
   avatar: string;
@@ -19,57 +21,64 @@ export interface TestimonialItem {
 export const testimonialsData: TestimonialItem[] = [
   {
     id: 1,
-    tag: 'Design Agency',
-    company: 'Stellar Creative',
+    tag: 'Scenario S1 — Reproducible Benchmark',
+    company: 'Overfitting Recovery',
     quote:
-      "We've completely transformed our workflow with Kraft. What used to take our team days now happens in hours. The AI understands our brand guidelines perfectly and produces designs that clients love on the first revision.",
-    author: 'Sarah Chen',
-    role: 'Creative Director',
-    avatar:
-      'https://images.unsplash.com/photo-1574108233269-86d1199d28de?q=80&w=774&auto=format&fit=crop',
-    fallbackAvatar: '/assets/img/avatar-sarah.jpg',
-    statsTitle: 'How they use Kraft',
+      'Training and validation performance diverge as the model memorizes spurious training features. AMRS automatically initiates checkpoint averaging across stationary validation epochs and selective fine-tuning constrained by L2-SP regularization to preserve learned general representations.',
+    problem: 'Training and validation performance diverge.',
+    recovery: 'Checkpoint averaging or selective fine-tuning with L2-SP.',
+    author: 'ResNet18 CIFAR',
+    role: 'Scenario S1 Benchmark',
+    avatar: '/assets/img/g03-wave.jpg',
+    fallbackAvatar: '/assets/img/g03-wave.jpg',
+    statsTitle: 'Experiment Details',
     stats: [
-      { label: 'Design Output', value: '10x faster' },
-      { label: 'Client Revisions', value: '-80%' },
-      { label: 'Team Size', value: '12 designers' },
+      { label: 'Scenario', value: 'S1' },
+      { label: 'Model', value: 'ResNet18 CIFAR' },
+      { label: 'Problem', value: 'Train/Val Divergence' },
+      { label: 'Expected Recovery', value: 'Checkpoint Avg / L2-SP' },
     ],
   },
   {
     id: 2,
-    tag: 'Tech Startup',
-    company: 'Quantum Labs',
+    tag: 'Scenario S2 — Reproducible Benchmark',
+    company: 'Calibration Recovery',
     quote:
-      'As a startup without a dedicated design team, Kraft has been a game-changer. We ship beautiful marketing materials, pitch decks, and product interfaces without hiring a single designer. The ROI is incredible.',
-    author: 'Marcus Rodriguez',
-    role: 'Co-founder & CEO',
-    avatar:
-      'https://images.unsplash.com/photo-1530268729831-4b0b9e170218?q=80&w=1740&auto=format&fit=crop',
-    fallbackAvatar: '/assets/img/avatar-sarah.jpg',
-    statsTitle: 'How they use Kraft',
+      'Model confidence is severely inflated while top-1 accuracy remains static, leading to uncalibrated overconfident probability outputs. AMRS isolates the post-hoc logit scaling factor via Temperature Scaling without altering learned model parameter rankings.',
+    problem: 'Model confidence is inflated.',
+    recovery: 'Temperature scaling.',
+    author: 'Vision Classifier',
+    role: 'Scenario S2 Benchmark',
+    avatar: '/assets/img/g09-arch-glow.jpg',
+    fallbackAvatar: '/assets/img/g09-arch-glow.jpg',
+    statsTitle: 'Experiment Details',
     stats: [
-      { label: 'Design Cost Savings', value: '$150k/year' },
-      { label: 'Time to Launch', value: '2 weeks' },
-      { label: 'Assets Created', value: '500+' },
+      { label: 'Scenario', value: 'S2' },
+      { label: 'Problem', value: 'Inflated Confidence' },
+      { label: 'Method', value: 'Temperature Scaling' },
+      { label: 'Expected Recovery', value: 'Temperature Scaling' },
     ],
   },
   {
     id: 3,
-    tag: 'Enterprise',
-    company: 'GlobalTech Inc',
+    tag: 'Scenario S4 — Reproducible Benchmark',
+    company: 'Training Instability',
     quote:
-      "Rolling out Kraft across our marketing team was seamless. The brand consistency features ensure every piece of content—from social posts to annual reports—looks like it came from the same designer. It's remarkable.",
-    author: 'Roy Park',
-    role: 'VP of Marketing',
-    avatar:
-      'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?q=80&w=870&auto=format&fit=crop',
-    fallbackAvatar: '/assets/img/avatar-sarah.jpg',
-    statsTitle: 'How they use Kraft',
+      'Sudden loss spikes and degraded gradient updates destabilize the active model state. AMRS audits the checkpoint history to perform automated checkpoint reversion and parameter weight averaging, followed by strict holdout validation checks.',
+    problem: 'Unstable loss and degraded checkpoints.',
+    recovery: 'Checkpoint reversion or averaging.',
+    author: 'PyTorch Vision Model',
+    role: 'Scenario S4 Benchmark',
+    avatar: '/assets/img/g07-swirl-road.jpg',
+    fallbackAvatar: '/assets/img/g07-swirl-road.jpg',
+    statsTitle: 'Experiment Details',
     stats: [
-      { label: 'Brand Consistency', value: '99.5%' },
-      { label: 'Team Members', value: '200+' },
-      { label: 'Monthly Designs', value: '5,000+' },
+      { label: 'Scenario', value: 'S4' },
+      { label: 'Problem', value: 'Unstable Loss Spikes' },
+      { label: 'Lineage', value: 'Checkpoint History' },
+      { label: 'Expected Recovery', value: 'Checkpoint Reversion / Avg' },
     ],
   },
 ];
 
+export default testimonialsData;

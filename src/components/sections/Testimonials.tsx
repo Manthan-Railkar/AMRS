@@ -109,6 +109,7 @@ export function Testimonials() {
   return (
     <section
       className="testimonials"
+      id="experiments"
       aria-labelledby="t-title"
       aria-roledescription="carousel"
       onKeyDown={handleKeyDown}
@@ -116,7 +117,7 @@ export function Testimonials() {
     >
       <div className="wrap">
         <h2 className="h2" id="t-title" data-reveal data-heading>
-          Trusted by design teams worldwide
+          See How AMRS Approaches Real Model Failures.
         </h2>
       </div>
 
@@ -141,11 +142,21 @@ export function Testimonials() {
                 <div className="t-main">
                   <span className="tag">{item.tag}</span>
                   <h3 className="t-company">{item.company}</h3>
+                  <div className="t-experiment-box">
+                    <div className="t-exp-row">
+                      <strong className="t-exp-label">Problem:</strong>
+                      <span className="t-exp-val">{item.problem}</span>
+                    </div>
+                    <div className="t-exp-row">
+                      <strong className="t-exp-label">Expected recovery:</strong>
+                      <span className="t-exp-val">{item.recovery}</span>
+                    </div>
+                  </div>
                   <blockquote>{item.quote}</blockquote>
                   <footer className="t-person">
                     <strong>{item.author}</strong>
                     <span>{item.role}</span>
-                    <small>{item.company}</small>
+                    <small>Reproducible Experiment Scenario</small>
                   </footer>
                 </div>
 
@@ -153,7 +164,7 @@ export function Testimonials() {
                   <Image
                     className="t-avatar"
                     src={item.avatar}
-                    alt={item.author}
+                    alt={item.company}
                     width={107}
                     height={160}
                     draggable={false}
@@ -182,7 +193,7 @@ export function Testimonials() {
       </div>
 
       <div className="wrap t-controls" data-reveal>
-        <div className="t-dots" role="tablist" aria-label="Choose testimonial">
+        <div className="t-dots" role="tablist" aria-label="Choose experiment">
           {testimonialsData.map((_, i) => (
             <button
               key={i}
@@ -190,17 +201,24 @@ export function Testimonials() {
               className={i === activeIndex ? 'is-active' : ''}
               role="tab"
               aria-selected={i === activeIndex}
-              aria-label={`Testimonial ${i + 1}`}
+              aria-label={`Experiment ${i + 1}`}
               onClick={() => goTo(i)}
             />
           ))}
         </div>
 
+        <a className="see-all t-cta" href="#features">
+          Explore All Experiments{' '}
+          <svg aria-hidden="true">
+            <use href="#i-arrow-right" />
+          </svg>
+        </a>
+
         <div className="t-arrows">
           <button
             type="button"
             className="t-prev"
-            aria-label="Previous testimonial"
+            aria-label="Previous experiment"
             disabled={activeIndex === 0}
             onClick={prev}
           >
@@ -211,7 +229,7 @@ export function Testimonials() {
           <button
             type="button"
             className="t-next"
-            aria-label="Next testimonial"
+            aria-label="Next experiment"
             disabled={activeIndex === testimonialsData.length - 1}
             onClick={next}
           >
