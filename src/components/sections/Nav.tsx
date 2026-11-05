@@ -167,11 +167,11 @@ export function Nav() {
               Templates
             </a>
             <a
-              href="#pricing"
+              href="#experiments"
               className="text-white/70 hover:text-white transition-colors duration-200"
               style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
             >
-              Pricing
+              Experiments
             </a>
             <a
               href="#resources"
@@ -305,7 +305,7 @@ export function Nav() {
         <nav aria-label="Mobile">
           <a href="#features" onClick={handleLinkClick}>Features</a>
           <a href="#templates" onClick={handleLinkClick}>Templates</a>
-          <a href="#pricing" onClick={handleLinkClick}>Pricing</a>
+          <a href="#experiments" onClick={handleLinkClick}>Experiments</a>
           <a href="#resources" onClick={handleLinkClick}>Resources</a>
           <a href="#waitlist" onClick={handleLinkClick}>Contact</a>
           <a href="#waitlist" onClick={handleLinkClick}>Get Started</a>
