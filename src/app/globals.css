@@ -969,7 +969,7 @@ svg use { pointer-events: none; }
    ========================================================= */
 .faq { margin-top: 84px; padding-top: 90px; border-top: 1px solid var(--line); }
 .faq__grid { display: grid; grid-template-columns: 1fr 480px; gap: 60px; align-items: start; }
-.faq__title { position: sticky; top: 90px; }
+.faq__title { position: static; will-change: transform; }
 .faq__list { display: grid; gap: 8px; }
 .faq__item { background: var(--surface); border-radius: 10px; transition: background .4s; }
 .faq__item button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; text-align: left; font-size: 14.5px; font-weight: 500; letter-spacing: -.005em; color: #1c1826; }

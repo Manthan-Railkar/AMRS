@@ -1,23 +1,79 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { faqData } from '@/data/faq';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function Faq() {
   const [openId, setOpenId] = useState<string | null>('faq-1');
+  const sectionRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const toggle = (id: string) => {
     setOpenId((curr) => (curr === id ? null : id));
+    setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 350);
   };
 
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const mm = gsap.matchMedia();
+
+    mm.add('(min-width: 901px)', () => {
+      const section = sectionRef.current;
+      const title = titleRef.current;
+      const list = listRef.current;
+      if (!section || !title || !list) return;
+
+      const getTravel = () => {
+        const listH = list.offsetHeight;
+        const titleH = title.offsetHeight;
+        return Math.max(80, listH - titleH);
+      };
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: 'top top+=90',
+          end: () => `+=${getTravel() + 180}`,
+          pin: true,
+          scrub: 0.5,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      tl.to(title, {
+        y: () => getTravel(),
+        ease: 'none',
+      });
+
+      return () => {
+        tl.kill();
+      };
+    });
+
+    return () => {
+      mm.revert();
+    };
+  }, []);
+
   return (
-    <section className="faq" id="resources" aria-labelledby="faq-title">
+    <section ref={sectionRef} className="faq" id="resources" aria-labelledby="faq-title">
       <div className="wrap faq__grid">
-        <h2 className="h2 faq__title" id="faq-title" data-reveal data-heading>
+        <h2 ref={titleRef} className="h2 faq__title" id="faq-title" data-heading>
           Everything You Need to Know About AMRS.
         </h2>
 
-        <div className="faq__list" data-stagger>
+        <div ref={listRef} className="faq__list" data-stagger>
           {faqData.map((item, idx) => {
             const isOpen = openId === item.id;
             const btnId = `faq-b${idx + 1}`;
