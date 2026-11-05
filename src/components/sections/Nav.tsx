@@ -193,7 +193,7 @@ export function Nav() {
             }}
           >
             <a
-              href="#waitlist"
+              href="#prompt"
               className="nav__action-link hidden sm:inline-block text-[12px] font-semibold uppercase tracking-[0.1em] text-white/75 hover:text-white transition-colors duration-200"
               style={{
                 fontSize: '12px',
@@ -204,10 +204,10 @@ export function Nav() {
                 textDecoration: 'none',
               }}
             >
-              Contact
+              Diagnose
             </a>
             <a
-              href="#waitlist"
+              href="#top"
               className="nav__cta-btn inline-flex items-center gap-1.5 bg-white text-[#0b0914] hover:bg-neutral-100 hover:scale-[1.03] active:scale-[0.98] font-bold text-[12px] uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full transition-all duration-200 shadow-[0_2px_12px_rgba(255,255,255,0.2)]"
               style={{
                 height: '38px',
@@ -307,8 +307,8 @@ export function Nav() {
           <a href="#templates" onClick={handleLinkClick}>Templates</a>
           <a href="#experiments" onClick={handleLinkClick}>Experiments</a>
           <a href="#resources" onClick={handleLinkClick}>Resources</a>
-          <a href="#waitlist" onClick={handleLinkClick}>Contact</a>
-          <a href="#waitlist" onClick={handleLinkClick}>Get Started</a>
+          <a href="#prompt" onClick={handleLinkClick}>Diagnose</a>
+          <a href="#top" onClick={handleLinkClick}>Get Started</a>
         </nav>
       </div>
     </>

@@ -8,7 +8,6 @@ import Presets from '@/components/sections/Presets';
 import Performance from '@/components/sections/Performance';
 import Testimonials from '@/components/sections/Testimonials';
 import Faq from '@/components/sections/Faq';
-import Cta from '@/components/sections/Cta';
 import Footer from '@/components/sections/Footer';
 
 export default function Home() {
@@ -25,7 +24,6 @@ export default function Home() {
         <Performance />
         <Testimonials />
         <Faq />
-        <Cta />
       </main>
       <Footer />
     </>
