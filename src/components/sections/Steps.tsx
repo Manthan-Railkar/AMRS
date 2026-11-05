@@ -101,7 +101,7 @@ export function Steps() {
     <section className="steps" id="features" aria-labelledby="steps-title">
       <div className="wrap">
         <h2 className="h2" id="steps-title" data-reveal data-heading>
-          From idea to finished design in four simple steps
+          From Model Failure to Verified Recovery in Four Steps.
         </h2>
       </div>
       <div ref={trackRef} className="steps__track" data-drag data-stagger>
