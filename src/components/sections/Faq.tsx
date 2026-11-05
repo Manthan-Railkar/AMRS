@@ -13,9 +13,17 @@ export default function Faq() {
   return (
     <section className="faq" id="resources" aria-labelledby="faq-title">
       <div className="wrap faq__grid">
-        <h2 className="h2 faq__title" id="faq-title" data-reveal data-heading>
-          Everything You Need to Know About AMRS.
-        </h2>
+        <div className="faq__side" data-reveal>
+          <h2 className="h2 faq__title" id="faq-title" data-heading>
+            Everything You Need to Know About AMRS.
+          </h2>
+          <div className="faq__intro">
+            <h3 className="faq__subheading">Have a specific question?</h3>
+            <p className="faq__desc">
+              Can’t find what you’re looking for? Test our interactive diagnostics or review reproducible benchmarks.
+            </p>
+          </div>
+        </div>
 
         <div className="faq__list" data-stagger>
           {faqData.map((item, idx) => {
