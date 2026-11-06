@@ -1,6 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import StaggeredMenu from '@/components/StaggeredMenu';
+
+const menuItems = [
+  { label: 'Features', ariaLabel: '4-step model recovery workflow', link: '#features' },
+  { label: 'Strategies', ariaLabel: '6 model recovery strategies', link: '#templates' },
+  { label: 'Benchmarks', ariaLabel: 'Performance metrics and evaluation', link: '#performance' },
+  { label: 'Experiments', ariaLabel: 'Reproducible failure recovery experiments', link: '#experiments' },
+  { label: 'FAQ', ariaLabel: 'Everything you need to know about AMRS', link: '#faq' },
+  { label: 'Diagnose', ariaLabel: 'Interactive model failure diagnosis', link: '#prompt-form' },
+];
+
+const socialItems = [
+  { label: 'GitHub', link: 'https://github.com/Manthan-Railkar/AMRS' },
+  { label: 'PyTorch', link: 'https://pytorch.org' },
+  { label: 'FastAPI', link: 'https://fastapi.tiangolo.com' },
+];
 
 export function Nav() {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,58 +103,30 @@ export function Nav() {
         >
           {/* Left: Brand logo */}
           <a
-            className="nav__brand flex items-center gap-2.5 text-white no-underline shrink-0 group"
+            className="nav__brand flex items-center text-white no-underline shrink-0 group"
             href="#top"
             aria-label="AMRS — Adaptive Model Recovery System"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '10px',
               textDecoration: 'none',
               color: '#ffffff',
               flexShrink: 0,
             }}
           >
-            <svg
-              className="nav__brand-mark w-5 h-5 shrink-0 text-white"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              aria-hidden="true"
+            <Image
+              src="/assets/img/amrs-logo.png"
+              alt="AMRS"
+              width={95}
+              height={33}
+              priority
+              className="nav__brand-logo h-7 sm:h-[30px] w-auto object-contain transition-opacity duration-200 group-hover:opacity-90"
               style={{
-                width: '20px',
-                height: '20px',
-                minWidth: '20px',
-                minHeight: '20px',
-                maxWidth: '20px',
-                maxHeight: '20px',
+                height: '28px',
+                width: 'auto',
                 display: 'block',
-                flexShrink: 0,
-                color: '#ffffff',
               }}
-            >
-              <use href="#i-logo" />
-            </svg>
-            <span
-              className="nav__brand-title text-[15px] sm:text-base font-extrabold tracking-wider text-white flex items-center"
-              style={{
-                fontSize: '16px',
-                fontWeight: 800,
-                letterSpacing: '0.04em',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                lineHeight: 1,
-              }}
-            >
-              AMR
-              <span
-                className="nav__brand-accent text-red-500 font-extrabold"
-                style={{ color: '#ef4444', fontWeight: 800 }}
-              >
-                S
-              </span>
-            </span>
+            />
           </a>
 
           {/* Center: Navigation Links */}
@@ -257,8 +246,9 @@ export function Nav() {
               className="menu-btn md:hidden w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-colors"
               type="button"
               aria-expanded={isOpen}
-              aria-controls="mobile-menu"
-              onClick={() => setIsOpen(true)}
+              aria-controls="staggered-menu-panel"
+              onClick={() => setIsOpen((prev) => !prev)}
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
               style={{
                 width: '36px',
                 height: '36px',
@@ -281,36 +271,26 @@ export function Nav() {
               >
                 <use href="#i-menu" />
               </svg>
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Toggle menu</span>
             </button>
           </div>
         </header>
       </div>
 
-      <div
-        className={`mobile-menu ${isOpen ? 'is-open' : ''}`}
-        id="mobile-menu"
-        aria-hidden={!isOpen}
-      >
-        <button
-          className="mobile-menu__close"
-          type="button"
-          aria-label="Close menu"
-          onClick={() => setIsOpen(false)}
-        >
-          <svg aria-hidden="true">
-            <use href="#i-close" />
-          </svg>
-        </button>
-        <nav aria-label="Mobile">
-          <a href="#features" onClick={handleLinkClick}>Features</a>
-          <a href="#templates" onClick={handleLinkClick}>Templates</a>
-          <a href="#experiments" onClick={handleLinkClick}>Experiments</a>
-          <a href="#resources" onClick={handleLinkClick}>Resources</a>
-          <a href="#prompt" onClick={handleLinkClick}>Diagnose</a>
-          <a href="#top" onClick={handleLinkClick}>Get Started</a>
-        </nav>
-      </div>
+      <StaggeredMenu
+        isOpen={isOpen}
+        onMenuOpen={() => setIsOpen(true)}
+        onMenuClose={() => setIsOpen(false)}
+        items={menuItems}
+        socialItems={socialItems}
+        displaySocials={true}
+        displayItemNumbering={true}
+        accentColor="#a78bfa"
+        colors={['#181230', '#2d1858', '#5b21b6']}
+        logoUrl="/assets/img/amrs-logo.png"
+        position="right"
+        isFixed={true}
+      />
     </>
   );
 }

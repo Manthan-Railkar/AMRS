@@ -215,6 +215,18 @@ svg use { pointer-events: none; }
   color: inherit;
   flex-shrink: 0;
 }
+.nav__brand-logo {
+  height: 28px;
+  width: auto;
+  max-height: 32px;
+  object-fit: contain;
+  display: block;
+  transition: opacity .2s var(--ease), transform .2s var(--ease);
+}
+.nav__brand:hover .nav__brand-logo {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
 .nav__brand-mark {
   width: 20px !important;
   height: 20px !important;
@@ -344,19 +356,7 @@ svg use { pointer-events: none; }
   .nav__cta-btn { padding: 0 14px !important; font-size: 11px !important; height: 34px !important; }
 }
 
-.mobile-menu {
-  position: fixed; inset: 0; z-index: 60; background: #05050f; color: #fff;
-  display: flex; flex-direction: column; justify-content: center; padding: 40px;
-  opacity: 0; visibility: hidden; transition: opacity .4s var(--ease), visibility .4s;
-}
-.mobile-menu.is-open { opacity: 1; visibility: visible; }
-.mobile-menu nav { display: flex; flex-direction: column; gap: 6px; }
-.mobile-menu nav a { font-size: 2rem; letter-spacing: -.04em; font-weight: 500; padding: 6px 0; opacity: 0; transform: translateY(12px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
-.mobile-menu.is-open nav a { opacity: 1; transform: none; }
-.mobile-menu.is-open nav a:nth-child(2) { transition-delay: .05s; } .mobile-menu.is-open nav a:nth-child(3) { transition-delay: .1s; }
-.mobile-menu.is-open nav a:nth-child(4) { transition-delay: .15s; } .mobile-menu.is-open nav a:nth-child(5) { transition-delay: .2s; } .mobile-menu.is-open nav a:nth-child(6) { transition-delay: .25s; }
-.mobile-menu__close { position: absolute; top: 18px; right: 20px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.1); display: grid; place-items: center; }
-.mobile-menu__close svg { width: 18px; height: 18px; }
+
 
 /* =========================================================
    HERO
