@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  # Internal FastAPI Backend Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amrs-api
+    restart: unless-stopped
+    environment:
+      - AMRS_DB_PATH=/app/artifacts/amrs.db
+      - AMRS_ARTIFACTS_ROOT=/app/artifacts
+      - AMRS_UPLOADS_ROOT=/app/uploads
+      - AMRS_ALLOW_UPLOAD=1
+      - AMRS_MAX_UPLOAD_BYTES=209715200
+    volumes:
+      - amrs_artifacts:/app/artifacts
+      - amrs_uploads:/app/uploads
+    # Port 8000 is exposed ONLY to other services within the Docker network
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - amrs-network
+
+  # Public-Facing Next.js Dashboard Frontend Service
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: amrs-web
+    restart: unless-stopped
+    environment:
+      # Private server-side communication to FastAPI
+      - AMRS_API_INTERNAL_URL=http://api:8000
+      - NODE_ENV=production
+    ports:
+      # Public browser access exclusively through Next.js reverse proxy
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - amrs-network
+
+volumes:
+  amrs_artifacts:
+    name: amrs_artifacts_volume
+  amrs_uploads:
+    name: amrs_uploads_volume
+
+networks:
+  amrs-network:
+    driver: bridge
+
