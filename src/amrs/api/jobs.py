@@ -184,10 +184,28 @@ class JobCoordinator:
         # Ensure isolated per-run storage exists
         run_dir = self.get_run_artifact_dir(run_id)
 
-        # Compute dummy original weights hash or capture uploaded weights
-        original_bytes = f"model_weights_{run_id}_{arch}_{seed}".encode("utf-8")
-        original_sha = hashlib.sha256(original_bytes).hexdigest()
-        (run_dir / "original.pt").write_bytes(original_bytes)
+        # Handle uploaded model or scenario baseline weights
+        if req.model_upload_id:
+            if not all(c.isalnum() or c == "-" for c in req.model_upload_id):
+                raise ValidationError(
+                    message=f"Invalid model upload ID format: '{req.model_upload_id}'",
+                    details={"model_upload_id": req.model_upload_id},
+                )
+            uploads_root = Path(os.getenv("AMRS_UPLOADS_ROOT", "uploads")).resolve()
+            upload_model_path = uploads_root / req.model_upload_id / "model.pt"
+            if not upload_model_path.exists() or not upload_model_path.is_file():
+                raise NotFoundError(
+                    message=f"Model upload '{req.model_upload_id}' not found.",
+                    details={"model_upload_id": req.model_upload_id},
+                )
+            original_bytes = upload_model_path.read_bytes()
+            original_sha = hashlib.sha256(original_bytes).hexdigest()
+            (run_dir / "original.pt").write_bytes(original_bytes)
+        else:
+            # Baseline scenario weights
+            original_bytes = f"model_weights_{run_id}_{arch}_{seed}".encode("utf-8")
+            original_sha = hashlib.sha256(original_bytes).hexdigest()
+            (run_dir / "original.pt").write_bytes(original_bytes)
 
         run_record = RunDetailResponse(
             id=run_id,
@@ -457,7 +475,22 @@ class JobCoordinator:
         return run
 
     def get_artifact(self, run_id: str, artifact_name: str) -> tuple[bytes, str]:
-        """Serve allowlisted run artifact from the run's isolated storage directory."""
+        """Serve allowlisted run artifact from the run's isolated storage directory.
+
+        Guarantees:
+        1. Reject path traversal, directory escape, and symlinks.
+        2. Strict allowlisting: only 'accepted_model.pt', 'report.json', 'report.md'.
+        3. Never return internal filesystem paths to the caller.
+        4. Cross-run access prevention: one run cannot read another run's artifacts.
+        """
+        # Validate run_id format
+        if not run_id or not all(c.isalnum() or c == "-" for c in run_id):
+            raise ValidationError(
+                message=f"Invalid run ID format: '{run_id}'",
+                details={"run_id": run_id},
+            )
+
+        # Validate artifact name against allowlist
         if artifact_name not in ALLOWLISTED_ARTIFACTS:
             raise ValidationError(
                 message=f"Artifact '{artifact_name}' is not permitted. Allowlisted: {sorted(ALLOWLISTED_ARTIFACTS)}",
@@ -467,6 +500,22 @@ class JobCoordinator:
         run = self.get_run(run_id)
         run_dir = self.get_run_artifact_dir(run_id)
         file_path = run_dir / artifact_name
+
+        # Reject symlinks
+        if os.path.islink(file_path):
+            raise ValidationError(
+                message=f"Artifact '{artifact_name}' is a symbolic link. Symlinks are forbidden.",
+                details={"artifact_name": artifact_name},
+            )
+
+        # Enforce directory confinement
+        resolved_path = file_path.resolve()
+        resolved_run_dir = run_dir.resolve()
+        if not str(resolved_path).startswith(str(resolved_run_dir)) or resolved_path.parent != resolved_run_dir:
+            raise ValidationError(
+                message="Path traversal detected in artifact retrieval.",
+                details={"artifact_name": artifact_name},
+            )
 
         if not file_path.exists():
             # Return virtual content if not yet written

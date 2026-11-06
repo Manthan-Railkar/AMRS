@@ -84,7 +84,7 @@ async def cancel_run(
 
 
 @router.get(
-    "/{run_id}/artifacts/{name}",
+    "/{run_id}/artifacts/{name:path}",
     summary="Download run artifact",
     description="Securely download allowlisted artifacts ('accepted_model.pt', 'report.json', 'report.md').",
 )

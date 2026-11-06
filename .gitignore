@@ -28,6 +28,8 @@
 # AMRS artifacts & Python
 /artifacts/*
 !/artifacts/.gitkeep
+/uploads/*
+!/uploads/.gitkeep
 *.pt
 __pycache__/
 .venv/

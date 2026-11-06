@@ -182,14 +182,22 @@ def test_model_upload_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_model_upload_success_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+    import torch
+    from amrs.models.registry import build
+
     monkeypatch.setenv("AMRS_ALLOW_UPLOAD", "1")
-    content = b"fake pytorch state dict bytes"
+    model = build("mlp_small")
+    buf = io.BytesIO()
+    torch.save(model.state_dict(), buf)
+    content = buf.getvalue()
+
     files = {"file": ("weights.pt", content, "application/octet-stream")}
-    data = {"arch": "resnet18_cifar"}
+    data = {"arch": "mlp_small"}
     res = client.post("/api/v1/models/upload", files=files, data=data)
     assert res.status_code == 201
     payload = res.json()
-    assert payload["arch"] == "resnet18_cifar"
+    assert payload["arch"] == "mlp_small"
     assert payload["filename"] == "weights.pt"
     assert payload["size_bytes"] == len(content)
     assert "sha256" in payload

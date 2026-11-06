@@ -1,7 +1,14 @@
-"""FastAPI application initialization and routing for AMRS."""
+"""FastAPI application initialization, routing, security hardening, and error handling for AMRS (BE-4)."""
+
+from __future__ import annotations
 
 import logging
-from fastapi import FastAPI, HTTPException, Request, status
+import os
+import re
+import time
+from typing import Any
+
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,6 +26,38 @@ from amrs.api.routes import (
 from amrs.errors import AmrsError
 
 logger = logging.getLogger("amrs.api")
+
+MAX_REQUEST_BODY_BYTES = 200 * 1024 * 1024  # 200 MB maximum upload limit
+
+
+def sanitize_secret_text(text: str) -> str:
+    """Scrub absolute filesystem paths, tokens, and secrets from user-facing error messages."""
+    if not isinstance(text, str):
+        return text
+
+    # Scrub Windows absolute paths (e.g. C:\Users\... or C:/Users/...)
+    text = re.sub(r"[a-zA-Z]:[\\/][^\"'\s]+", "[REDACTED_PATH]", text)
+    # Scrub Unix absolute paths (e.g. /home/... or /var/...)
+    text = re.sub(r"/(?:Users|home|root|var|etc)[^\"'\s]*", "[REDACTED_PATH]", text)
+
+    # Scrub specific sensitive environment variables if present
+    for secret_env in ("AMRS_API_INTERNAL_URL", "AMRS_DB_PATH", "DATABASE_URL"):
+        val = os.getenv(secret_env)
+        if val and len(val) > 3:
+            text = text.replace(val, "[REDACTED_SECRET]")
+
+    return text
+
+
+def sanitize_payload(obj: Any) -> Any:
+    """Recursively sanitize strings inside nested dicts/lists to prevent secret and path leakage."""
+    if isinstance(obj, str):
+        return sanitize_secret_text(obj)
+    if isinstance(obj, dict):
+        return {k: sanitize_payload(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_payload(item) for item in obj]
+    return obj
 
 
 def create_app() -> FastAPI:
@@ -45,56 +84,113 @@ def create_app() -> FastAPI:
     )
 
     # -----------------------------------------------------------------------
-    # Standardized Error Envelope Exception Handlers
+    # Security Middleware: Headers, Size Bounds & Audit Logging
+    # -----------------------------------------------------------------------
+
+    @app.middleware("http")
+    async def security_and_audit_middleware(request: Request, call_next: Any) -> Response:
+        start_time = time.monotonic()
+
+        # Enforce maximum content length
+        content_length_header = request.headers.get("content-length")
+        if content_length_header:
+            try:
+                content_length = int(content_length_header)
+                if content_length > MAX_REQUEST_BODY_BYTES:
+                    return JSONResponse(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        content={
+                            "error": {
+                                "code": "PAYLOAD_TOO_LARGE",
+                                "message": f"Request body exceeds maximum size of {MAX_REQUEST_BODY_BYTES // (1024 * 1024)} MB.",
+                                "details": {
+                                    "content_length": content_length,
+                                    "max_bytes": MAX_REQUEST_BODY_BYTES,
+                                },
+                            }
+                        },
+                    )
+            except ValueError:
+                pass
+
+        # Execute downstream request
+        response = await call_next(request)
+
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+
+        # Inject hardened HTTP security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+
+        # Structured audit log without leaking authorization tokens or sensitive headers
+        client_host = request.client.host if request.client else "unknown"
+        logger.info(
+            "AUDIT: %s %s %d (duration: %sms, client: %s)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+            client_host,
+        )
+
+        return response
+
+    # -----------------------------------------------------------------------
+    # Standardized Error Envelope Exception Handlers with Sanitization
     # -----------------------------------------------------------------------
 
     @app.exception_handler(AmrsError)
     async def amrs_error_handler(request: Request, exc: AmrsError) -> JSONResponse:
+        sanitized_content = sanitize_payload(exc.to_dict())
         return JSONResponse(
             status_code=exc.status_code,
-            content=exc.to_dict(),
+            content=sanitized_content,
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        # Sanitize error representations for frontend consumption
         errors_list = []
         for err in exc.errors():
             loc = ".".join(str(x) for x in err.get("loc", []))
             errors_list.append(
                 {
                     "field": loc,
-                    "message": err.get("msg", "Invalid value"),
+                    "message": sanitize_secret_text(err.get("msg", "Invalid value")),
                     "type": err.get("type", "value_error"),
                 }
             )
 
+        content = {
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed.",
+                "details": {"validation_errors": errors_list},
+            }
+        }
         return JSONResponse(
             status_code=422,
-            content={
-                "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "Request validation failed.",
-                    "details": {"validation_errors": errors_list},
-                }
-            },
+            content=sanitize_payload(content),
         )
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(
         request: Request, exc: HTTPException
     ) -> JSONResponse:
+        content = {
+            "error": {
+                "code": f"HTTP_{exc.status_code}",
+                "message": sanitize_secret_text(str(exc.detail)),
+                "details": {},
+            }
+        }
         return JSONResponse(
             status_code=exc.status_code,
-            content={
-                "error": {
-                    "code": f"HTTP_{exc.status_code}",
-                    "message": str(exc.detail),
-                    "details": {},
-                }
-            },
+            content=content,
         )
 
     @app.exception_handler(Exception)
