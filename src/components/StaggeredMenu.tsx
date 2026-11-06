@@ -371,6 +371,19 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     }
   }, [playClose, animateIcon, animateColor, animateText, onMenuClose]);
 
+  const handleToggleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (openRef.current) {
+        closeMenu();
+      } else {
+        toggleMenu();
+      }
+    },
+    [closeMenu, toggleMenu]
+  );
+
   // Synchronize with external controlled prop (e.g. navbar hamburger)
   useEffect(() => {
     if (controlledIsOpen === undefined) return;
@@ -416,19 +429,20 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     if (!closeOnClickAway || !open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         panelRef.current &&
-        !panelRef.current.contains(event.target as Node) &&
+        !panelRef.current.contains(target) &&
         toggleBtnRef.current &&
-        !toggleBtnRef.current.contains(event.target as Node)
+        !toggleBtnRef.current.contains(target)
       ) {
         closeMenu();
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [closeOnClickAway, open, closeMenu]);
 
@@ -472,7 +486,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
           aria-controls="staggered-menu-panel"
-          onClick={toggleMenu}
+          onClick={handleToggleClick}
           type="button"
         >
           <span className="sm-toggle-textWrap" aria-hidden="true">

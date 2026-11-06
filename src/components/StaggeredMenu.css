@@ -59,7 +59,11 @@
   padding: 18px 24px;
   background: transparent;
   pointer-events: none;
-  z-index: 20;
+  z-index: 30;
+}
+
+.staggered-menu-header > * {
+  pointer-events: auto !important;
 }
 
 .sm-toggle {
@@ -67,12 +71,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 9999px;
-  padding: 6px 14px 6px 16px;
-  cursor: pointer;
+  padding: 8px 16px;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   color: #ffffff;
   font-family: inherit;
   font-size: 13px;
@@ -81,6 +89,7 @@
   text-transform: uppercase;
   line-height: 1;
   overflow: visible;
+  z-index: 50;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
 }
 
