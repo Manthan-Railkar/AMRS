@@ -1,7 +1,7 @@
 # AMRS — Adaptive Model Recovery System
 ## PRD + MVP + Implementation Blueprint
 
-**Revised version:** 1.2 — team ownership, backend/frontend responsibility split and delivery gates added
+**Revised version:** 1.3 — complete department work breakdown, Next.js integration and release gates
 
 ---
 
@@ -9,12 +9,12 @@
 
 | Field | Value |
 |---|---|
-| Document version | 1.2 |
+| Document version | 1.3 |
 | Date | 2026-11-05 |
 | Project name | **AMRS** (Adaptive Model Recovery System). "AMR" in `Novex.txt` is an alias. |
 | Team | Big Dawgs, NOVEX Hackathon 2026 |
 | Source files used | `Novex.txt` (problem, solution, components, stack), `Big_Dawgs_-_Novex.pdf` (6 slides: title, idea, technical approach, feasibility, impact, references), and the master prompt |
-| Status | Approved baseline; frontend/integration revision added. The uploaded source ends after DM-4.1, so later ML, BM, BE, QA and DOC department parts remain to be supplied or authored before the entire blueprint can be considered execution-complete. |
+| Status | Expanded implementation blueprint. Missing ML, BM, QA and DOC workstreams have been authored as implementation proposals; validate assumptions and contracts against the live repository before execution. |
 
 ### 0.1 Fields supplied vs inferred
 
@@ -47,7 +47,7 @@
 
 ### 0.4 Source-plan completeness note
 
-The source `plan.md` available for this revision ended during DM-4.1. The v1.1 revision added FE and the frontend/backend connection contract. The source still does not provide detailed implementation parts for ML, BM, BE, QA or DOC, and its referenced Sections 6–12 were absent. Version 1.2 adds team ownership, a scoped backend work breakdown and a practical execution schedule. These additions are an implementation proposal, not a reconstruction of missing approved source content. The ML recovery algorithms, benchmark methodology, QA/security test catalogue and documentation/demo tasks still require a detailed technical specification before the plan can be called fully execution-ready.
+The source `plan.md` available for this revision ended during DM-4.1. The v1.1 revision added FE and the frontend/backend connection contract. The source still does not provide detailed implementation parts for ML, BM, BE, QA or DOC, and its referenced Sections 6–12 were absent. Version 1.3 adds detailed ML, BM, QA and DOC work breakdowns, agent prompts, acceptance criteria, ownership and integration dependencies. These are implementation proposals authored to close the gaps in the uploaded source, not a reconstruction of missing approved source content. Validate algorithm details, thresholds and API contracts against the actual repository before execution.
 
 
 
@@ -67,7 +67,7 @@ The project has three contributors. Each work item must have one directly respon
 2. Build in the order of **Section 6**. Every Part in Section 5 lists its prerequisites.
 3. For each Part, paste its **AGENT PROMPT** into a fresh AI coding-agent session. Each prompt is self-contained.
 4. A Part is done only when every acceptance criterion passes, its tests pass in CI, and the agent's report is reviewed by a human.
-5. Items tagged **[ASSUMPTION]** are decisions made on the team's behalf. Confirm them before implementation. The uploaded source did not contain its referenced Sections 6–12; this v1.2 adds a team execution schedule as Section 6, but does not invent the missing research/reference material.
+5. Items tagged **[ASSUMPTION]** are decisions made on the team's behalf. Confirm them before implementation. The uploaded source did not contain its referenced Sections 6–12; this v1.3 adds the missing department work breakdowns and a team execution schedule, while keeping source-derived claims distinct from newly authored implementation proposals.
 
 ---
 
@@ -668,14 +668,14 @@ For dataset upload mode, add a dedicated upload endpoint and `dataset_upload_id`
 | Code | Department | Why this department exists for AMRS | Parts |
 |---|---|---|---|
 | PX | Product & UX | Freezes metrics, policy and UX before code, which prevents rework | 2 |
-| INF | Infrastructure & DevOps | Repo, config, CI, Colab and Docker. The 4-person team needs a shared foundation. | 4 |
+| INF | Infrastructure & DevOps | Repo, config, CI, Colab and Docker. The three-person team needs a shared foundation. | 4 |
 | DM | Data & Model Foundation | Metrics, splits, model adapter, scenario zoo. Everything downstream depends on these. | 4 |
-| ML | Core Recovery Engine | Diagnose → select → repair → verify → rollback → monitor. This is the North Star. | 10 |
-| BM | Benchmarking | Produces the evidence for M1–M7 | 3 |
-| BE | Backend / API & Storage | SQLite, FastAPI, CLI | 6 (v1.2 added) |
+| ML | Core Recovery Engine | Diagnose → select → repair → verify → rollback → monitor. This is the North Star. | 10 (ML-10 Post-MVP) |
+| BM | Benchmarking | Produces the evidence for M1–M10 | 3 |
+| BE | Backend / API & Storage | SQLite, FastAPI, CLI | 6 |
 | FE | Frontend / Dashboard | Next.js pages | 6 |
-| QA | QA & Security | Test infra, security hardening, E2E, pre-release | 4 |
-| DOC | Documentation & Demo | README, guides, demo pack | 2 |
+| QA | QA & Security | Test strategy, security hardening, E2E, release gate | 4 |
+| DOC | Documentation & Demo | Installation/user/developer docs, runbooks and demo pack | 2 |
 
 **Standard blocks used in every AGENT PROMPT** (they are written out in full in each prompt so each one stands alone):
 - *Context block*: describes AMRS in 3–5 lines.
@@ -942,7 +942,7 @@ REPORT BACK: (1) files created/modified, (2) test summary, (3) acceptance checkl
 #### Section DM-4: Scenario zoo
 
 ##### DM-4.1 · Scenario zoo generator
-- **Description.** Builds the six scenarios S1–S6 (Section 2.2) reproducibly: trained weights, per-epoch checkpoints, training-history JSON, data bundle spec and ground-truth label. This is the dataset behind every success metric.
+- **Description.** Builds the six scenarios S1–S6 (Section 2.2) reproducibly: trained weights, per-epoch checkpoints, training-history JSON, data bundle spec, a separate `benchmark_eval` partition and ground-truth label. This is the dataset behind every success metric.
 - **Prerequisites.** DM-1.1, DM-2.1, DM-3.1.
 - **Implementation steps.**
   1. `benchmark/scenarios.py`: `ScenarioSpec` (id, arch, dataset, subset sizes, train recipe, ground-truth label, shift config) loaded from `configs/scenarios/*.yaml`. Two profiles: `full` (CIFAR-10, `resnet18_cifar`, GPU) and `cpu` (FashionMNIST 28×28 or CIFAR subset with `small_cnn`; ≤ 5 min per scenario on a laptop CPU), plus `tiny` (synthetic, for CI, ≤ 10 s).
@@ -1181,7 +1181,499 @@ REPORT: exact commands, test outcomes, files changed, known limits and release r
 - Document local startup, Docker startup, Colab startup, environment variables, health checks, data/artifact directories and recovery from interrupted jobs.
 - **Acceptance:** CLI smoke tests and API integration tests execute the same core service; a clean clone can start the stack by following the runbook; no private backend port is exposed by the Colab tunnel.
 
-### 5.6 Team allocation matrix
+
+### 5.6 Department ML — Core Recovery Engine
+
+**Purpose.** Implement the domain logic that diagnoses a supported classifier, selects eligible recovery methods, creates isolated candidate models, and hands candidates to the backend-owned verification gate. Aayush is the DRI for algorithm implementation. Manthan is the required reviewer for any code that touches holdout data, model immutability, candidate acceptance or artifact boundaries.
+
+**Shared implementation contract.** Every strategy implements the common `RecoveryStrategy` interface in `recovery/base.py`: `name`, `is_applicable(model, context) -> Applicability`, `estimate_cost(context) -> CostEstimate`, and `apply(model_copy, context) -> StrategyResult`. The context contains only the data and metadata permitted for that strategy. Strategies must not receive the holdout loader. Every result records parameters, seed, elapsed time, compute-meter deltas, warnings and artifact metadata. Strategy implementations must be deterministic for a fixed seed/config where the underlying operations permit it.
+
+**Dependencies.** DM-1 through DM-4, INF-1.2 and PX-1.1. ML-1 through ML-8 can be implemented in parallel after their shared interfaces are frozen; ML-9 integrates them.
+
+#### Section ML-1: Diagnosis engine
+
+##### ML-1.1 · Evidence-based multi-label diagnosis
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Convert the exact rules in Section 2.8 into a deterministic diagnosis service. The diagnosis stage must not inspect holdout data.
+- **Implementation steps.**
+  1. Define typed `DiagnosisLabel`, `DiagnosisEvidence`, `DiagnosisItem` and `DiagnosisReport` schemas in `schemas.py`. Each item includes label, confidence in `[0,1]`, evidence values, threshold values, source split and human-readable explanation.
+  2. Implement one pure rule function per label: overfitting, miscalibration, BN drift, instability and head degradation. Keep thresholds in validated config; do not duplicate numeric defaults in code.
+  3. Implement required supporting analyses: train/validation metric gap, optional history trend, ECE and temperature-fit diagnostic, BN running-stat divergence, loss spike/CV, and frozen-feature logistic-regression probe.
+  4. Treat unavailable evidence as `not_evaluable` with a reason, not as a zero score. For example, instability cannot be evaluated without training history; BN drift cannot be evaluated without BN layers and target/validation inputs.
+  5. Rank multi-label diagnoses by confidence and apply the tie-break order in Section 2.8. If no rule fires, return `healthy`.
+  6. Serialize the full evidence trail; do not return only a label.
+- **Deliverables.** `diagnosis/engine.py`, `diagnosis/rules.py`, `diagnosis/probes.py`, schemas and unit tests.
+- **Acceptance criteria.** Each of S1–S5 fires its expected primary label on the tiny scenario profile; S6 is healthy or has no actionable diagnosis. Every fired rule includes measured value, configured threshold and evidence source. Missing history/BN support produces explicit non-evaluable evidence. Repeated runs with the same inputs/config produce identical labels and confidence values.
+- **Tests required.** One positive and one negative test per rule; boundary tests at threshold equality; missing-evidence tests; multi-label ordering/tie-break test; no-holdout-access test.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+CONTEXT: AMRS is a PyTorch image-classifier recovery system. It diagnoses failure modes using train/validation evidence, then selects cheap recovery methods. Holdout is reserved exclusively for the verification gate and must never enter diagnosis.
+
+TASK: Implement the diagnosis schemas and modules described in Section ML-1. Follow the exact rules and thresholds in Sections 2.7 and 2.8. Implement each diagnosis as a separately testable rule. Include evidence, threshold, split provenance, confidence, and explicit not_evaluable reasons. Use the existing ModelAdapter and metrics modules. Do not change the approved formulas without raising an ADR.
+
+ACCEPTANCE: S1-S5 tiny scenarios produce their expected primary labels; S6 is healthy/no-action; threshold boundaries, missing history, missing BN layers, multi-label ranking and deterministic output are tested; diagnosis has no reference to holdout.
+
+RULES: Do not implement recovery strategies in this task. Keep route/API code out of the diagnosis package. Run ruff, mypy and pytest. Do not weaken holdout isolation.
+REPORT: files changed, formulas implemented, test results, scenario diagnosis table, deviations and unresolved issues.
+```
+
+#### Section ML-2: Strategy eligibility and cost-first selection
+
+##### ML-2.1 · Rule-to-strategy mapping and budget enforcement
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Implement the mapping in Section 2.9, checking prerequisites and ordering eligible methods by estimated compute cost.
+- **Implementation steps.**
+  1. Define `StrategyRegistry`, `StrategyCandidate`, `Applicability` and `SelectionReport`.
+  2. Map every diagnosis label to the exact eligible methods in Section 2.9. For multi-label reports, merge eligible methods and deduplicate them while retaining the diagnosis reasons that made each method eligible.
+  3. Check prerequisites before scheduling: checkpoint history, identifiable head, BN layers, target/validation inputs and architecture capabilities.
+  4. Estimate cost from parameter count, expected batches, gradient steps and strategy-specific constants. Mark estimates as estimates; record actual cost after execution.
+  5. Sort by ascending estimated cost with a stable deterministic tie-break (strategy name), then enforce `max_candidates` and `max_compute_ratio_vs_retrain`.
+  6. Record skipped methods and reasons such as `NO_HISTORY`, `NO_BN_LAYERS`, `NO_IDENTIFIABLE_HEAD`, `MISSING_TARGET` and `BUDGET_EXCEEDED`.
+- **Deliverables.** `selector/selector.py`, cost estimator and selector tests.
+- **Acceptance criteria.** All mappings match Section 2.9 exactly; prerequisites prevent invalid execution; order is stable; candidate and compute budgets are enforced; every skipped strategy has a machine-readable reason.
+- **Tests required.** Table-driven tests for every diagnosis, multi-label deduplication, missing prerequisites, equal-cost ordering and budget exhaustion.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement AMRS strategy registry and selector. Use Section 2.9 as the only diagnosis-to-strategy mapping. Merge multi-label eligibility, check strategy prerequisites, estimate cost, sort cheapest-first with deterministic tie-breaks, and enforce candidate/compute budgets. Return a complete SelectionReport including skipped strategies and reason codes.
+
+ACCEPTANCE: mapping tests cover every diagnosis; no strategy runs without prerequisites; deterministic ordering is proven; max_candidates and compute-ratio budgets are enforced; skip reasons are exposed.
+
+RULES: Do not execute strategies here and do not access holdout. Reuse validated config and the common strategy interface. Run ruff, mypy and pytest.
+REPORT: implementation summary, mapping table, test results, cost-estimation assumptions and open issues.
+```
+
+#### Section ML-3: Temperature scaling
+
+##### ML-3.1 · Calibration-only recovery
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Fit one scalar temperature on validation logits and apply it to a copied model's output logits. This changes calibration without changing predicted class ordering.
+- **Implementation steps.**
+  1. Implement `TemperatureScalingStrategy` using a positive scalar parameterized as `softplus(raw_T)` or an equivalent positive constraint.
+  2. Fit T by minimizing validation NLL only, with `max_iter` from config. Do not use holdout logits to fit T.
+  3. Wrap the model with a calibration module or persist a small calibration artifact; do not silently alter the classifier's learned weights.
+  4. Report before/after validation ECE and NLL, fitted T, optimizer convergence and whether top-1 predictions changed (they should not, apart from numerical ties).
+  5. Let the verification gate decide whether ECE improvement is statistically supported and secondary metrics remain within tolerance.
+- **Deliverables.** `recovery/temperature.py`, calibration serialization and tests.
+- **Acceptance criteria.** T is finite and positive; validation NLL does not increase beyond numerical tolerance after successful fitting; top-1 predictions are unchanged on non-tied logits; no holdout data is consumed.
+- **Tests required.** Synthetic overconfidence example, already-calibrated example, degenerate logits, convergence failure and serialization round-trip.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement TemperatureScalingStrategy. Fit a single positive temperature on validation logits by minimizing NLL; never fit on holdout. Preserve the original model and represent calibration as a serializable wrapper/artifact. Record T, optimizer status and validation metrics.
+
+ACCEPTANCE: T is finite/positive; an intentionally overconfident model improves validation calibration; non-tied top-1 predictions remain unchanged; degenerate inputs fail safely; serialization round-trips.
+
+RULES: Use config.max_iter. Do not evaluate or fit against holdout. Strategy must conform to RecoveryStrategy and report compute/time. Run ruff, mypy and pytest.
+REPORT: files changed, calibration results on fixtures, test outcomes and limitations.
+```
+
+#### Section ML-4: BatchNorm recalibration
+
+##### ML-4.1 · Running-statistics recalibration
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Recompute BatchNorm running means/variances using permitted unlabeled target inputs (or validation inputs when target is absent), without gradient updates.
+- **Implementation steps.**
+  1. Detect BatchNorm modules through `ModelAdapter`; return `NO_BN_LAYERS` if none exist.
+  2. Deep-copy the original model. Reset or selectively update running statistics according to the configured policy; preserve affine weights and biases.
+  3. Put the model in training mode only for BatchNorm-stat updates while disabling gradient computation and preventing dropout/other training-only layers from changing behavior. Restore module modes afterward.
+  4. Iterate at most `max_batches`; record the data source, sample count and updated layer count. Never use labels or holdout.
+  5. Validate the candidate on `val`; leave acceptance to the gate.
+- **Deliverables.** `recovery/bn_recal.py` and tests.
+- **Acceptance criteria.** BN running statistics change when target distribution differs; affine parameters remain unchanged; non-BN parameters remain unchanged; model modes are restored; no-gradient behavior is verified.
+- **Tests required.** BN model with shifted synthetic inputs, model without BN, empty target, batch limit, dropout mode restoration and parameter immutability.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement BNRecalibrationStrategy. Operate on a deep copy. Recompute only BatchNorm running statistics from target data, falling back to validation data only when the configured policy allows it. Do not use labels, gradients or holdout. Preserve affine parameters and all non-BN parameters; restore module training/eval states.
+
+ACCEPTANCE: running stats update on shifted data; all learned parameters remain unchanged; no-BN and empty-data cases return explicit skip/failure reasons; max_batches is honored; mode restoration is tested.
+
+RULES: No optimizer step. No holdout access. Use ModelAdapter and ComputeMeter. Run ruff, mypy and pytest.
+REPORT: changed files, tests, parameter-diff evidence and limitations.
+```
+
+#### Section ML-5: Checkpoint reversion and averaging
+
+##### ML-5.1 · Historical checkpoint candidates
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Produce candidates from supplied training checkpoints, using validation-only ranking and compatible tensor averaging.
+- **Implementation steps.**
+  1. Validate that checkpoint architecture, tensor keys and shapes match the registry model.
+  2. For reversion, evaluate eligible historical checkpoints on `val`, rank by the configured primary validation metric and return the best eligible checkpoint (top-K search).
+  3. For averaging, select the configured last-K compatible checkpoints and average floating-point tensors. Copy non-floating buffers using a documented deterministic rule; BatchNorm statistics must be handled consistently (prefer recalibration after averaging when supported).
+  4. Reject checkpoints with non-finite tensors or incompatible metadata. Never overwrite the original or source checkpoints.
+  5. Record selected checkpoint IDs, epoch range, validation scores and averaging policy.
+- **Deliverables.** `recovery/checkpoints.py` and tests.
+- **Acceptance criteria.** Reversion selects the best validation checkpoint; averaging is deterministic and shape-safe; source checkpoint hashes remain unchanged; incompatible or non-finite checkpoints are skipped with reasons.
+- **Tests required.** Known best checkpoint, tensor averaging arithmetic, integer/buffer handling, architecture mismatch, NaN/Inf and source immutability.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement checkpoint_reversion and checkpoint_averaging strategies. Rank historical checkpoints using validation only. Average compatible floating tensors over the configured last-K set; define deterministic handling for non-floating buffers and BatchNorm statistics. Do not mutate source checkpoints or original model.
+
+ACCEPTANCE: known-best reversion fixture is selected; averaging matches expected tensor arithmetic; incompatible/non-finite checkpoints are skipped with reason codes; deterministic output and source-hash immutability are tested.
+
+RULES: No holdout access. All candidate models are independent copies. Use atomic artifact writes and record checkpoint provenance. Run ruff, mypy and pytest.
+REPORT: strategy behavior, tests, buffer policy, deviations and limitations.
+```
+
+#### Section ML-6: Last-layer fine-tuning
+
+##### ML-6.1 · Head-only recovery
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Fine-tune only the identifiable classification head while freezing the backbone.
+- **Implementation steps.**
+  1. Use `ModelAdapter` to identify the head and its parameters; skip if the head is ambiguous.
+  2. Deep-copy the model, freeze all parameters, unfreeze only head parameters, and verify the optimizer parameter list contains no backbone tensors.
+  3. Train for configured epochs/lr/weight decay using `train`; use `val` only for early stopping/model selection if explicitly enabled.
+  4. Save the best validation checkpoint and report gradient steps, examples processed and compute units.
+  5. Record before/after validation metrics and parameter-diff summary.
+- **Deliverables.** `recovery/last_layer.py` and tests.
+- **Acceptance criteria.** Only head parameters change; backbone is byte-identical; the optimizer contains only head parameters; deterministic seed/config behavior; invalid head is skipped.
+- **Tests required.** Synthetic degraded-head scenario, frozen-backbone assertions, optimizer parameter audit, early-stop behavior and non-finite loss.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement LastLayerFineTuneStrategy. Deep-copy the model, freeze the backbone, train only the adapter-identified classification head using train data, and optionally select the best epoch using validation. Read epochs/lr/weight_decay from config. Record compute and parameter changes.
+
+ACCEPTANCE: only head tensors change; backbone tensors remain identical; optimizer includes head parameters only; S5 tiny fixture demonstrates measurable validation recovery; bad loss/head ambiguity fails safely.
+
+RULES: Do not pass holdout into the strategy. Do not mutate the original. Run ruff, mypy and pytest.
+REPORT: implementation details, parameter-diff test, fixture results and limitations.
+```
+
+#### Section ML-7: Selective fine-tuning with L2-SP
+
+##### ML-7.1 · Targeted backbone adaptation
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Unfreeze only the top-N layer groups and regularize weights toward the original model to reduce catastrophic forgetting.
+- **Implementation steps.**
+  1. Deep-copy the original and use `ModelAdapter.layer_groups()` to select the top-N groups plus the head.
+  2. Freeze all other parameters. Capture original parameter tensors as immutable L2-SP anchors.
+  3. Implement the objective `task_loss + alpha * Σ ||θ_selected − θ_original||²`, with alpha and optimizer settings from config.
+  4. Train on `train`; use validation for early stopping and candidate selection only. Keep augmentation controlled by the scenario/config.
+  5. Record selected groups, trainable parameter count, L2-SP contribution, gradient steps and compute units.
+- **Deliverables.** `recovery/selective_ft.py`, `recovery/l2sp.py` and tests.
+- **Acceptance criteria.** Only selected groups/head change; unselected parameters remain identical; regularization term is zero at initialization and grows only as selected weights move; memory use is bounded; non-finite candidates are rejected.
+- **Tests required.** L2-SP formula against a hand calculation, layer-group selection, frozen-parameter audit, zero-initialization penalty and S1 recovery smoke test.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement selective fine-tuning with L2-SP. Select top-N layer groups plus the head via ModelAdapter. Freeze all other weights. Anchor selected parameters to the original checkpoint and optimize task_loss + alpha * sum((parameter - original_parameter)^2). Train on train; use validation for early stopping only. Read settings from configs/default.yaml.
+
+ACCEPTANCE: L2-SP matches a hand calculation; penalty is zero at initialization; only selected parameters change; unselected parameters remain identical; candidate is finite and compute is metered.
+
+RULES: Never mutate original anchors; no holdout access. Run ruff, mypy and pytest.
+REPORT: selected groups, trainable parameter count, test outcomes and limitations.
+```
+
+#### Section ML-8: Weight interpolation
+
+##### ML-8.1 · Interpolation candidate search
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Search configured interpolation coefficients between the original weights and a fine-tuned candidate, selecting by validation metric.
+- **Implementation steps.**
+  1. Require identical architecture, tensor keys and shapes for original and fine-tuned candidate.
+  2. For each configured alpha, construct `θ(α) = (1−α)θ_original + αθ_candidate` for floating tensors. Apply the documented buffer policy to non-floating and BatchNorm buffers.
+  3. Evaluate each interpolated model on validation data only and select the best candidate according to the diagnosis primary metric.
+  4. Record alpha, validation metrics, tensor compatibility and buffer policy. The selected candidate still must pass the independent verification gate.
+- **Deliverables.** `recovery/interpolation.py` and tests.
+- **Acceptance criteria.** Alpha 0 exactly reproduces original floating weights; alpha 1 reproduces candidate weights; intermediate values match hand calculations; incompatible models are rejected; validation selection is deterministic.
+- **Tests required.** Boundary alpha, intermediate arithmetic, buffer handling, mismatch and validation ranking.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement WeightInterpolationStrategy. Interpolate compatible floating tensors between immutable original and fine-tuned candidate for each configured alpha. Use validation-only scoring to select the candidate. Document and test non-floating/BatchNorm buffer handling.
+
+ACCEPTANCE: alpha 0/1 reproduce endpoints; intermediate tensors match exact arithmetic; shape/key mismatches fail with a reason; selected alpha is validation-optimal and deterministic.
+
+RULES: Never access holdout. Never mutate source models. The verification gate, not this strategy, decides acceptance. Run ruff, mypy and pytest.
+REPORT: implementation, buffer policy, tests and limitations.
+```
+
+#### Section ML-9: Orchestration and live monitor integration
+
+##### ML-9.1 · Recovery pipeline and callback
+- **DRI:** Aayush for domain orchestration and callback; **Manthan** for immutable-original, cancellation and verification-gate integration.
+- **Description.** Connect diagnosis, selection, strategy execution, validation shortlisting, backend gate evaluation and rollback. Implement the callback used during live training.
+- **Implementation steps.**
+  1. Implement `pipeline/orchestrator.py` as a domain service independent of FastAPI. It accepts a model/data/config bundle and emits structured stage events.
+  2. Hash and preserve the original checkpoint. For each selected strategy, create a fresh copy of the original (or the documented parent candidate for interpolation), execute it, check finite weights/outputs and score on validation.
+  3. Pass only shortlisted frozen candidates to the verification-gate service. The gate is a backend-owned boundary and is the only component allowed to inspect holdout.
+  4. Stop on first accepted candidate in `first_accept` mode; otherwise honor `best_of_all`. On rejection, cancellation or error, produce the original checkpoint as the output artifact.
+  5. Implement `AMRSCallback` with EMA smoothing, patience, cooldown and configured `log`, `early_stop` or `recover` actions. Callback recovery must snapshot safely and must not run concurrently with an active recovery job.
+  6. Emit progress events with stable stages and percentages; persist stage timings, strategy attempts, monitor events and terminal verdict.
+- **Deliverables.** `pipeline/orchestrator.py`, `monitor/callback.py`, `monitor/detectors.py`, integration tests and event schema.
+- **Acceptance criteria.** End-to-end tiny S1–S6 runs produce a terminal state and complete report; S6 retains byte-identical original; rejected candidates never become output; cancellation stops at a safe boundary; monitor triggers only after patience and outside cooldown; all events are ordered and attributable to a run ID.
+- **Tests required.** Full pipeline happy path, all-candidate rejection, strategy exception, cancellation, crash/restart recovery, healthy no-action, monitor patience/cooldown and duplicate-trigger prevention.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement the AMRS domain orchestrator and live-training callback. Orchestrator order: intake/hash original -> data contract -> diagnosis -> selector -> candidate copy/strategy -> validation shortlist -> backend verification gate -> accept or byte-identical rollback -> persist report/artifacts. Emit progress events and support cooperative cancellation. Implement EMA/patience/cooldown monitor actions log, early_stop and recover.
+
+ACCEPTANCE: tiny S1-S6 end-to-end tests; S6 no-action preserves original hash; rejected/failed/cancelled runs output original; candidate errors do not corrupt the run; monitor patience/cooldown tests pass; progress is monotonic and terminal state is unique.
+
+RULES: Keep this service independent of FastAPI. Do not let the orchestrator bypass the gate or expose holdout to strategies. Coordinate gate calls with Manthan. Run ruff, mypy and pytest.
+REPORT: sequence diagram or flow summary, test outcomes, artifacts, known failure modes and deviations.
+```
+
+#### Section ML-10: Transformer adapter recovery (Post-MVP)
+
+##### ML-10.1 · Hugging Face PEFT/LoRA extension
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Description.** Post-MVP extension for supported Hugging Face transformer classifiers using PEFT/LoRA adapters. This is not required for the hackathon MVP.
+- **Implementation steps.**
+  1. Define a separate `TransformerModelAdapter` contract; do not force transformer modules into assumptions made by the CNN adapter.
+  2. Support a small allowlist of model architectures and PEFT target modules. Load base models from trusted local/cache sources only.
+  3. Train candidate adapters on train, select on validation and verify through the same gate abstraction.
+  4. Track base-model revision, tokenizer/config hashes, adapter config and package versions.
+- **Deliverables.** Separate adapter package, configuration examples, tests and a transformer scenario.
+- **Acceptance criteria.** A documented transformer classifier can be loaded reproducibly; adapter training changes only adapter parameters; gate and rollback semantics remain identical to the MVP.
+- **Tag.** Post-MVP
+- **AGENT PROMPT.**
+```text
+TASK: Design and implement a separate Hugging Face PEFT/LoRA recovery adapter for classification. This is explicitly Post-MVP. Preserve the existing PyTorch classifier contract and verification gate. Restrict supported model families and target modules; record immutable base revision and adapter metadata.
+
+ACCEPTANCE: adapter-only updates, reproducible load/save, train/validation/holdout separation and end-to-end gate compatibility are tested on a small transformer scenario.
+RULES: Do not delay or destabilize MVP work. No arbitrary remote code loading. Run the complete existing suite plus transformer-specific tests.
+REPORT: supported models, adapter design, benchmark evidence, dependency/security impact and limitations.
+```
+
+### 5.7 Department BM — Benchmarking and Evidence
+
+**Purpose.** Demonstrate whether AMRS improves models more reliably or cheaply than reasonable alternatives. Benchmarks must be reproducible and must not tune AMRS against the final evaluation split. Aayush is the DRI; Manthan reviews split integrity, statistical analysis and claims.
+
+**Dependencies.** DM-1–DM-4, ML-1–ML-9, PX-1.1 and BE-2 persistence.
+
+#### Section BM-1: Baseline implementations
+
+##### BM-1.1 · Comparable baseline methods
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Implementation steps.**
+  1. Implement common baseline interface `run_baseline(scenario, seed, budget, data_bundle) -> BaselineResult`.
+  2. Add early stopping, regularized fine-tuning, full retraining and fixed-strategy recovery baselines as specified in Sections 2.1 and 3.2.
+  3. Ensure each baseline receives equivalent training data and a comparable compute budget. Full retraining starts from the documented initialization; regularized fine-tuning uses a fixed, predeclared recipe.
+  4. Use validation data for baseline selection. Evaluate final baseline artifacts once on the benchmark evaluation split, separate from any tuning split.
+  5. Record all hyperparameters, seed, hardware/device, library versions, wall time, forward/backward samples and compute units.
+- **Deliverables.** `benchmark/baselines.py`, baseline config files and tests.
+- **Acceptance criteria.** All baselines run on tiny S1–S6 fixtures; each returns the common result schema; resource accounting is populated; no baseline receives privileged data unavailable to AMRS.
+- **Tests required.** Interface conformance, budget enforcement, deterministic seeds, missing-data handling and no-holdout-tuning tests.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement comparable benchmark baselines: early stopping, regularized fine-tuning, full retraining and fixed-strategy recovery. Use a common BaselineResult schema and common compute/time accounting. Use train/validation for fitting and selection; reserve benchmark evaluation data for final scoring only.
+
+ACCEPTANCE: all baselines execute on tiny scenarios, emit comparable metrics and resource use, obey budgets, and are deterministic for fixed seeds/configs.
+RULES: No baseline-specific access to AMRS holdout. Do not tune baseline hyperparameters on the final evaluation split. Run ruff, mypy and pytest.
+REPORT: baseline definitions, fairness assumptions, test results and deviations.
+```
+
+#### Section BM-2: Benchmark orchestration
+
+##### BM-2.1 · Scenario/seed/method matrix runner
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Implementation steps.**
+  1. Implement a benchmark job that expands selected scenarios × seeds × methods into immutable trial specifications.
+  2. Execute trials serially under the MVP single-worker policy. Persist status before execution and after each trial so interrupted benchmarks can be diagnosed.
+  3. Reuse scenario artifacts only when their config hash, seed and data provenance match the requested trial.
+  4. Store per-trial accuracy, NLL, ECE, retention, agreement, compute units, wall time, accepted status and failure reason.
+  5. Aggregate mean, standard deviation and paired method deltas only after all requested trials finish; incomplete matrices must be clearly marked.
+- **Deliverables.** `benchmark/runner.py`, benchmark schemas, persistence integration and CLI/API wiring.
+- **Acceptance criteria.** A tiny matrix completes and persists every trial; reruns do not silently overwrite incompatible results; partial failures remain visible; aggregates match hand-computed fixtures.
+- **Tests required.** Matrix expansion, resume behavior, partial failure, aggregation arithmetic, duplicate trial prevention and database restart persistence.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement the benchmark matrix runner for scenario × seed × method. Persist trial status and results, support safe resume, reuse only matching scenario artifacts, and aggregate mean/std and paired deltas. Integrate with the existing SQLite repository and CLI/API service layer.
+
+ACCEPTANCE: tiny matrix completes; every requested trial is represented; partial failures are explicit; aggregates match hand calculations; restart/resume does not duplicate completed trials.
+RULES: Respect the single-worker execution boundary and holdout/evaluation policy. Do not store model weights in SQLite. Run ruff, mypy and pytest.
+REPORT: matrix schema, persistence behavior, test results and known limits.
+```
+
+#### Section BM-3: Statistical analysis and reporting
+
+##### BM-3.1 · Benchmark evidence and claim validation
+- **DRI:** Aayush. **Reviewer:** Manthan.
+- **Implementation steps.**
+  1. Calculate per-scenario/per-method mean ± standard deviation over seeds and paired differences where runs share scenario/seed.
+  2. Report accuracy, ECE, NLL, retained-correct rate, compute units and wall time; never collapse them into an unexplained single score.
+  3. Calculate gain-per-compute consistently and show the exact formula in the report.
+  4. Mark missing trials and low seed counts. Do not describe three seeds as broad statistical proof.
+  5. Generate machine-readable `benchmark.json` and human-readable Markdown/CSV summaries. Include config hash, environment and run IDs.
+  6. Compare results against targets M1–M10 and state pass/fail/insufficient evidence for each.
+- **Deliverables.** `benchmark/report.py`, report templates, benchmark summary artifacts and documentation.
+- **Acceptance criteria.** Report values match stored trial records; missing data is never silently dropped; every chart/table has units and seed count; claims are traceable to run IDs/config hashes.
+- **Tests required.** Aggregation/report snapshot tests, missing-trial handling, zero-compute edge case, gain-per-compute formula and deterministic serialization.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement benchmark aggregation and reporting. Report mean/std across seeds and paired deltas by scenario/method for accuracy, ECE, NLL, retention, compute units and wall time. Generate benchmark.json and benchmark.md (CSV optional), with run IDs, config hashes, environment, seed counts and M1-M10 target status.
+
+ACCEPTANCE: reports reproduce stored values; missing trials and low sample counts are visible; units and formulas are explicit; no unsupported claim of statistical certainty is made.
+RULES: Do not alter raw benchmark records or cherry-pick seeds. Run ruff, mypy and pytest.
+REPORT: sample report, test results, target scorecard and limitations.
+```
+
+### 5.8 Department QA — Quality Assurance and Security
+
+**Purpose.** Establish that AMRS is correct, reproducible, safe to operate and demonstrably integrated. Manthan is the DRI for security and release gates. Each contributor owns unit tests for their modules; Aayush supports backend/ML integration tests and Manas supports browser/UI tests.
+
+**Dependencies.** All implementation departments. QA planning and test scaffolding begin alongside INF-1.
+
+#### Section QA-1: Test strategy and traceability
+
+##### QA-1.1 · Test pyramid and requirement matrix
+- **DRI:** Manthan. **Support:** Aayush and Manas.
+- **Implementation steps.**
+  1. Create `docs/qa/test-plan.md` mapping every F1–F18, BR1–BR13, M1–M10 and API endpoint to unit, integration, E2E or manual evidence.
+  2. Organize tests under `tests/unit`, `tests/integration`, `tests/e2e` and `apps/web` test locations. Use synthetic fixtures only in CI; tests must not require external datasets or network access.
+  3. Define test markers: `unit`, `integration`, `e2e`, `gpu`, `slow`, `security`. CI runs unit and CPU integration by default; GPU/long benchmarks are manual or scheduled.
+  4. Require regression tests for every fixed defect and deterministic seeds for ML fixtures.
+  5. Set minimum 80% coverage for `src/amrs` core modules; exclude generated files and keep exclusions documented. Coverage does not replace behavioral acceptance criteria.
+- **Deliverables.** Test plan, requirement traceability matrix, pytest config, fixtures and CI test commands.
+- **Acceptance criteria.** Every Must feature and business rule maps to at least one automated test; CI runs without network; coverage threshold is enforced; all skipped tests have a documented reason.
+- **Tests required.** CI dry run on a clean clone, coverage threshold failure test and test-marker selection checks.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Create the AMRS QA strategy and traceability matrix. Map F1-F18, BR1-BR13, M1-M10 and API routes to unit/integration/E2E/manual tests. Configure pytest markers and synthetic-only offline CI. Enforce 80% coverage for core modules.
+
+ACCEPTANCE: every MVP requirement has test evidence; default CI requires no network/GPU; coverage gate is enforced; skipped tests are explained.
+RULES: Do not lower coverage or weaken existing assertions to obtain a green build. Run the full test suite.
+REPORT: traceability matrix, commands, coverage, uncovered requirements and release blockers.
+```
+
+#### Section QA-2: Security and abuse-case validation
+
+##### QA-2.1 · Threat model and security test suite
+- **DRI:** Manthan. **Support:** Aayush.
+- **Implementation steps.**
+  1. Write `docs/qa/threat-model.md` covering untrusted model uploads, malicious serialized files, path traversal, oversized files, resource exhaustion, concurrent jobs, artifact ID guessing, secret leakage, unsafe CORS and public tunnel exposure.
+  2. Add adversarial tests for `weights_only=True`, invalid tensor payloads, extension/content mismatch, oversized uploads, traversal names, symlinks, absolute paths and cross-run artifact access.
+  3. Test upload disablement by default, API-key enforcement when exposed, localhost binding, allowed-origin CORS and absence of secrets/internal paths in API responses and logs.
+  4. Add worker resource limits: one active job, bounded upload size, configurable timeouts and safe cancellation. Document that a local single-user tool is not a hardened multi-tenant service.
+  5. Run dependency vulnerability audit (`pip-audit`) in CI and document accepted exceptions with owner and expiry.
+- **Deliverables.** Threat model, security tests, dependency audit report and security checklist.
+- **Acceptance criteria.** All listed abuse cases are covered; malicious pickle payload does not execute; upload remains disabled by default; no public FastAPI port is exposed in the demo topology; no critical/high unresolved dependency finding without an explicit waiver.
+- **Tests required.** Automated security regression suite plus manual review of deployment/tunnel configuration.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Produce the AMRS threat model and security regression suite. Cover untrusted state_dict uploads, unsafe pickle/RCE, path traversal, symlink/absolute path, file size/type, resource exhaustion, worker concurrency/cancellation, artifact authorization, CORS, API key, tunnel exposure and secret leakage. Verify weights_only=True and upload-disabled-by-default behavior.
+
+ACCEPTANCE: malicious payload never executes; traversal and cross-run access are rejected; size/type limits work; secrets and filesystem paths are not leaked; FastAPI remains private behind Next.js in demo topology; pip-audit runs in CI.
+RULES: Do not add arbitrary code execution or weaken upload controls for convenience. Manthan must approve security-sensitive changes.
+REPORT: threat model, abuse-case results, dependency findings, waivers and blockers.
+```
+
+#### Section QA-3: API, browser and end-to-end integration
+
+##### QA-3.1 · Real workflow E2E tests
+- **DRI:** Manthan. **Support:** Manas and Aayush.
+- **Implementation steps.**
+  1. Use Playwright to test the real Next.js app against a running FastAPI service with a tiny scenario fixture.
+  2. Cover health status, scenario loading, run submission, HTTP 202 handling, status polling, terminal results, cancellation, artifact download, history and benchmark result rendering.
+  3. Cover backend-offline, 422 validation, 409 active-run conflict, 413 upload, failed run and empty-state behavior.
+  4. Assert browser requests remain same-origin `/api/v1`; no browser request may target `localhost:8000`, `127.0.0.1:8000` or a private container hostname.
+  5. Verify API response schemas against frontend TypeScript/Zod contracts and generated OpenAPI.
+  6. Run a Docker Compose smoke test and a documented Colab tunnel rehearsal.
+- **Deliverables.** Playwright suite, API contract tests, Docker smoke script and E2E run report.
+- **Acceptance criteria.** One complete browser-to-persisted-result workflow passes without mocking the backend; all key error states render; same-origin proxy assertions pass; Docker and Colab topology checks are recorded.
+- **Tests required.** Playwright Chromium suite, API contract tests and service-start/stop integration test.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Implement real-stack E2E and API contract tests for AMRS. Start Next.js and FastAPI, run a tiny scenario from the browser, verify 202 job creation, polling, terminal verdict, persisted history and artifact download. Test cancellation, backend offline, 422, 409 and 413 states. Assert browser traffic uses only same-origin /api/v1 and never targets the private FastAPI host.
+
+ACCEPTANCE: end-to-end workflow passes against the real API; OpenAPI and Zod contracts agree; error states are visible; Docker Compose smoke test passes; Colab tunnel exposes only port 3000.
+RULES: Do not mock the complete backend for the primary path. Keep tests deterministic and clean up generated artifacts.
+REPORT: test commands, screenshots/traces, results, environment and unresolved failures.
+```
+
+#### Section QA-4: Release gate and regression rehearsal
+
+##### QA-4.1 · Pre-release validation
+- **DRI:** Manthan. **Support:** all contributors.
+- **Implementation steps.**
+  1. Create `docs/qa/release-checklist.md` with functional, statistical, security, reproducibility, UI accessibility, deployment and documentation checks.
+  2. Run unit/integration/E2E suites, lint/type checks, coverage, dependency audit and CPU tiny-scenario suite on the release candidate.
+  3. Run the GPU scenario/benchmark suite on the selected Colab/Kaggle runtime and record device, runtime, package versions and elapsed time.
+  4. Verify S6 healthy behavior, all-rejected rollback, cancellation and artifact integrity in a live rehearsal.
+  5. Freeze release commit and config; record known issues and explicitly defer non-MVP work.
+- **Deliverables.** Release checklist, test report, security sign-off and release-candidate tag.
+- **Acceptance criteria.** No open critical/high severity defects; all MVP gates pass; known limitations are documented; demo can be repeated from a clean environment; Manthan records release sign-off.
+- **Tests required.** Full release checklist and one timed end-to-end rehearsal.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Execute the AMRS release gate. Run lint, type checks, unit/integration/E2E, coverage, pip-audit, tiny scenarios, GPU smoke/benchmark where available, rollback/cancel/artifact-integrity rehearsals and accessibility checks. Create the release checklist and test report.
+
+ACCEPTANCE: no unresolved critical/high defect; all MVP criteria have evidence; S6 and rollback behavior are demonstrated; release instructions work from a clean checkout; known issues and deferred scope are explicit.
+RULES: Do not waive a failed safety or holdout-integrity test to meet the deadline. Record unavailable GPU checks as not run, not passed.
+REPORT: pass/fail matrix, commands, environment, blockers, waivers and release recommendation.
+```
+
+### 5.9 Department DOC — Documentation and Demo
+
+**Purpose.** Make AMRS understandable, installable, reproducible and demonstrable. Aayush owns technical documentation; Manas supplies accurate UI screenshots and user-flow descriptions; Manthan validates architecture, security and claims.
+
+**Dependencies.** PX-1, INF, DM, ML, BM, BE, FE and QA. Drafting can begin early, but final commands/screenshots must be verified against the release candidate.
+
+#### Section DOC-1: Product and developer documentation
+
+##### DOC-1.1 · Documentation set and clean-install guide
+- **DRI:** Aayush. **Support:** Manthan and Manas.
+- **Implementation steps.**
+  1. Write a concise root `README.md`: problem, solution, key differentiator, feature summary, architecture diagram, supported scope, screenshots and quick-start links.
+  2. Write `docs/installation.md` for Windows/PowerShell and Linux/macOS, Python 3.11, Node.js LTS, package installation, environment variables and startup commands.
+  3. Write `docs/user_guide.md` for scenario selection, model upload, config review, starting/cancelling a run, interpreting diagnosis/gate decisions and downloading artifacts.
+  4. Write `docs/developer_guide.md` for repository structure, module boundaries, coding standards, tests, migrations, adding a strategy and adding a registered architecture.
+  5. Write `docs/api.md` from the actual OpenAPI schema and `docs/frontend-integration.md` from the verified Next.js proxy contract.
+  6. Write `docs/reproducibility.md`, `docs/limitations.md`, `docs/runbook_gpu.md` and `docs/qa/release-checklist.md`. Include data provenance, seeds, config hashes, hardware and the difference between validation selection and holdout verification.
+  7. Include a troubleshooting section for missing GPU, CUDA mismatch, Colab disconnection, upload disabled, active-run conflict and stale jobs.
+- **Deliverables.** README and documentation set above, with diagrams and current UI screenshots.
+- **Acceptance criteria.** A teammate unfamiliar with the repo can install and run the CPU tiny demo from a clean checkout by following the docs; API documentation matches OpenAPI; no secret, private path or unsupported guarantee appears in docs.
+- **Tests required.** Follow installation steps in a clean environment; validate commands and links; compare API docs against generated schema.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Write AMRS product/developer documentation: README, installation (Windows PowerShell + Linux/macOS), user guide, developer guide, API reference from OpenAPI, frontend integration, reproducibility, GPU runbook, limitations and troubleshooting. Explain the four-way data contract, diagnosis evidence, seven MVP strategies, verification gate, rollback and compute-unit proxy accurately.
+
+ACCEPTANCE: a new teammate can clone and run the CPU tiny demo from a clean environment; commands are verified; API docs match OpenAPI; environment variables and Next.js-to-FastAPI proxy are correct; limitations and statistical caveats are explicit.
+RULES: Do not invent completed features, benchmark results or guarantees. Never include secrets or local private paths. Run documentation link/command checks where practical.
+REPORT: files created, clean-install test evidence, broken links, known gaps and reviewer notes.
+```
+
+#### Section DOC-2: Demo narrative and presentation assets
+
+##### DOC-2.1 · Repeatable judge demonstration
+- **DRI:** Manas for visual/story assets; **Aayush** for technical scenario preparation; **Manthan** for claims and release validation.
+- **Implementation steps.**
+  1. Prepare a 5–7 minute demo script: problem → upload/select scenario → diagnosis → cheapest-first attempts → gate evidence → accepted repair or rollback → benchmark comparison.
+  2. Prepare two deterministic demo paths: S1 overfit recovery with an accepted candidate, and S6 healthy control or a deliberately rejected candidate showing rollback. If an acceptance path is not reproducible, do not script it as guaranteed.
+  3. Pre-build and verify scenario artifacts for the demo environment; store config hashes, seeds and model hashes. Keep a live-build fallback only if time permits.
+  4. Capture screenshots of Run Recovery, diagnosis, candidate table, gate decision, benchmark comparison and history. Use actual release-candidate UI.
+  5. Prepare a short architecture diagram, one-slide technical differentiator summary, benchmark scorecard and limitations slide. Ensure all figures are sourced from actual benchmark output.
+  6. Rehearse offline fallback and explain what is live versus precomputed. Do not present precomputed results as a live run.
+- **Deliverables.** `docs/demo/script.md`, `docs/demo/rehearsal-checklist.md`, screenshots, architecture image and benchmark scorecard.
+- **Acceptance criteria.** Demo completes within 5–7 minutes; every displayed number maps to a run/report; both recovery and rollback/healthy behavior are shown; precomputed material is labelled; no unsupported "always improves" claim is made.
+- **Tests required.** Two timed rehearsals on the intended demo machine/network and one fallback rehearsal with the GPU unavailable.
+- **Tag.** MVP
+- **AGENT PROMPT.**
+```text
+TASK: Prepare a repeatable 5-7 minute AMRS judge demo. Show the complete diagnosis -> cheapest-first recovery -> independent verification -> accept/rollback story. Include an S1 recovery path and S6 healthy-control or rejected-candidate path. Capture actual UI screenshots and generate a benchmark scorecard from stored benchmark outputs.
+
+ACCEPTANCE: two rehearsals fit the time; every metric traces to a run ID/report; precomputed outputs are labelled; offline/GPU-unavailable fallback is ready; all claims match measured evidence.
+RULES: Never fabricate benchmark values or imply holdout guarantees generalize beyond its distribution. Do not change application behavior solely for screenshots.
+REPORT: script, assets, rehearsal timings, fallback procedure and remaining risks.
+```
+
+---
+
+### 5.10 Team allocation matrix
 
 | Workstream / Part | DRI | Support / reviewer | Responsibility boundary |
 |---|---|---|---|
@@ -1189,8 +1681,10 @@ REPORT: exact commands, test outcomes, files changed, known limits and release r
 | PX-2 UX design and page behavior | Manas | Manthan | Manas owns UI decisions within the approved product contract; Manthan reviews security-sensitive flows. |
 | INF repository, CI and environments | Manthan | Aayush | Manthan owns deployment secrets, proxy and network exposure; Aayush contributes Python tooling. |
 | DM-1 metrics, DM-2 data/splits, DM-3 models, DM-4 scenarios | Aayush | Manthan | Aayush owns data/model implementation; Manthan reviews split isolation and model-loading safety. |
-| ML recovery engine (ML-1–ML-9) | Aayush | Manthan | Aayush owns algorithm implementation; Manthan owns final verification-gate and immutable-original controls (BE-5). |
-| BM benchmarks | Aayush | Manthan | Aayush owns benchmark runner/results; Manthan reviews holdout leakage and reproducibility controls. |
+| ML-1 diagnosis, ML-2 selector, ML-3–ML-8 strategies | Aayush | Manthan | Aayush owns algorithm implementation; Manthan reviews data isolation and candidate immutability. |
+| ML-9 orchestrator and monitor | Aayush | Manthan | Aayush owns domain service/callback; Manthan owns worker boundary, cancellation and gate integration. |
+| ML-10 transformer adapter (Post-MVP) | Aayush | Manthan | Deferred; must not block MVP. |
+| BM-1 baselines, BM-2 runner, BM-3 reports | Aayush | Manthan | Aayush owns benchmark implementation; Manthan reviews fairness, holdout discipline and claims. |
 | BE-1 schemas/ordinary handlers | Aayush | Manthan | Aayush implements; Manthan approves contract changes. |
 | BE-2 persistence/history | Aayush | Manthan | Aayush implements repository layer; Manthan reviews path isolation and data integrity. |
 | BE-3 job lifecycle/execution boundary | Manthan | Aayush | Manthan owns worker safety/state transitions; Aayush integrates domain services. |
@@ -1203,10 +1697,14 @@ REPORT: exact commands, test outcomes, files changed, known limits and release r
 | FE-2.2 results/progress/artifacts UI | Manas | Manthan | Manas renders backend verdicts; Manthan owns cancellation and artifact authorization. |
 | FE-2.3 benchmarks/monitor/history UI | Manas | Aayush | Manas owns pages; Aayush supplies endpoint semantics/data. |
 | FE-2.4 E2E and release integration | Manthan | Manas, Aayush | Manthan owns end-to-end pass/fail and integration fixes; all three fix their respective defects. |
-| QA/security and release sign-off | Manthan | Aayush, Manas | Manthan owns security gate; each contributor owns tests for their code. |
-| DOC/demo material | Aayush | Manas, Manthan | Aayush drafts technical runbook; Manas supplies UI screenshots/flow; Manthan validates architecture/security claims. |
+| QA-1 test strategy/traceability | Manthan | Aayush, Manas | Each DRI owns module tests; Manthan owns coverage and traceability gate. |
+| QA-2 security | Manthan | Aayush | Manthan owns threat model and security sign-off. |
+| QA-3 E2E integration | Manthan | Manas, Aayush | Manthan owns real-stack E2E; each fixes defects in their layer. |
+| QA-4 release gate | Manthan | All | No release without evidence for critical gates. |
+| DOC-1 technical docs | Aayush | Manthan, Manas | Aayush owns technical content; Manthan validates contracts/security; Manas supplies UI evidence. |
+| DOC-2 demo assets | Manas | Aayush, Manthan | Manas owns visual assets; Aayush prepares scenarios; Manthan validates claims and rehearsal. |
 
-### 5.7 Working agreement and merge controls
+### 5.11 Working agreement and merge controls
 
 1. Use one issue per Part or independently testable subtask. Every issue names one DRI, reviewer, prerequisites, acceptance criteria and target branch.
 2. Manas works primarily in `apps/web/app`, `apps/web/components` and UI tests. Manthan owns `apps/web/lib/api`, proxy/environment configuration, security-sensitive UI flows and cross-stack integration. Coordinate shared files through small pull requests; do not edit the same file concurrently without agreement.
@@ -1215,6 +1713,7 @@ REPORT: exact commands, test outcomes, files changed, known limits and release r
 5. Never commit datasets, model weights, API secrets, `.env` files, Colab tokens or generated user uploads. Use `.env.example` with placeholders only.
 6. Keep the main branch runnable. Merge the smallest vertical slices: health → scenarios → create run → progress → result/gate → artifact → benchmark/history.
 7. No one may mark a Part complete based only on code generation. The DRI must attach commands, test output, screenshots/logs where relevant, and known limitations to the completion report.
+8. The MVP release gate takes priority over Post-MVP work. ML-10 and Section 3.3 roadmap items must not consume time needed for verification, security, integration or the demo.
 
 ## 6. Three-person implementation schedule and dependency order
 
@@ -1222,12 +1721,12 @@ The 14-calendar-day window in this plan is an assumption, not a confirmed deadli
 
 | Window | Manas — Frontend | Aayush — Backend/domain | Manthan — Critical cross-stack/security |
 |---|---|---|---|
-| Days 1–2 | Review UX, finalize page structure and design tokens; scaffold UI after repo baseline | Audit current Python modules, define domain/service boundaries, validate metric/data contracts | Freeze API contract, repository conventions, env/network topology, threat model and acceptance-policy invariants; set up CI/branch protection |
-| Days 3–4 | Build AppShell, routes, components and responsive states (FE-1.1) | Implement DM-1/DM-2 foundations and BE-1 schemas/ordinary handlers | Implement FE-1.2 proxy/API client foundation; review model intake and holdout split boundary |
-| Days 5–7 | Build scenario picker, config preview and run intake UI (FE-2.1) | Implement DM-3/DM-4, core diagnosis/recovery services and BE-2 persistence | Implement BE-3 worker/job lifecycle and BE-4 upload/artifact security; wire secure upload UI behavior with Manas |
-| Days 8–10 | Build run detail, progress, result and history/benchmark pages (FE-2.2/2.3) | Complete ML strategy/evaluation services, benchmark runner and ordinary API integrations | Implement BE-5 verification gate/holdout enforcement; integrate cancellation, result and artifact endpoints; review API contracts |
-| Days 11–12 | Fix UI integration, accessibility, responsive and empty/error states | Add backend integration tests, CLI wiring and reproducibility fixes | Complete FE-2.4 E2E, Docker/Colab topology checks, security tests and release candidate integration |
-| Days 13–14 | Demo polish, user-flow verification, screenshots and UI bug fixes | Benchmark runs, technical documentation and final reproducibility report | Security/release review, regression triage, final sign-off and rollback/demo rehearsal |
+| Days 1–2 | Review UX, finalize page structure and design tokens; scaffold UI after repo baseline | Audit current Python modules, define domain/service boundaries, validate metric/data contracts; draft diagnosis/strategy interfaces | Freeze API contract, repository conventions, env/network topology, threat model and acceptance-policy invariants; set up CI/branch protection; QA traceability setup |
+| Days 3–4 | Build AppShell, routes, components and responsive states (FE-1.1) | Implement DM-1/DM-2 foundations, BE-1 schemas and ML-1 diagnosis foundations | Implement FE-1.2 proxy/API client foundation; review model intake and holdout split boundary; add security test scaffolding |
+| Days 5–7 | Build scenario picker, config preview and run intake UI (FE-2.1) | Implement DM-3/DM-4, ML-2–ML-8 strategies and BE-2 persistence | Implement BE-3 worker/job lifecycle and BE-4 upload/artifact security; wire secure upload UI behavior with Manas |
+| Days 8–10 | Build run detail, progress, result and history/benchmark pages (FE-2.2/2.3) | Complete ML-9 orchestration/monitor, BM-1–BM-3 and ordinary API integrations | Implement BE-5 verification gate/holdout enforcement; integrate cancellation, result and artifact endpoints; review API contracts |
+| Days 11–12 | Fix UI integration, accessibility, responsive and empty/error states; capture UI evidence | Add backend integration tests, CLI wiring, benchmark reports and technical docs | Complete FE-2.4/QA-1–QA-3 E2E, Docker/Colab topology checks, security tests and release candidate integration |
+| Days 13–14 | Demo polish, user-flow verification, screenshots and DOC-2 demo assets | Final benchmark runs, DOC-1 guides and reproducibility report | QA-4 release review, security sign-off, regression triage and rollback/demo rehearsal |
 
 **Critical path:** API schemas and runtime topology → data/model contract → job lifecycle and secure intake → recovery engine + verification gate → frontend integration → E2E/security gate → demo. UI scaffolding and independent domain work can proceed in parallel, but integration must use the agreed schemas early.
 
@@ -1235,31 +1734,31 @@ The 14-calendar-day window in this plan is an assumption, not a confirmed deadli
 
 ### 6.1 Completeness and professionalism audit
 
-**Assessment: professional foundation, but not yet a complete implementation blueprint.** The PRD, product flows, architecture, stack decision, frontend connection contract and FE build prompts are detailed and structured. Version 1.2 improves accountability and adds the missing backend/security ownership proposal. However, the source plan available for review did not include the detailed ML, BM, BE, QA and DOC department parts or its referenced Sections 7–12. The BE tasks above are newly authored at the work-breakdown level; they do not replace detailed algorithm-by-algorithm ML specifications or a full QA plan.
+**Assessment: substantially more complete, but still requires repository validation.** Version 1.3 now supplies implementation work breakdowns for ML-1–ML-10, BM-1–BM-3, QA-1–QA-4 and DOC-1–DOC-2, alongside the existing PX, INF, DM, FE and BE parts. Every new Part includes a DRI, prerequisites, implementation steps, deliverables, acceptance criteria, tests and an agent prompt. These additions close the major structural gaps in the uploaded plan; they do not prove the code has been implemented or that every assumption is experimentally validated.
 
-| Area | Status | Remaining work before calling plan execution-complete |
+| Area | Status | Remaining validation before execution |
 |---|---|---|
-| Product scope, flows, success metrics | Mostly specified | Confirm assumptions, metric definitions and dataset availability. |
-| Frontend stack and page/API integration | Specified in v1.1 | Manas should validate the UX against the actual design assets; Manthan should validate endpoint contracts against generated OpenAPI. |
-| Backend architecture and ownership | Improved in v1.2 | Expand each actual endpoint/service into file-level tasks once repository structure is inspected. |
-| ML diagnosis/recovery algorithms | Incomplete in this source | Restore or write ML-1–ML-9 with formulas, prerequisites, pseudocode, edge cases and tests for each strategy. |
-| Benchmark methodology | Incomplete in this source | Define BM-1–BM-3, baselines, statistical analysis, compute normalization and result schema. |
-| QA/security | Incomplete in this source | Write threat model, test matrix, abuse cases, coverage targets and release checklist. Security checks listed in BE-4/BE-5 are minimum gates, not a full QA department plan. |
-| Infrastructure/deployment | Partly specified | Verify exact Docker/Colab commands against the real repository and test tunnel/network behavior. |
-| Documentation/demo | Incomplete in this source | Add installation guide, API reference, user guide, limitations, reproducibility guide and timed demo script. |
-| Schedule and capacity | Proposed, assumption-based | Confirm deadline, hours available, hardware/Colab quota and contingency; three people cannot reliably execute all scope without MVP prioritization. |
-| References and citations | Not fully auditable from available source | Restore missing references section and verify each cited paper/library/version. |
+| Product scope, flows, success metrics | Specified | Confirm assumptions, metric formulas, dataset availability and benchmark targets. |
+| Frontend stack and page/API integration | Specified | Validate Next.js version/Tailwind setup, actual OpenAPI schemas, UI design assets and browser proxy behavior. |
+| Backend architecture and ownership | Specified at service/workstream level | Map contracts to the actual repository and confirm worker implementation and endpoint payloads. |
+| ML diagnosis/recovery algorithms | Work breakdown authored | Validate algorithm details on tiny scenarios; verify strategy prerequisites, BatchNorm buffer policy and L2-SP implementation. |
+| Benchmark methodology | Work breakdown authored | Confirm fair compute budgets, evaluation split protocol, seed count and statistical reporting. |
+| QA/security | Work breakdown authored | Execute threat-model tests, verify deployment exposure and complete the release checklist. |
+| Infrastructure/deployment | Partly specified | Run exact Docker/Colab commands against the repository and rehearse tunnel/network behavior. |
+| Documentation/demo | Work breakdown authored | Generate docs/screenshots from the working release candidate and rehearse with actual outputs. |
+| Schedule and capacity | Proposed, assumption-based | Confirm deadline, available hours, GPU quota and contingency. Prioritize the vertical MVP path. |
+| References and citations | Not fully auditable from available source | Restore the original reference list and verify every paper, library and version. |
 
-**Recommendation:** treat v1.2 as the team allocation and integration baseline, not as a fully closed technical specification. Before coding the entire scope, complete the ML/BM/QA/DOC details and validate the backend API contract against the real repository. If time is short, freeze a narrower demo MVP and explicitly defer nonessential features rather than silently skipping tests or security controls.
+**Recommendation:** use v1.3 as the complete planning baseline, then validate it against the current codebase. Treat all acceptance criteria as targets until tests produce evidence. If the deadline is tight, prioritize one complete browser-to-result vertical slice, the verification/rollback guarantees, S1/S6 scenarios, benchmark evidence and release security. Defer ML-10 and other Post-MVP items rather than weakening safety or verification controls.
 
 
 ---
 
-## Revision 1.2 review result
+## Revision 1.3 review result
 
-- **Frontend technology:** changed from Streamlit to Next.js App Router + React + TypeScript + Tailwind CSS throughout the active product specification. Streamlit is retained only when describing the original source proposal or explicitly superseded decision.
+- **Frontend technology:** Next.js App Router + React + TypeScript + Tailwind CSS is the only active frontend stack. Streamlit is superseded and is not part of the application.
 - **Frontend/backend connection:** specified in Section 4.6 and FE-1.2/FE-2.4: same-origin `/api/v1`, Next.js rewrite proxy, server-only backend URL, typed API client, Zod schemas, TanStack Query, polling, mutations, upload flow, cancellation, error handling, Docker service DNS, Colab tunnel and integration acceptance tests.
 - **Backend remains:** Python 3.11, FastAPI, Pydantic v2, PyTorch/Torchvision, SQLite and existing AMRS core package. No ML logic is moved into the frontend.
 - **Team allocation:** Manas owns UI implementation; Aayush owns backend/domain implementation; Manthan owns cross-stack integration and the security-sensitive frontend/backend boundary, including proxy, upload, worker, artifact, holdout and verification-gate controls.
-- **Completeness:** backend work breakdown and three-person schedule added. The document explicitly identifies missing detailed ML/BM/QA/DOC specifications and references as remaining work; it does not claim the full implementation blueprint is complete.
-- **Important remaining source-plan gap:** the uploaded file itself ends after DM-4.1. Detailed build parts for ML, BM, BE, QA and DOC are absent from that source file even though they are named in the department summary. Those sections must be appended from the approved full plan or authored before the entire project plan is treated as complete.
+- **Completeness:** detailed ML-1–ML-10, BM-1–BM-3, QA-1–QA-4 and DOC-1–DOC-2 work breakdowns added, with prerequisites, DRIs, deliverables, acceptance criteria, tests and agent prompts. BE-1–BE-6 and FE-1.1–FE-2.4 remain part of the implementation plan.
+- **Source provenance:** the uploaded source ended after DM-4.1. The missing department work breakdowns in this revision are newly authored implementation proposals; validate them against the actual repository and any approved original plan before treating every detail as frozen.

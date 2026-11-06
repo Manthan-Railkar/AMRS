@@ -11,6 +11,7 @@ const menuItems = [
   { label: 'Experiments', ariaLabel: 'Reproducible failure recovery experiments', link: '#experiments' },
   { label: 'FAQ', ariaLabel: 'Everything you need to know about AMRS', link: '#faq' },
   { label: 'Diagnose', ariaLabel: 'Interactive model failure diagnosis', link: '#prompt-form' },
+  { label: 'Get Started', ariaLabel: 'Sign up or log in to AMRS', link: '/get-started' },
 ];
 
 const socialItems = [
@@ -196,7 +197,7 @@ export function Nav() {
               Diagnose
             </a>
             <a
-              href="#top"
+              href="/get-started"
               className="nav__cta-btn inline-flex items-center gap-1.5 bg-white text-[#0b0914] hover:bg-neutral-100 hover:scale-[1.03] active:scale-[0.98] font-bold text-[12px] uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full transition-all duration-200 shadow-[0_2px_12px_rgba(255,255,255,0.2)]"
               style={{
                 height: '38px',
