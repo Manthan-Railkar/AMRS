@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS schema_version (
 CREATE TABLE IF NOT EXISTS runs (
     id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('queued', 'running', 'succeeded', 'failed', 'cancelled')),
+    status TEXT NOT NULL CHECK(status IN ('queued', 'running', 'succeeded', 'failed', 'cancel_requested', 'cancelled')),
+    progress_stage TEXT NOT NULL DEFAULT 'idle',
+    progress_pct REAL NOT NULL DEFAULT 0.0,
     scenario_id TEXT,
     arch TEXT NOT NULL,
     original_sha256 TEXT NOT NULL,

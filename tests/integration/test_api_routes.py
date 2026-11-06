@@ -95,7 +95,7 @@ def test_create_run_and_lifecycle() -> None:
     run_data = detail_res.json()
     assert run_data["id"] == run_id
     assert run_data["scenario_id"] == "s1_overfit"
-    assert run_data["status"] == "queued"
+    assert run_data["status"] in ("queued", "running")
     assert run_data["seed"] == 42
 
     # 4. List runs
@@ -110,8 +110,13 @@ def test_create_run_and_lifecycle() -> None:
     assert cancel_res.status_code == 202
     assert cancel_res.json()["status"] == "cancel_requested"
 
-    # Verify run is now cancelled
-    detail_res_after = client.get(f"/api/v1/runs/{run_id}")
+    # Poll until cooperative cancellation is finalized by worker to 'cancelled'
+    import time
+    for _ in range(50):
+        detail_res_after = client.get(f"/api/v1/runs/{run_id}")
+        if detail_res_after.json()["status"] == "cancelled":
+            break
+        time.sleep(0.05)
     assert detail_res_after.json()["status"] == "cancelled"
 
     # Cancelling again should return 409 CONFLICT (already finished)

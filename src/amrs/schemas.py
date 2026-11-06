@@ -244,7 +244,7 @@ class RunCreateResponse(BaseModel):
 class RunSummary(BaseModel):
     id: str
     created_at: str
-    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    status: Literal["queued", "running", "succeeded", "failed", "cancel_requested", "cancelled"]
     scenario_id: str | None = None
     arch: str
     original_sha256: str
@@ -297,7 +297,7 @@ class CandidateSummary(BaseModel):
 class RunDetailResponse(BaseModel):
     id: str
     created_at: str
-    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    status: Literal["queued", "running", "succeeded", "failed", "cancel_requested", "cancelled"]
     progress_stage: str = "idle"
     progress_pct: float = Field(0.0, ge=0.0, le=100.0)
     scenario_id: str | None = None

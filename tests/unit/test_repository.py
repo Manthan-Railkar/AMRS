@@ -63,7 +63,8 @@ def test_run_crud(test_db: Database) -> None:
     assert fetched.scenario_id == "s1_overfit"
     assert fetched.config_json == {"seed": 1234, "diagnosis": {"gap_min": 0.1}}
 
-    # Update
+    # Update - transition queued -> running -> succeeded
+    repo.update_run_status(run_id="run-crud-1", status="running", progress_stage="diagnosis", progress_pct=25.0)
     repo.update_run_status(
         run_id="run-crud-1",
         status="succeeded",

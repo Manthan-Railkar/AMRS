@@ -5,43 +5,50 @@ from __future__ import annotations
 import contextlib
 import os
 import sqlite3
+import threading
+import uuid
 from collections.abc import Generator
 from pathlib import Path
 
 
 class Database:
-    """Manages SQLite connections, transactions, and pragma configuration."""
+    """Manages thread-safe SQLite connections, transactions, and pragma configuration."""
 
     def __init__(self, db_path: str = ":memory:") -> None:
-        self.db_path = db_path
-        if self.db_path != ":memory:":
+        self.raw_path = db_path
+        if db_path == ":memory:":
+            # Use unique shared in-memory URI so multiple threads share the same database
+            self.db_path = f"file:amrs_mem_{uuid.uuid4().hex}?mode=memory&cache=shared"
+            self.is_uri = True
+            # Keep one connection open to prevent in-memory DB destruction across thread exits
+            self._keepalive: sqlite3.Connection | None = sqlite3.connect(
+                self.db_path, uri=True, check_same_thread=False
+            )
+        else:
+            self.db_path = db_path
+            self.is_uri = False
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._connection: sqlite3.Connection | None = None
+            self._keepalive = None
+
+        self._local = threading.local()
 
     def get_connection(self) -> sqlite3.Connection:
-        """Create or return a configured SQLite connection."""
-        if self.db_path == ":memory:":
-            if self._connection is None:
-                self._connection = self._create_connection()
-            return self._connection
-
-        # For file-based databases, create or reuse
-        if self._connection is None:
-            self._connection = self._create_connection()
-        return self._connection
-
-    def _create_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(
-            self.db_path,
-            check_same_thread=False,
-            timeout=15.0,
-            isolation_level=None,  # Autocommit mode; explicit transactions managed via BEGIN/COMMIT
-        )
-        conn.row_factory = sqlite3.Row
-        # Enable foreign keys and WAL journal mode for performance and safety
-        conn.execute("PRAGMA foreign_keys = ON;")
-        if self.db_path != ":memory:":
-            conn.execute("PRAGMA journal_mode = WAL;")
+        """Create or return a thread-local configured SQLite connection."""
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(
+                self.db_path,
+                uri=self.is_uri,
+                check_same_thread=False,
+                timeout=30.0,
+                isolation_level=None,  # Autocommit mode; explicit transactions managed via BEGIN/COMMIT
+            )
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON;")
+            conn.execute("PRAGMA busy_timeout = 30000;")
+            if not self.is_uri:
+                conn.execute("PRAGMA journal_mode = WAL;")
+            self._local.conn = conn
         return conn
 
     @contextlib.contextmanager
@@ -65,10 +72,18 @@ class Database:
             raise
 
     def close(self) -> None:
-        """Close connection if active."""
-        if self._connection is not None:
+        """Close keepalive connection and thread-local connections."""
+        if self._keepalive is not None:
             try:
-                self._connection.close()
+                self._keepalive.close()
             except Exception:
                 pass
-            self._connection = None
+            self._keepalive = None
+
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None

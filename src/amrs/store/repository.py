@@ -7,6 +7,7 @@ import logging
 import uuid
 from typing import Any
 
+from amrs.pipeline.lifecycle import validate_status_transition
 from amrs.schemas import (
     BenchmarkDetailResponse,
     BenchmarkResultItem,
@@ -50,15 +51,17 @@ class RunRepository:
             conn.execute(
                 """
                 INSERT INTO runs (
-                    id, created_at, status, scenario_id, arch,
-                    original_sha256, config_json, seed, verdict,
+                    id, created_at, status, progress_stage, progress_pct,
+                    scenario_id, arch, original_sha256, config_json, seed, verdict,
                     accepted_strategy, error_message, duration_s, compute_units_total
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
                 (
                     run.id,
                     run.created_at,
                     run.status,
+                    run.progress_stage,
+                    run.progress_pct,
                     run.scenario_id,
                     run.arch,
                     run.original_sha256,
@@ -137,18 +140,30 @@ class RunRepository:
         self,
         run_id: str,
         status: str,
+        progress_stage: str | None = None,
+        progress_pct: float | None = None,
         verdict: str | None = None,
         accepted_strategy: str | None = None,
         error_message: str | None = None,
         duration_s: float | None = None,
         compute_units_total: float | None = None,
     ) -> None:
-        """Update terminal outcome or progress status of a run."""
+        """Update terminal outcome or progress status of a run with state-transition validation."""
         with self.db.transaction() as conn:
+            # 1. Fetch current status to validate transition
+            row = conn.execute("SELECT status FROM runs WHERE id = ?;", (run_id,)).fetchone()
+            if not row:
+                logger.warning("Attempted to update status of non-existent run %s", run_id)
+                return
+            current_status = row["status"]
+            validated_target = validate_status_transition(current_status, status).value
+
             conn.execute(
                 """
                 UPDATE runs
                 SET status = ?,
+                    progress_stage = COALESCE(?, progress_stage),
+                    progress_pct = COALESCE(?, progress_pct),
                     verdict = COALESCE(?, verdict),
                     accepted_strategy = COALESCE(?, accepted_strategy),
                     error_message = COALESCE(?, error_message),
@@ -157,7 +172,9 @@ class RunRepository:
                 WHERE id = ?;
                 """,
                 (
-                    status,
+                    validated_target,
+                    progress_stage,
+                    progress_pct,
                     verdict,
                     accepted_strategy,
                     error_message,
@@ -166,6 +183,22 @@ class RunRepository:
                     run_id,
                 ),
             )
+
+    def recover_interrupted_runs(self) -> int:
+        """Scan for runs stuck in active states from an ungraceful shutdown/crash and mark them failed."""
+        with self.db.transaction() as conn:
+            cur = conn.execute(
+                """
+                UPDATE runs
+                SET status = 'failed',
+                    error_message = 'Run interrupted by server restart or process crash'
+                WHERE status IN ('queued', 'running', 'cancel_requested');
+                """
+            )
+            count = cur.rowcount
+            if count > 0:
+                logger.warning("Crash recovery: recovered %d interrupted runs to 'failed' status", count)
+            return count
 
     def get_run(self, run_id: str) -> RunDetailResponse | None:
         """Fetch full run detail including its diagnoses and candidates."""
@@ -227,8 +260,8 @@ class RunRepository:
             id=row["id"],
             created_at=row["created_at"],
             status=row["status"],
-            progress_stage="completed" if row["status"] in ("succeeded", "failed", "cancelled") else "running",
-            progress_pct=100.0 if row["status"] in ("succeeded", "failed", "cancelled") else 50.0,
+            progress_stage=row["progress_stage"] if "progress_stage" in row.keys() else "idle",
+            progress_pct=row["progress_pct"] if "progress_pct" in row.keys() else 0.0,
             scenario_id=row["scenario_id"],
             arch=row["arch"],
             original_sha256=row["original_sha256"],

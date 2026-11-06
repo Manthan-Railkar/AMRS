@@ -58,6 +58,9 @@ def test_api_restart_persistence_with_sqlite_file(tmp_path: Path) -> None:
     )
     coord1.run_repo.add_diagnosis(run_id, diag)
     coord1.run_repo.add_candidate(cand)
+    curr = coord1.run_repo.get_run(run_id)
+    if curr and curr.status == "queued":
+        coord1.run_repo.update_run_status(run_id=run_id, status="running")
     coord1.run_repo.update_run_status(
         run_id=run_id,
         status="succeeded",
