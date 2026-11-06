@@ -13,10 +13,7 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def reset_coordinator_state() -> None:
     """Reset coordinator state before each test."""
-    coordinator._runs.clear()
-    coordinator._active_run_id = None
-    coordinator._monitor_replays.clear()
-    coordinator._benchmarks.clear()
+    coordinator.reset_state()
 
 
 # ---------------------------------------------------------------------------

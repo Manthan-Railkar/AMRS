@@ -1,7 +1,8 @@
 """In-process job lifecycle manager and execution boundary for AMRS recovery runs.
 
 Maintains concurrency limits (single active run guard), state transitions,
-and cooperative cancellation semantics required by Section 2.5 and BE-3.
+and cooperative cancellation semantics required by Section 2.5 and BE-3,
+persisting run state and benchmark records via SQLite repositories (BE-2).
 """
 
 from __future__ import annotations
@@ -16,9 +17,6 @@ from amrs.schemas import (
     BenchmarkCreateRequest,
     BenchmarkDetailResponse,
     BenchmarkResultItem,
-    CandidateSummary,
-    DiagnosisEvidence,
-    DiagnosisItem,
     MonitorEventItem,
     MonitorReplayDetailResponse,
     MonitorReplayRequest,
@@ -26,21 +24,36 @@ from amrs.schemas import (
     RunDetailResponse,
     RunSummary,
 )
+from amrs.store.db import Database
+from amrs.store.migrations import apply_migrations
+from amrs.store.repository import BenchmarkRepository, RunRepository
 
 
 class JobCoordinator:
-    """Singleton in-process coordinator managing runs, monitor replays, and benchmarks."""
+    """Coordinator managing runs, monitor replays, and benchmarks backed by SQLite persistence."""
 
-    def __init__(self) -> None:
-        self._runs: dict[str, RunDetailResponse] = {}
+    def __init__(self, db: Database | None = None) -> None:
+        db_path = os.getenv("AMRS_DB_PATH", ":memory:")
+        self.db = db or Database(db_path)
+        apply_migrations(self.db)
+
+        self.run_repo = RunRepository(self.db)
+        self.benchmark_repo = BenchmarkRepository(self.db)
+
         self._monitor_replays: dict[str, MonitorReplayDetailResponse] = {}
-        self._benchmarks: dict[str, BenchmarkDetailResponse] = {}
         self._active_run_id: str | None = None
-        self._seed_mock_scenarios()
 
-    def _seed_mock_scenarios(self) -> None:
-        """Seed completed runs or demo fixtures if needed, or keep clean."""
-        pass
+    def reset_state(self) -> None:
+        """Clear all stored state and active run locks (used in testing and test fixtures)."""
+        with self.db.transaction() as conn:
+            conn.execute("DELETE FROM candidates;")
+            conn.execute("DELETE FROM diagnoses;")
+            conn.execute("DELETE FROM runs;")
+            conn.execute("DELETE FROM monitor_events;")
+            conn.execute("DELETE FROM benchmark_results;")
+            conn.execute("DELETE FROM benchmark_runs;")
+        self._active_run_id = None
+        self._monitor_replays.clear()
 
     # -----------------------------------------------------------------------
     # Recovery Run Lifecycle
@@ -49,7 +62,7 @@ class JobCoordinator:
     def has_active_run(self) -> bool:
         if self._active_run_id is None:
             return False
-        run = self._runs.get(self._active_run_id)
+        run = self.run_repo.get_run(self._active_run_id)
         if run and run.status in ("queued", "running"):
             return True
         self._active_run_id = None
@@ -88,7 +101,7 @@ class JobCoordinator:
             candidates=[],
         )
 
-        self._runs[run_id] = run_record
+        self.run_repo.create_run(run_record)
         self._active_run_id = run_id
         return run_id
 
@@ -99,35 +112,16 @@ class JobCoordinator:
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[RunSummary], int]:
-        """List runs with optional filtering and pagination."""
-        all_runs = list(self._runs.values())
-        if verdict:
-            all_runs = [r for r in all_runs if r.verdict == verdict]
-        if scenario_id:
-            all_runs = [r for r in all_runs if r.scenario_id == scenario_id]
-
-        total = len(all_runs)
-        paged = all_runs[offset : offset + limit]
-
-        summaries = [
-            RunSummary(
-                id=r.id,
-                created_at=r.created_at,
-                status=r.status,
-                scenario_id=r.scenario_id,
-                arch=r.arch,
-                original_sha256=r.original_sha256,
-                verdict=r.verdict,
-                accepted_strategy=r.accepted_strategy,
-                duration_s=r.duration_s,
-                compute_units_total=r.compute_units_total,
-            )
-            for r in paged
-        ]
-        return summaries, total
+        """List runs with optional filtering and pagination from SQLite store."""
+        return self.run_repo.list_runs(
+            verdict=verdict,
+            scenario_id=scenario_id,
+            limit=limit,
+            offset=offset,
+        )
 
     def get_run(self, run_id: str) -> RunDetailResponse:
-        run = self._runs.get(run_id)
+        run = self.run_repo.get_run(run_id)
         if not run:
             raise NotFoundError(
                 message=f"Run '{run_id}' not found",
@@ -144,8 +138,7 @@ class JobCoordinator:
                 details={"run_id": run_id, "current_status": run.status},
             )
 
-        run.status = "cancelled"
-        run.progress_stage = "cancelled"
+        self.run_repo.update_run_status(run_id, status="cancelled")
         if self._active_run_id == run_id:
             self._active_run_id = None
         return run_id
@@ -222,17 +215,18 @@ class JobCoordinator:
                             notes=None,
                         )
                     )
-        record = BenchmarkDetailResponse(
+
+        self.benchmark_repo.create_benchmark(
             benchmark_id=benchmark_id,
             created_at=now,
+            config=req.model_dump(),
             status="succeeded",
             results=results,
         )
-        self._benchmarks[benchmark_id] = record
         return benchmark_id
 
     def get_benchmark(self, benchmark_id: str) -> BenchmarkDetailResponse:
-        rec = self._benchmarks.get(benchmark_id)
+        rec = self.benchmark_repo.get_benchmark(benchmark_id)
         if not rec:
             raise NotFoundError(
                 message=f"Benchmark '{benchmark_id}' not found",
@@ -241,14 +235,13 @@ class JobCoordinator:
         return rec
 
     def get_latest_benchmark(self) -> BenchmarkDetailResponse:
-        if not self._benchmarks:
+        rec = self.benchmark_repo.get_latest_benchmark()
+        if not rec:
             raise NotFoundError(
                 message="No benchmarks found",
                 details={},
             )
-        # Return the most recently inserted benchmark
-        latest_id = list(self._benchmarks.keys())[-1]
-        return self._benchmarks[latest_id]
+        return rec
 
 
 # Global singleton coordinator instance
@@ -257,4 +250,3 @@ coordinator = JobCoordinator()
 
 def get_job_coordinator() -> JobCoordinator:
     return coordinator
-
