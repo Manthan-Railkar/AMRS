@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amrs"
+version = "0.1.0"
+description = "Adaptive Model Recovery System - Automated diagnosis, surgical repair, and held-out verification."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "pydantic>=2",
+    "pyyaml",
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "requests",
+    "python-multipart",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "hypothesis",
+]
+transformers = [
+    "peft",
+]
+
+[project.scripts]
+amrs = "amrs.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

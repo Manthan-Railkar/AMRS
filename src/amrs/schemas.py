@@ -1,0 +1,385 @@
+"""Pydantic v2 schemas for the AMRS API and domain models."""
+
+from __future__ import annotations
+
+from typing import Any, Literal
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+# ---------------------------------------------------------------------------
+# Error Envelope Schemas
+# ---------------------------------------------------------------------------
+
+class ErrorDetail(BaseModel):
+    """Normalized error payload detail."""
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(..., description="Machine-readable uppercase error string")
+    message: str = Field(..., description="Human-readable error description")
+    details: dict[str, Any] = Field(default_factory=dict, description="Contextual error metadata")
+
+
+class ErrorEnvelope(BaseModel):
+    """Standardized top-level error response envelope."""
+    model_config = ConfigDict(extra="forbid")
+
+    error: ErrorDetail
+
+
+# ---------------------------------------------------------------------------
+# Health Schemas
+# ---------------------------------------------------------------------------
+
+class HealthResponse(BaseModel):
+    """Response returned by GET /api/v1/health."""
+    status: Literal["healthy", "degraded", "unhealthy"] = "healthy"
+    version: str = "0.1.0"
+    db_status: Literal["ok", "error"] = "ok"
+
+
+# ---------------------------------------------------------------------------
+# Configuration Schemas (matching configs/default.yaml and Section 2.7)
+# ---------------------------------------------------------------------------
+
+class SplitsConfig(BaseModel):
+    val_frac: float = Field(0.5, ge=0.0, le=1.0)
+    holdout_from_val: bool = True
+    stratify: bool = True
+
+
+class DiagnosisOverfittingConfig(BaseModel):
+    gap_min: float = Field(0.10, ge=0.0, le=1.0)
+    train_acc_min: float = Field(0.90, ge=0.0, le=1.0)
+    val_loss_rise_epochs: int = Field(3, ge=1)
+
+
+class DiagnosisMiscalibrationConfig(BaseModel):
+    ece_min: float = Field(0.05, ge=0.0, le=1.0)
+    ece_bins: int = Field(15, ge=5, le=100)
+
+
+class DiagnosisBnDriftConfig(BaseModel):
+    divergence_min: float = Field(0.5, ge=0.0)
+    acc_drop_min: float = Field(0.03, ge=0.0, le=1.0)
+
+
+class DiagnosisInstabilityConfig(BaseModel):
+    spike_ratio: float = Field(2.0, ge=1.0)
+    cv_min: float = Field(0.35, ge=0.0)
+
+
+class DiagnosisHeadDegradationConfig(BaseModel):
+    probe_gain_min: float = Field(0.02, ge=0.0, le=1.0)
+
+
+class DiagnosisConfig(BaseModel):
+    overfitting: DiagnosisOverfittingConfig = Field(default_factory=DiagnosisOverfittingConfig)
+    miscalibration: DiagnosisMiscalibrationConfig = Field(default_factory=DiagnosisMiscalibrationConfig)
+    bn_drift: DiagnosisBnDriftConfig = Field(default_factory=DiagnosisBnDriftConfig)
+    instability: DiagnosisInstabilityConfig = Field(default_factory=DiagnosisInstabilityConfig)
+    head_degradation: DiagnosisHeadDegradationConfig = Field(default_factory=DiagnosisHeadDegradationConfig)
+    healthy_if_none: bool = True
+
+
+class SelectorConfig(BaseModel):
+    mode: Literal["first_accept", "best_of_all"] = "first_accept"
+    max_candidates: int = Field(4, ge=1, le=20)
+    max_compute_ratio_vs_retrain: float = Field(0.5, gt=0.0, le=2.0)
+    retrain_reference_units: str = "auto"
+
+
+class TemperatureScalingConfig(BaseModel):
+    max_iter: int = Field(50, ge=10, le=500)
+
+
+class BnRecalibrationConfig(BaseModel):
+    max_batches: int = Field(100, ge=1, le=2000)
+    momentum: float | None = None
+
+
+class CheckpointReversionConfig(BaseModel):
+    top_k: int = Field(3, ge=1, le=20)
+
+
+class CheckpointAveragingConfig(BaseModel):
+    last_k: int = Field(5, ge=2, le=50)
+
+
+class LastLayerFinetuneConfig(BaseModel):
+    epochs: int = Field(5, ge=1, le=50)
+    lr: float = Field(0.01, gt=0.0)
+    weight_decay: float = Field(5.0e-4, ge=0.0)
+
+
+class SelectiveFinetuneL2spConfig(BaseModel):
+    unfreeze_top_n: int = Field(2, ge=1, le=10)
+    epochs: int = Field(8, ge=1, le=50)
+    lr: float = Field(0.003, gt=0.0)
+    l2sp_alpha: float = Field(0.1, ge=0.0)
+    weight_decay: float = Field(5.0e-4, ge=0.0)
+    augment: bool = True
+
+
+class WeightInterpolationConfig(BaseModel):
+    alphas: list[float] = Field(default_factory=lambda: [0.25, 0.5, 0.75])
+
+
+class StrategiesConfig(BaseModel):
+    temperature_scaling: TemperatureScalingConfig = Field(default_factory=TemperatureScalingConfig)
+    bn_recalibration: BnRecalibrationConfig = Field(default_factory=BnRecalibrationConfig)
+    checkpoint_reversion: CheckpointReversionConfig = Field(default_factory=CheckpointReversionConfig)
+    checkpoint_averaging: CheckpointAveragingConfig = Field(default_factory=CheckpointAveragingConfig)
+    last_layer_finetune: LastLayerFinetuneConfig = Field(default_factory=LastLayerFinetuneConfig)
+    selective_finetune_l2sp: SelectiveFinetuneL2spConfig = Field(default_factory=SelectiveFinetuneL2spConfig)
+    weight_interpolation: WeightInterpolationConfig = Field(default_factory=WeightInterpolationConfig)
+
+
+class GateMinGainConfig(BaseModel):
+    accuracy: float = Field(0.005, ge=0.0)
+    ece: float = Field(0.01, ge=0.0)
+
+
+class GateMaxRegressionConfig(BaseModel):
+    accuracy: float = Field(0.005, ge=0.0)
+    nll: float = Field(0.02, ge=0.0)
+    ece: float = Field(0.01, ge=0.0)
+
+
+class GateConfig(BaseModel):
+    holdout_min_size: int = Field(500, ge=50)
+    allow_small_holdout: bool = False
+    max_holdout_evaluations: int = Field(3, ge=1, le=10)
+    family_alpha: float = Field(0.05, gt=0.0, lt=0.5)
+    bootstrap_samples: int = Field(1000, ge=200)
+    min_gain: GateMinGainConfig = Field(default_factory=GateMinGainConfig)
+    max_regression: GateMaxRegressionConfig = Field(default_factory=GateMaxRegressionConfig)
+    min_retention: float = Field(0.95, ge=0.0, le=1.0)
+
+
+class MonitorOverfitConfig(BaseModel):
+    gap_rise_min: float = Field(0.03, ge=0.0)
+    val_loss_rise: bool = True
+
+
+class MonitorInstabilityConfig(BaseModel):
+    spike_ratio: float = Field(2.0, ge=1.0)
+
+
+class MonitorConfig(BaseModel):
+    ema_beta: float = Field(0.6, ge=0.0, le=1.0)
+    patience: int = Field(3, ge=1)
+    cooldown_epochs: int = Field(5, ge=0)
+    overfit: MonitorOverfitConfig = Field(default_factory=MonitorOverfitConfig)
+    instability: MonitorInstabilityConfig = Field(default_factory=MonitorInstabilityConfig)
+    action: Literal["log", "early_stop", "recover"] = "log"
+
+
+class ConfigDefaultsResponse(BaseModel):
+    """Full resolved default configuration matching configs/default.yaml."""
+    seed: int = 1234
+    device: Literal["auto", "cpu", "cuda"] = "auto"
+    splits: SplitsConfig = Field(default_factory=SplitsConfig)
+    diagnosis: DiagnosisConfig = Field(default_factory=DiagnosisConfig)
+    selector: SelectorConfig = Field(default_factory=SelectorConfig)
+    strategies: StrategiesConfig = Field(default_factory=StrategiesConfig)
+    gate: GateConfig = Field(default_factory=GateConfig)
+    monitor: MonitorConfig = Field(default_factory=MonitorConfig)
+
+
+# ---------------------------------------------------------------------------
+# Scenario Schemas
+# ---------------------------------------------------------------------------
+
+class ScenarioItem(BaseModel):
+    scenario_id: str
+    name: str
+    description: str
+    ground_truth_label: str
+    arch: str
+    artifacts_ready: bool
+
+
+class ScenarioListResponse(BaseModel):
+    scenarios: list[ScenarioItem]
+    total: int
+
+
+# ---------------------------------------------------------------------------
+# Model Upload Schemas
+# ---------------------------------------------------------------------------
+
+class ModelUploadResponse(BaseModel):
+    model_upload_id: str
+    arch: str
+    filename: str
+    sha256: str
+    size_bytes: int
+
+
+# ---------------------------------------------------------------------------
+# Run Lifecycle & Detail Schemas
+# ---------------------------------------------------------------------------
+
+class RunCreateRequest(BaseModel):
+    scenario_id: str | None = Field(None, description="Preset scenario ID (e.g. s1_overfit)")
+    model_upload_id: str | None = Field(None, description="ID of previously uploaded model weights")
+    arch: str | None = Field(None, description="Architecture name from model registry")
+    config_overrides: dict[str, Any] | None = Field(None, description="YAML config overrides")
+    seed: int | None = Field(None, description="Deterministic seed")
+
+    @model_validator(mode="after")
+    def validate_intake_source(self) -> RunCreateRequest:
+        if not self.scenario_id and not self.model_upload_id:
+            raise ValueError("Either 'scenario_id' or 'model_upload_id' must be provided.")
+        if self.model_upload_id and not self.arch:
+            raise ValueError("'arch' is required when 'model_upload_id' is provided.")
+        return self
+
+
+class RunCreateResponse(BaseModel):
+    run_id: str
+    status: Literal["queued", "running"] = "queued"
+
+
+class RunSummary(BaseModel):
+    id: str
+    created_at: str
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    scenario_id: str | None = None
+    arch: str
+    original_sha256: str
+    verdict: Literal["accepted", "rolled_back", "healthy_no_action", "error"] | None = None
+    accepted_strategy: str | None = None
+    duration_s: float | None = None
+    compute_units_total: float | None = None
+
+
+class RunListResponse(BaseModel):
+    runs: list[RunSummary]
+    total: int
+    limit: int
+    offset: int
+
+
+class DiagnosisEvidence(BaseModel):
+    metric_values: dict[str, float] = Field(default_factory=dict)
+    threshold_values: dict[str, float] = Field(default_factory=dict)
+    source_split: str = "val"
+    explanation: str = ""
+
+
+class DiagnosisItem(BaseModel):
+    label: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    rank: int = Field(..., ge=1)
+    evidence: DiagnosisEvidence = Field(default_factory=DiagnosisEvidence)
+
+
+class CandidateSummary(BaseModel):
+    id: str
+    run_id: str
+    order_idx: int
+    strategy: str
+    params: dict[str, Any] = Field(default_factory=dict)
+    cost_units: float
+    wall_s: float
+    primary_metric: str
+    delta_primary: float
+    ci_low: float
+    ci_high: float
+    retention: float
+    agreement: float
+    gate_decision: Literal["ACCEPT", "REJECT"]
+    gate_reasons: list[str] = Field(default_factory=list)
+    artifact_path: str | None = None
+
+
+class RunDetailResponse(BaseModel):
+    id: str
+    created_at: str
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    progress_stage: str = "idle"
+    progress_pct: float = Field(0.0, ge=0.0, le=100.0)
+    scenario_id: str | None = None
+    arch: str
+    original_sha256: str
+    config_json: dict[str, Any] = Field(default_factory=dict)
+    seed: int
+    verdict: Literal["accepted", "rolled_back", "healthy_no_action", "error"] | None = None
+    accepted_strategy: str | None = None
+    error_message: str | None = None
+    duration_s: float | None = None
+    compute_units_total: float | None = None
+    diagnoses: list[DiagnosisItem] = Field(default_factory=list)
+    candidates: list[CandidateSummary] = Field(default_factory=list)
+
+
+class RunCancelResponse(BaseModel):
+    run_id: str
+    status: Literal["cancel_requested", "cancelled"] = "cancel_requested"
+    message: str = "Cancellation requested successfully"
+
+
+# ---------------------------------------------------------------------------
+# Live Training Monitor Replay Schemas
+# ---------------------------------------------------------------------------
+
+class MonitorReplayRequest(BaseModel):
+    scenario_id: str = Field(..., description="Scenario to replay (e.g. s1_overfit, s4_instability)")
+    speed_multiplier: float = Field(1.0, ge=0.1, le=10.0)
+
+
+class MonitorReplayResponse(BaseModel):
+    replay_id: str
+    status: Literal["queued", "running"] = "queued"
+
+
+class MonitorEventItem(BaseModel):
+    epoch: int
+    kind: Literal["overfit_warning", "instability_warning", "trigger", "action", "cooldown"]
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class MonitorReplayDetailResponse(BaseModel):
+    replay_id: str
+    scenario_id: str
+    status: Literal["queued", "running", "succeeded", "failed"]
+    events: list[MonitorEventItem] = Field(default_factory=list)
+    series: dict[str, list[float]] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Benchmark Schemas
+# ---------------------------------------------------------------------------
+
+class BenchmarkCreateRequest(BaseModel):
+    scenarios: list[str] = Field(default_factory=lambda: ["s1_overfit", "s2_miscalibration", "s3_bn_drift", "s4_instability", "s5_degraded_head", "s6_healthy"])
+    seeds: list[int] = Field(default_factory=lambda: [1234])
+    methods: list[str] = Field(default_factory=lambda: ["amrs", "early_stopping", "regularized_finetune", "full_retrain"])
+
+
+class BenchmarkCreateResponse(BaseModel):
+    benchmark_id: str
+    status: Literal["queued", "running"] = "queued"
+
+
+class BenchmarkResultItem(BaseModel):
+    scenario_id: str
+    seed: int
+    method: str
+    accuracy: float
+    ece: float
+    nll: float
+    retention: float
+    compute_units: float
+    wall_s: float
+    accepted: bool | None = None
+    notes: str | None = None
+
+
+class BenchmarkDetailResponse(BaseModel):
+    benchmark_id: str
+    created_at: str
+    status: Literal["queued", "running", "succeeded", "failed"]
+    results: list[BenchmarkResultItem] = Field(default_factory=list)
+

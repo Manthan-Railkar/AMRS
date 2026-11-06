@@ -1,0 +1,2191 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AMRS API",
+    "description": "Adaptive Model Recovery System - Automated diagnosis, surgical repair, and held-out verification.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Check liveness, version, and database connection status.",
+        "operationId": "get_health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config/defaults": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Get configuration defaults",
+        "description": "Retrieve the default validated AMRS configuration as JSON.",
+        "operationId": "get_config_defaults_api_v1_config_defaults_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigDefaultsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scenarios": {
+      "get": {
+        "tags": [
+          "Scenarios"
+        ],
+        "summary": "List reproducible scenarios",
+        "description": "List all 6 reference benchmark scenarios (S1-S6) and their artifact readiness.",
+        "operationId": "list_scenarios_api_v1_scenarios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs": {
+      "post": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Create a recovery run",
+        "description": "Enqueue an asynchronous recovery run from a scenario or uploaded model.",
+        "operationId": "create_run_api_v1_runs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "List recovery runs",
+        "description": "Get a paginated history of recovery runs with optional filtering.",
+        "operationId": "list_runs_api_v1_runs_get",
+        "parameters": [
+          {
+            "name": "verdict",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by terminal verdict",
+              "title": "Verdict"
+            },
+            "description": "Filter by terminal verdict"
+          },
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by scenario ID",
+              "title": "Scenario Id"
+            },
+            "description": "Filter by scenario ID"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Items per page"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Page offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Page offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Get run detail and progress",
+        "description": "Retrieve full execution status, diagnosis, candidate summaries, and verification verdicts.",
+        "operationId": "get_run_detail_api_v1_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Cancel active run",
+        "description": "Request cooperative cancellation of an active recovery run, preserving original model weights.",
+        "operationId": "cancel_run_api_v1_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCancelResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/artifacts/{name}": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Download run artifact",
+        "description": "Securely download allowlisted artifacts ('accepted_model.pt', 'report.json', 'report.md').",
+        "operationId": "download_artifact_api_v1_runs__run_id__artifacts__name__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models/upload": {
+      "post": {
+        "tags": [
+          "Models"
+        ],
+        "summary": "Upload PyTorch model state_dict",
+        "description": "Upload a state_dict checkpoint for registered model architectures with weights_only validation.",
+        "operationId": "upload_model_api_v1_models_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_model_api_v1_models_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelUploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/monitor/replay": {
+      "post": {
+        "tags": [
+          "Live Monitor"
+        ],
+        "summary": "Replay training history through live monitor",
+        "description": "Enqueue replay of recorded training history to evaluate monitor triggers and actions.",
+        "operationId": "start_monitor_replay_api_v1_monitor_replay_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorReplayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorReplayResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/monitor/replay/{replay_id}": {
+      "get": {
+        "tags": [
+          "Live Monitor"
+        ],
+        "summary": "Get monitor replay metrics and events",
+        "description": "Retrieve smoothed metrics, warning events, and recovery triggers generated during replay.",
+        "operationId": "get_monitor_replay_detail_api_v1_monitor_replay__replay_id__get",
+        "parameters": [
+          {
+            "name": "replay_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Replay Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorReplayDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/benchmarks": {
+      "post": {
+        "tags": [
+          "Benchmarks"
+        ],
+        "summary": "Start benchmark evaluation",
+        "description": "Enqueue comparative matrix execution across scenarios, seeds, and recovery baselines.",
+        "operationId": "start_benchmark_api_v1_benchmarks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BenchmarkCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/benchmarks/latest": {
+      "get": {
+        "tags": [
+          "Benchmarks"
+        ],
+        "summary": "Get latest benchmark results",
+        "description": "Retrieve results from the most recent completed benchmark evaluation.",
+        "operationId": "get_latest_benchmark_api_v1_benchmarks_latest_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/benchmarks/{benchmark_id}": {
+      "get": {
+        "tags": [
+          "Benchmarks"
+        ],
+        "summary": "Get benchmark detail and results",
+        "description": "Retrieve execution status, accuracy, ECE, retention, and compute unit comparisons.",
+        "operationId": "get_benchmark_detail_api_v1_benchmarks__benchmark_id__get",
+        "parameters": [
+          {
+            "name": "benchmark_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Benchmark Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Check liveness, version, and database connection status.",
+        "operationId": "get_health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BenchmarkCreateRequest": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          },
+          "seeds": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Seeds"
+          },
+          "methods": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Methods"
+          }
+        },
+        "type": "object",
+        "title": "BenchmarkCreateRequest"
+      },
+      "BenchmarkCreateResponse": {
+        "properties": {
+          "benchmark_id": {
+            "type": "string",
+            "title": "Benchmark Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running"
+            ],
+            "title": "Status",
+            "default": "queued"
+          }
+        },
+        "type": "object",
+        "required": [
+          "benchmark_id"
+        ],
+        "title": "BenchmarkCreateResponse"
+      },
+      "BenchmarkDetailResponse": {
+        "properties": {
+          "benchmark_id": {
+            "type": "string",
+            "title": "Benchmark Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkResultItem"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "benchmark_id",
+          "created_at",
+          "status"
+        ],
+        "title": "BenchmarkDetailResponse"
+      },
+      "BenchmarkResultItem": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy"
+          },
+          "ece": {
+            "type": "number",
+            "title": "Ece"
+          },
+          "nll": {
+            "type": "number",
+            "title": "Nll"
+          },
+          "retention": {
+            "type": "number",
+            "title": "Retention"
+          },
+          "compute_units": {
+            "type": "number",
+            "title": "Compute Units"
+          },
+          "wall_s": {
+            "type": "number",
+            "title": "Wall S"
+          },
+          "accepted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "seed",
+          "method",
+          "accuracy",
+          "ece",
+          "nll",
+          "retention",
+          "compute_units",
+          "wall_s"
+        ],
+        "title": "BenchmarkResultItem"
+      },
+      "BnRecalibrationConfig": {
+        "properties": {
+          "max_batches": {
+            "type": "integer",
+            "maximum": 2000.0,
+            "minimum": 1.0,
+            "title": "Max Batches",
+            "default": 100
+          },
+          "momentum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Momentum"
+          }
+        },
+        "type": "object",
+        "title": "BnRecalibrationConfig"
+      },
+      "Body_upload_model_api_v1_models_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch",
+            "description": "Architecture name from model registry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "arch"
+        ],
+        "title": "Body_upload_model_api_v1_models_upload_post"
+      },
+      "CandidateSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "order_idx": {
+            "type": "integer",
+            "title": "Order Idx"
+          },
+          "strategy": {
+            "type": "string",
+            "title": "Strategy"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "cost_units": {
+            "type": "number",
+            "title": "Cost Units"
+          },
+          "wall_s": {
+            "type": "number",
+            "title": "Wall S"
+          },
+          "primary_metric": {
+            "type": "string",
+            "title": "Primary Metric"
+          },
+          "delta_primary": {
+            "type": "number",
+            "title": "Delta Primary"
+          },
+          "ci_low": {
+            "type": "number",
+            "title": "Ci Low"
+          },
+          "ci_high": {
+            "type": "number",
+            "title": "Ci High"
+          },
+          "retention": {
+            "type": "number",
+            "title": "Retention"
+          },
+          "agreement": {
+            "type": "number",
+            "title": "Agreement"
+          },
+          "gate_decision": {
+            "type": "string",
+            "enum": [
+              "ACCEPT",
+              "REJECT"
+            ],
+            "title": "Gate Decision"
+          },
+          "gate_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Gate Reasons"
+          },
+          "artifact_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "order_idx",
+          "strategy",
+          "cost_units",
+          "wall_s",
+          "primary_metric",
+          "delta_primary",
+          "ci_low",
+          "ci_high",
+          "retention",
+          "agreement",
+          "gate_decision"
+        ],
+        "title": "CandidateSummary"
+      },
+      "CheckpointAveragingConfig": {
+        "properties": {
+          "last_k": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 2.0,
+            "title": "Last K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "title": "CheckpointAveragingConfig"
+      },
+      "CheckpointReversionConfig": {
+        "properties": {
+          "top_k": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "CheckpointReversionConfig"
+      },
+      "ConfigDefaultsResponse": {
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "default": 1234
+          },
+          "device": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "cpu",
+              "cuda"
+            ],
+            "title": "Device",
+            "default": "auto"
+          },
+          "splits": {
+            "$ref": "#/components/schemas/SplitsConfig"
+          },
+          "diagnosis": {
+            "$ref": "#/components/schemas/DiagnosisConfig"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/SelectorConfig"
+          },
+          "strategies": {
+            "$ref": "#/components/schemas/StrategiesConfig"
+          },
+          "gate": {
+            "$ref": "#/components/schemas/GateConfig"
+          },
+          "monitor": {
+            "$ref": "#/components/schemas/MonitorConfig"
+          }
+        },
+        "type": "object",
+        "title": "ConfigDefaultsResponse",
+        "description": "Full resolved default configuration matching configs/default.yaml."
+      },
+      "DiagnosisBnDriftConfig": {
+        "properties": {
+          "divergence_min": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Divergence Min",
+            "default": 0.5
+          },
+          "acc_drop_min": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Acc Drop Min",
+            "default": 0.03
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisBnDriftConfig"
+      },
+      "DiagnosisConfig": {
+        "properties": {
+          "overfitting": {
+            "$ref": "#/components/schemas/DiagnosisOverfittingConfig"
+          },
+          "miscalibration": {
+            "$ref": "#/components/schemas/DiagnosisMiscalibrationConfig"
+          },
+          "bn_drift": {
+            "$ref": "#/components/schemas/DiagnosisBnDriftConfig"
+          },
+          "instability": {
+            "$ref": "#/components/schemas/DiagnosisInstabilityConfig"
+          },
+          "head_degradation": {
+            "$ref": "#/components/schemas/DiagnosisHeadDegradationConfig"
+          },
+          "healthy_if_none": {
+            "type": "boolean",
+            "title": "Healthy If None",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisConfig"
+      },
+      "DiagnosisEvidence": {
+        "properties": {
+          "metric_values": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Metric Values"
+          },
+          "threshold_values": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Threshold Values"
+          },
+          "source_split": {
+            "type": "string",
+            "title": "Source Split",
+            "default": "val"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisEvidence"
+      },
+      "DiagnosisHeadDegradationConfig": {
+        "properties": {
+          "probe_gain_min": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Probe Gain Min",
+            "default": 0.02
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisHeadDegradationConfig"
+      },
+      "DiagnosisInstabilityConfig": {
+        "properties": {
+          "spike_ratio": {
+            "type": "number",
+            "minimum": 1.0,
+            "title": "Spike Ratio",
+            "default": 2.0
+          },
+          "cv_min": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Cv Min",
+            "default": 0.35
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisInstabilityConfig"
+      },
+      "DiagnosisItem": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rank"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/DiagnosisEvidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "confidence",
+          "rank"
+        ],
+        "title": "DiagnosisItem"
+      },
+      "DiagnosisMiscalibrationConfig": {
+        "properties": {
+          "ece_min": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Ece Min",
+            "default": 0.05
+          },
+          "ece_bins": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 5.0,
+            "title": "Ece Bins",
+            "default": 15
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisMiscalibrationConfig"
+      },
+      "DiagnosisOverfittingConfig": {
+        "properties": {
+          "gap_min": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Gap Min",
+            "default": 0.1
+          },
+          "train_acc_min": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Train Acc Min",
+            "default": 0.9
+          },
+          "val_loss_rise_epochs": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Val Loss Rise Epochs",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "DiagnosisOverfittingConfig"
+      },
+      "GateConfig": {
+        "properties": {
+          "holdout_min_size": {
+            "type": "integer",
+            "minimum": 50.0,
+            "title": "Holdout Min Size",
+            "default": 500
+          },
+          "allow_small_holdout": {
+            "type": "boolean",
+            "title": "Allow Small Holdout",
+            "default": false
+          },
+          "max_holdout_evaluations": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Holdout Evaluations",
+            "default": 3
+          },
+          "family_alpha": {
+            "type": "number",
+            "exclusiveMaximum": 0.5,
+            "exclusiveMinimum": 0.0,
+            "title": "Family Alpha",
+            "default": 0.05
+          },
+          "bootstrap_samples": {
+            "type": "integer",
+            "minimum": 200.0,
+            "title": "Bootstrap Samples",
+            "default": 1000
+          },
+          "min_gain": {
+            "$ref": "#/components/schemas/GateMinGainConfig"
+          },
+          "max_regression": {
+            "$ref": "#/components/schemas/GateMaxRegressionConfig"
+          },
+          "min_retention": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Retention",
+            "default": 0.95
+          }
+        },
+        "type": "object",
+        "title": "GateConfig"
+      },
+      "GateMaxRegressionConfig": {
+        "properties": {
+          "accuracy": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Accuracy",
+            "default": 0.005
+          },
+          "nll": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Nll",
+            "default": 0.02
+          },
+          "ece": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Ece",
+            "default": 0.01
+          }
+        },
+        "type": "object",
+        "title": "GateMaxRegressionConfig"
+      },
+      "GateMinGainConfig": {
+        "properties": {
+          "accuracy": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Accuracy",
+            "default": 0.005
+          },
+          "ece": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Ece",
+            "default": 0.01
+          }
+        },
+        "type": "object",
+        "title": "GateMinGainConfig"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded",
+              "unhealthy"
+            ],
+            "title": "Status",
+            "default": "healthy"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "0.1.0"
+          },
+          "db_status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Db Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse",
+        "description": "Response returned by GET /api/v1/health."
+      },
+      "LastLayerFinetuneConfig": {
+        "properties": {
+          "epochs": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Epochs",
+            "default": 5
+          },
+          "lr": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Lr",
+            "default": 0.01
+          },
+          "weight_decay": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Weight Decay",
+            "default": 0.0005
+          }
+        },
+        "type": "object",
+        "title": "LastLayerFinetuneConfig"
+      },
+      "ModelUploadResponse": {
+        "properties": {
+          "model_upload_id": {
+            "type": "string",
+            "title": "Model Upload Id"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_upload_id",
+          "arch",
+          "filename",
+          "sha256",
+          "size_bytes"
+        ],
+        "title": "ModelUploadResponse"
+      },
+      "MonitorConfig": {
+        "properties": {
+          "ema_beta": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Ema Beta",
+            "default": 0.6
+          },
+          "patience": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Patience",
+            "default": 3
+          },
+          "cooldown_epochs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cooldown Epochs",
+            "default": 5
+          },
+          "overfit": {
+            "$ref": "#/components/schemas/MonitorOverfitConfig"
+          },
+          "instability": {
+            "$ref": "#/components/schemas/MonitorInstabilityConfig"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "log",
+              "early_stop",
+              "recover"
+            ],
+            "title": "Action",
+            "default": "log"
+          }
+        },
+        "type": "object",
+        "title": "MonitorConfig"
+      },
+      "MonitorEventItem": {
+        "properties": {
+          "epoch": {
+            "type": "integer",
+            "title": "Epoch"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "overfit_warning",
+              "instability_warning",
+              "trigger",
+              "action",
+              "cooldown"
+            ],
+            "title": "Kind"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "epoch",
+          "kind"
+        ],
+        "title": "MonitorEventItem"
+      },
+      "MonitorInstabilityConfig": {
+        "properties": {
+          "spike_ratio": {
+            "type": "number",
+            "minimum": 1.0,
+            "title": "Spike Ratio",
+            "default": 2.0
+          }
+        },
+        "type": "object",
+        "title": "MonitorInstabilityConfig"
+      },
+      "MonitorOverfitConfig": {
+        "properties": {
+          "gap_rise_min": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Gap Rise Min",
+            "default": 0.03
+          },
+          "val_loss_rise": {
+            "type": "boolean",
+            "title": "Val Loss Rise",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "MonitorOverfitConfig"
+      },
+      "MonitorReplayDetailResponse": {
+        "properties": {
+          "replay_id": {
+            "type": "string",
+            "title": "Replay Id"
+          },
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/MonitorEventItem"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "replay_id",
+          "scenario_id",
+          "status"
+        ],
+        "title": "MonitorReplayDetailResponse"
+      },
+      "MonitorReplayRequest": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id",
+            "description": "Scenario to replay (e.g. s1_overfit, s4_instability)"
+          },
+          "speed_multiplier": {
+            "type": "number",
+            "maximum": 10.0,
+            "minimum": 0.1,
+            "title": "Speed Multiplier",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id"
+        ],
+        "title": "MonitorReplayRequest"
+      },
+      "MonitorReplayResponse": {
+        "properties": {
+          "replay_id": {
+            "type": "string",
+            "title": "Replay Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running"
+            ],
+            "title": "Status",
+            "default": "queued"
+          }
+        },
+        "type": "object",
+        "required": [
+          "replay_id"
+        ],
+        "title": "MonitorReplayResponse"
+      },
+      "RunCancelResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "cancel_requested",
+              "cancelled"
+            ],
+            "title": "Status",
+            "default": "cancel_requested"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Cancellation requested successfully"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id"
+        ],
+        "title": "RunCancelResponse"
+      },
+      "RunCreateRequest": {
+        "properties": {
+          "scenario_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Id",
+            "description": "Preset scenario ID (e.g. s1_overfit)"
+          },
+          "model_upload_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Upload Id",
+            "description": "ID of previously uploaded model weights"
+          },
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch",
+            "description": "Architecture name from model registry"
+          },
+          "config_overrides": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Overrides",
+            "description": "YAML config overrides"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Deterministic seed"
+          }
+        },
+        "type": "object",
+        "title": "RunCreateRequest"
+      },
+      "RunCreateResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running"
+            ],
+            "title": "Status",
+            "default": "queued"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id"
+        ],
+        "title": "RunCreateResponse"
+      },
+      "RunDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "progress_stage": {
+            "type": "string",
+            "title": "Progress Stage",
+            "default": "idle"
+          },
+          "progress_pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Progress Pct",
+            "default": 0.0
+          },
+          "scenario_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Id"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "original_sha256": {
+            "type": "string",
+            "title": "Original Sha256"
+          },
+          "config_json": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Config Json"
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "accepted",
+                  "rolled_back",
+                  "healthy_no_action",
+                  "error"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "accepted_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted Strategy"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "compute_units_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compute Units Total"
+          },
+          "diagnoses": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosisItem"
+            },
+            "type": "array",
+            "title": "Diagnoses"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateSummary"
+            },
+            "type": "array",
+            "title": "Candidates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "status",
+          "arch",
+          "original_sha256",
+          "seed"
+        ],
+        "title": "RunDetailResponse"
+      },
+      "RunListResponse": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "RunListResponse"
+      },
+      "RunSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "scenario_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Id"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "original_sha256": {
+            "type": "string",
+            "title": "Original Sha256"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "accepted",
+                  "rolled_back",
+                  "healthy_no_action",
+                  "error"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "accepted_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted Strategy"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "compute_units_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compute Units Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "status",
+          "arch",
+          "original_sha256"
+        ],
+        "title": "RunSummary"
+      },
+      "ScenarioItem": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "ground_truth_label": {
+            "type": "string",
+            "title": "Ground Truth Label"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "artifacts_ready": {
+            "type": "boolean",
+            "title": "Artifacts Ready"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "name",
+          "description",
+          "ground_truth_label",
+          "arch",
+          "artifacts_ready"
+        ],
+        "title": "ScenarioItem"
+      },
+      "ScenarioListResponse": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioItem"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenarios",
+          "total"
+        ],
+        "title": "ScenarioListResponse"
+      },
+      "SelectiveFinetuneL2spConfig": {
+        "properties": {
+          "unfreeze_top_n": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Unfreeze Top N",
+            "default": 2
+          },
+          "epochs": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Epochs",
+            "default": 8
+          },
+          "lr": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Lr",
+            "default": 0.003
+          },
+          "l2sp_alpha": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "L2Sp Alpha",
+            "default": 0.1
+          },
+          "weight_decay": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Weight Decay",
+            "default": 0.0005
+          },
+          "augment": {
+            "type": "boolean",
+            "title": "Augment",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "SelectiveFinetuneL2spConfig"
+      },
+      "SelectorConfig": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "first_accept",
+              "best_of_all"
+            ],
+            "title": "Mode",
+            "default": "first_accept"
+          },
+          "max_candidates": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Max Candidates",
+            "default": 4
+          },
+          "max_compute_ratio_vs_retrain": {
+            "type": "number",
+            "maximum": 2.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Max Compute Ratio Vs Retrain",
+            "default": 0.5
+          },
+          "retrain_reference_units": {
+            "type": "string",
+            "title": "Retrain Reference Units",
+            "default": "auto"
+          }
+        },
+        "type": "object",
+        "title": "SelectorConfig"
+      },
+      "SplitsConfig": {
+        "properties": {
+          "val_frac": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Val Frac",
+            "default": 0.5
+          },
+          "holdout_from_val": {
+            "type": "boolean",
+            "title": "Holdout From Val",
+            "default": true
+          },
+          "stratify": {
+            "type": "boolean",
+            "title": "Stratify",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "SplitsConfig"
+      },
+      "StrategiesConfig": {
+        "properties": {
+          "temperature_scaling": {
+            "$ref": "#/components/schemas/TemperatureScalingConfig"
+          },
+          "bn_recalibration": {
+            "$ref": "#/components/schemas/BnRecalibrationConfig"
+          },
+          "checkpoint_reversion": {
+            "$ref": "#/components/schemas/CheckpointReversionConfig"
+          },
+          "checkpoint_averaging": {
+            "$ref": "#/components/schemas/CheckpointAveragingConfig"
+          },
+          "last_layer_finetune": {
+            "$ref": "#/components/schemas/LastLayerFinetuneConfig"
+          },
+          "selective_finetune_l2sp": {
+            "$ref": "#/components/schemas/SelectiveFinetuneL2spConfig"
+          },
+          "weight_interpolation": {
+            "$ref": "#/components/schemas/WeightInterpolationConfig"
+          }
+        },
+        "type": "object",
+        "title": "StrategiesConfig"
+      },
+      "TemperatureScalingConfig": {
+        "properties": {
+          "max_iter": {
+            "type": "integer",
+            "maximum": 500.0,
+            "minimum": 10.0,
+            "title": "Max Iter",
+            "default": 50
+          }
+        },
+        "type": "object",
+        "title": "TemperatureScalingConfig"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WeightInterpolationConfig": {
+        "properties": {
+          "alphas": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Alphas"
+          }
+        },
+        "type": "object",
+        "title": "WeightInterpolationConfig"
+      }
+    }
+  }
+}
