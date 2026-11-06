@@ -1,0 +1,76 @@
+seed: 1234
+device: auto            # auto|cpu|cuda
+splits:
+  val_frac: 0.5
+  holdout_from_val: true
+  stratify: true
+diagnosis:
+  overfitting:
+    gap_min: 0.10
+    train_acc_min: 0.90
+    val_loss_rise_epochs: 3
+  miscalibration:
+    ece_min: 0.05
+    ece_bins: 15
+  bn_drift:
+    divergence_min: 0.5
+    acc_drop_min: 0.03
+  instability:
+    spike_ratio: 2.0
+    cv_min: 0.35
+  head_degradation:
+    probe_gain_min: 0.02
+  healthy_if_none: true
+selector:
+  mode: first_accept          # first_accept|best_of_all
+  max_candidates: 4
+  max_compute_ratio_vs_retrain: 0.5
+  retrain_reference_units: auto
+strategies:
+  temperature_scaling:
+    max_iter: 50
+  bn_recalibration:
+    max_batches: 100
+    momentum: null
+  checkpoint_reversion:
+    top_k: 3
+  checkpoint_averaging:
+    last_k: 5
+  last_layer_finetune:
+    epochs: 5
+    lr: 0.01
+    weight_decay: 5.0e-4
+  selective_finetune_l2sp:
+    unfreeze_top_n: 2
+    epochs: 8
+    lr: 0.003
+    l2sp_alpha: 0.1
+    weight_decay: 5.0e-4
+    augment: true
+  weight_interpolation:
+    alphas: [0.25, 0.5, 0.75]
+gate:
+  holdout_min_size: 500
+  allow_small_holdout: false
+  max_holdout_evaluations: 3
+  family_alpha: 0.05
+  bootstrap_samples: 1000
+  min_gain:
+    accuracy: 0.005
+    ece: 0.01
+  max_regression:
+    accuracy: 0.005
+    nll: 0.02
+    ece: 0.01
+  min_retention: 0.95
+monitor:
+  ema_beta: 0.6
+  patience: 3
+  cooldown_epochs: 5
+  overfit:
+    gap_rise_min: 0.03
+    val_loss_rise: true
+  instability:
+    spike_ratio: 2.0
+  action: log                 # log|early_stop|recover
+
