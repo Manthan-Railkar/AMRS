@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import Image from 'next/image';
 import gsap from 'gsap';
 import './StaggeredMenu.css';
 
@@ -465,19 +464,8 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
         })()}
       </div>
 
-      {/* Staggered Menu Header with Logo & Close Toggle */}
+      {/* Staggered Menu Header with Close Toggle */}
       <header className="staggered-menu-header" aria-label="Main navigation header">
-        <a href="#top" className="sm-logo" aria-label="AMRS Home" onClick={closeMenu}>
-          <Image
-            src={logoUrl || '/assets/img/amrs-logo.png'}
-            alt="AMRS Logo"
-            className="sm-logo-img"
-            draggable={false}
-            width={95}
-            height={28}
-            priority
-          />
-        </a>
         <button
           ref={toggleBtnRef}
           className="sm-toggle"

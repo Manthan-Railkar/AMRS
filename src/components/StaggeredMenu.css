@@ -55,28 +55,11 @@
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 18px 24px;
   background: transparent;
   pointer-events: none;
   z-index: 20;
-}
-
-.staggered-menu-header > * {
-  pointer-events: auto;
-}
-
-.sm-logo {
-  display: flex;
-  align-items: center;
-  user-select: none;
-}
-
-.sm-logo-img {
-  display: block;
-  height: 28px;
-  width: auto;
-  object-fit: contain;
 }
 
 .sm-toggle {

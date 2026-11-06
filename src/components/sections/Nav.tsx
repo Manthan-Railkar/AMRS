@@ -287,7 +287,6 @@ export function Nav() {
         displayItemNumbering={true}
         accentColor="#a78bfa"
         colors={['#181230', '#2d1858', '#5b21b6']}
-        logoUrl="/assets/img/amrs-logo.png"
         position="right"
         isFixed={true}
       />
