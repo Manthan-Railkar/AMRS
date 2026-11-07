@@ -1,0 +1,37 @@
+# AMRS Post-MVP Hugging Face PEFT/LoRA Recovery Configuration (ML-10)
+# Reference: Section ML-10.1
+
+strategy: transformer_lora
+
+# PEFT / LoRA Adapter Hyperparameters
+lora:
+  r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  target_modules: null  # null defaults to architecture-specific vetted modules (e.g. query/value)
+  bias: "none"
+  task_type: "SEQ_CLS"
+
+# Optimization Parameters
+optimization:
+  learning_rate: 0.001
+  weight_decay: 0.01
+  epochs: 3
+  batch_size: 16
+  early_stopping: true
+  patience: 2
+  max_grad_norm: 1.0
+
+# Base Model & Security Constraints
+provenance:
+  base_model_name_or_path: "bert-base-uncased"
+  base_model_revision: "main"
+  trust_remote_code: false  # Prohibits arbitrary remote code execution
+
+# Vetted Architecture Allowlist
+supported_architectures:
+  - distilbert
+  - bert
+  - roberta
+  - albert
+

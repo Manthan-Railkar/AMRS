@@ -190,3 +190,6 @@ class VerificationGate:
             seed=seed,
         )
 
+    # Convenience alias
+    evaluate = evaluate_candidate
+

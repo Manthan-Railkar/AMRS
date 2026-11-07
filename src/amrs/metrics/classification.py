@@ -19,10 +19,29 @@ def predict_logits(
 
     with torch.inference_mode():
         for batch in loader:
-            x, y = batch
-            x = x.to(device)
-            y = y.to(device)
-            logits = model(x)
+            if isinstance(batch, (list, tuple)) and len(batch) == 2:
+                x, y = batch
+                if isinstance(x, dict):
+                    x_dev = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in x.items()}
+                    logits = model(**x_dev)
+                else:
+                    x = x.to(device)
+                    logits = model(x)
+                y = y.to(device)
+            elif isinstance(batch, dict):
+                label_key = "labels" if "labels" in batch else "label"
+                y = batch[label_key].to(device)
+                inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items() if k != label_key}
+                logits = model(**inputs)
+            else:
+                x, y = batch
+                x = x.to(device)
+                y = y.to(device)
+                logits = model(x)
+
+            if hasattr(logits, "logits"):
+                logits = logits.logits
+
             all_logits.append(logits.cpu())
             all_labels.append(y.cpu())
 

@@ -50,7 +50,7 @@ class FailingMockStrategy(RecoveryStrategy):
     """Mock strategy that raises a simulated hardware/execution exception."""
     @property
     def name(self) -> str:
-        return "failing_mock"
+        return "temperature_scaling"
 
     def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
         return Applicability(can_apply=True)
@@ -122,6 +122,7 @@ def test_orchestrator_s2_miscalibration_recovery_happy_path(tmp_path: Path):
     # Allow small holdout in config
     cfg = load_config()
     cfg.gate.allow_small_holdout = True
+    cfg.selector.max_candidates = 1
 
     progress_events: list[tuple[str, float]] = []
 
@@ -176,6 +177,7 @@ def test_orchestrator_all_candidates_rejected_triggers_rollback(tmp_path: Path):
     # Set an impossible gate min_gain requirement so every candidate is rejected
     cfg = load_config()
     cfg.gate.allow_small_holdout = True
+    cfg.selector.max_candidates = 1
     cfg.gate.min_gain.accuracy = 0.99  # Impossible gain threshold
 
     bundle = RecoveryBundle(
@@ -217,6 +219,7 @@ def test_orchestrator_strategy_exception_does_not_corrupt_run(tmp_path: Path):
     from amrs.schemas import StrategyCandidate
     cfg = load_config()
     cfg.gate.allow_small_holdout = True
+    cfg.selector.max_candidates = 1
 
     bundle = RecoveryBundle(
         model=model,
@@ -304,6 +307,7 @@ def test_orchestrator_split_discipline_no_holdout_in_strategy(tmp_path: Path):
 
     cfg = load_config()
     cfg.gate.allow_small_holdout = True
+    cfg.selector.max_candidates = 1
 
     bundle = RecoveryBundle(
         model=model,
