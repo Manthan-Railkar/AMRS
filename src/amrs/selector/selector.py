@@ -14,6 +14,7 @@ from amrs.recovery.base import (
     RecoveryStrategy,
     StrategyResult,
 )
+from amrs.recovery.bn_recal import BnRecalibrationStrategy
 from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
@@ -121,51 +122,6 @@ def resolve_primary_metric_for_candidate(
 # ---------------------------------------------------------------------------
 # Built-in Strategy Implementations (ML-2 Specification)
 # ---------------------------------------------------------------------------
-
-class BnRecalibrationStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "bn_recalibration"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        if not model.supports_bn():
-            return Applicability(
-                can_apply=False,
-                reason="NO_BN_LAYERS",
-                message="Model contains no BatchNorm layers to recalibrate.",
-            )
-        if context.target_loader is None and context.val_loader is None:
-            return Applicability(
-                can_apply=False,
-                reason="MISSING_TARGET",
-                message="Neither target_loader nor val_loader is available for recalibration.",
-            )
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        max_batches = 100
-        if context.config and hasattr(context.config, "strategies"):
-            max_batches = getattr(context.config.strategies.bn_recalibration, "max_batches", 100)
-        
-        loader = context.target_loader or context.val_loader
-        batch_size = 32
-        if loader and hasattr(loader, "batch_size"):
-            batch_size = getattr(loader, "batch_size", 32) or 32
-
-        if loader and hasattr(loader, "__len__"):
-            num_batches = min(max_batches, len(loader))
-            fwd_samples = num_batches * batch_size
-        else:
-            fwd_samples = min(max_batches * batch_size, 3200)
-
-        return CostEstimate(
-            estimated_units=float(fwd_samples),
-            details={"fwd_samples": fwd_samples, "bwd_samples": 0, "strategy": self.name},
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-4).")
-
 
 class CheckpointReversionStrategy(RecoveryStrategy):
     @property

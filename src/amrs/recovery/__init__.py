@@ -7,6 +7,10 @@ from amrs.recovery.base import (
     RecoveryStrategy,
     StrategyResult,
 )
+from amrs.recovery.bn_recal import (
+    BnRecalibrationStrategy,
+    recalibrate_bn_stats,
+)
 from amrs.recovery.temperature import (
     CalibratedModel,
     CalibrationArtifact,
@@ -24,4 +28,6 @@ __all__ = [
     "CalibrationArtifact",
     "TemperatureScalingStrategy",
     "fit_temperature",
+    "BnRecalibrationStrategy",
+    "recalibrate_bn_stats",
 ]
