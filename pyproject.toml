@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=84.1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -35,6 +35,7 @@ dev = [
     "pre-commit>=3.3.0",
     "pip-audit>=2.6.0",
     "hypothesis>=6.82.0",
+    "setuptools>=84.1.0",
 ]
 transformers = [
     "peft>=0.4.0",
