@@ -17,8 +17,10 @@ COPY apps/web/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# In build time, provide placeholder for internal URL
+# In build time, provide placeholder for internal URL and Supabase
 ENV AMRS_API_INTERNAL_URL=http://api:8000
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
 
 RUN npm run build
 

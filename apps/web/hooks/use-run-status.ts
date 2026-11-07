@@ -21,7 +21,7 @@ export function useRunStatus(runId: string | null) {
       return res.json();
     },
     enabled: !!runId,
-    refetchInterval: (query) => {
+    refetchInterval: (query: any) => {
       const data = query.state.data;
       if (data && ["succeeded", "failed", "cancelled"].includes(data.status)) {
         return false;
