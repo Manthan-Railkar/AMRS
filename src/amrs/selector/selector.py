@@ -20,6 +20,7 @@ from amrs.recovery.checkpoints import (
     CheckpointReversionStrategy,
 )
 from amrs.recovery.last_layer import LastLayerFinetuneStrategy
+from amrs.recovery.selective_ft import SelectiveFinetuneL2spStrategy
 from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
@@ -127,57 +128,6 @@ def resolve_primary_metric_for_candidate(
 # ---------------------------------------------------------------------------
 # Built-in Strategy Implementations (ML-2 Specification)
 # ---------------------------------------------------------------------------
-
-class SelectiveFinetuneL2spStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "selective_finetune_l2sp"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        if not _has_identifiable_head(model):
-            return Applicability(
-                can_apply=False,
-                reason="NO_IDENTIFIABLE_HEAD",
-                message="Model has no identifiable classification head for selective fine-tuning.",
-            )
-        if context.train_loader is None and context.val_loader is None:
-            return Applicability(
-                can_apply=False,
-                reason="MISSING_TRAINING_DATA",
-                message="Training data required for selective fine-tuning.",
-            )
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        adapter = model or context.adapter
-        epochs = 8
-        unfreeze_top_n = 2
-        if context.config and hasattr(context.config, "strategies"):
-            cfg = getattr(context.config.strategies, "selective_finetune_l2sp", None)
-            if cfg:
-                epochs = getattr(cfg, "epochs", 8)
-                unfreeze_top_n = getattr(cfg, "unfreeze_top_n", 2)
-
-        n_train = _get_sample_count(context.train_loader, default=1000)
-        r_unfrozen = _get_unfrozen_param_ratio(adapter, unfreeze_top_n=unfreeze_top_n)
-
-        fwd_samples = epochs * n_train
-        bwd_samples = epochs * n_train * r_unfrozen
-        units = round(fwd_samples + 3.0 * bwd_samples, 2)
-
-        return CostEstimate(
-            estimated_units=float(units),
-            details={
-                "epochs": epochs,
-                "fwd_samples": fwd_samples,
-                "bwd_samples": bwd_samples,
-                "unfrozen_param_ratio": r_unfrozen,
-                "strategy": self.name,
-            },
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-7).")
 
 
 class WeightInterpolationStrategy(RecoveryStrategy):
