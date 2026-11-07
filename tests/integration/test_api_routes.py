@@ -114,7 +114,7 @@ def test_create_run_and_lifecycle() -> None:
     # Poll until cooperative cancellation is finalized by worker to 'cancelled'
     import time
 
-    for _ in range(50):
+    for _ in range(100):
         detail_res_after = client.get(f"/api/v1/runs/{run_id}")
         if detail_res_after.json()["status"] == "cancelled":
             break

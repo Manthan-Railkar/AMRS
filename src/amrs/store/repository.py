@@ -8,7 +8,7 @@ import sqlite3
 import uuid
 from typing import Any
 
-from amrs.pipeline.lifecycle import validate_status_transition
+from amrs.pipeline.lifecycle import RunStatus, validate_status_transition
 from amrs.schemas import (
     BenchmarkDetailResponse,
     BenchmarkResultItem,
@@ -157,7 +157,13 @@ class RunRepository:
                 logger.warning("Attempted to update status of non-existent run %s", run_id)
                 return
             current_status = row["status"]
-            validated_target = validate_status_transition(current_status, status).value
+            if current_status == RunStatus.CANCEL_REQUESTED.value and status in (
+                RunStatus.RUNNING.value,
+                RunStatus.QUEUED.value,
+            ):
+                validated_target = RunStatus.CANCEL_REQUESTED.value
+            else:
+                validated_target = validate_status_transition(current_status, status).value
 
             conn.execute(
                 """

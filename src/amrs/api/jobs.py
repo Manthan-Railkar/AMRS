@@ -322,8 +322,7 @@ class JobCoordinator:
             )
 
             # Checkpoint 1: Diagnosis
-            time.sleep(0.04)
-            if cancel_token.is_set():
+            if cancel_token.wait(timeout=0.08) or cancel_token.is_set():
                 self._finalize_cancellation(run_id, run_dir, original_bytes)
                 return
 
@@ -350,14 +349,12 @@ class JobCoordinator:
             )
 
             # Checkpoint 2: Candidate Generation & Strategy Fitting
-            time.sleep(0.04)
-            if cancel_token.is_set():
+            if cancel_token.wait(timeout=0.08) or cancel_token.is_set():
                 self._finalize_cancellation(run_id, run_dir, original_bytes)
                 return
 
             # Checkpoint 3: Verification Gate
-            time.sleep(0.04)
-            if cancel_token.is_set():
+            if cancel_token.wait(timeout=0.08) or cancel_token.is_set():
                 self._finalize_cancellation(run_id, run_dir, original_bytes)
                 return
 
@@ -405,6 +402,11 @@ class JobCoordinator:
             (run_dir / "report.json").write_text(json.dumps(report_data, indent=2))
             (run_dir / "report.md").write_text(f"# AMRS Run {run_id}\nVerdict: {verdict}")
 
+            # Final cancellation check before committing terminal success
+            if cancel_token.is_set():
+                self._finalize_cancellation(run_id, run_dir, original_bytes)
+                return
+
             # Transition to Succeeded
             self.run_repo.update_run_status(
                 run_id=run_id,
@@ -418,6 +420,9 @@ class JobCoordinator:
             )
 
         except Exception as exc:
+            if cancel_token.is_set():
+                self._finalize_cancellation(run_id, run_dir, original_bytes)
+                return
             logger.exception("Worker job execution failed for run %s: %s", run_id, exc)
             duration = round(time.monotonic() - start_time, 3)
             # Rollback to original model on failure

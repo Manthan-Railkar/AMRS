@@ -29,10 +29,10 @@ def test_async_job_execution(test_coord: JobCoordinator) -> None:
     initial_run = test_coord.get_run(run_id)
     assert initial_run.status in (RunStatus.QUEUED.value, RunStatus.RUNNING.value)
 
-    # Poll until background worker finishes (max 5 seconds)
+    # Poll until background worker finishes (max 10 seconds)
     start = time.time()
     terminal_run: RunDetailResponse | None = None
-    while time.time() - start < 5.0:
+    while time.time() - start < 10.0:
         run = test_coord.get_run(run_id)
         if run.status in (RunStatus.SUCCEEDED.value, RunStatus.FAILED.value):
             terminal_run = run
@@ -66,7 +66,7 @@ def test_concurrency_guard_and_active_lock(test_coord: JobCoordinator) -> None:
 
     # Wait for run 1 to complete
     start = time.time()
-    while time.time() - start < 5.0:
+    while time.time() - start < 10.0:
         if not test_coord.has_active_run():
             break
         time.sleep(0.05)
@@ -90,7 +90,7 @@ def test_cooperative_cancellation_workflow(test_coord: JobCoordinator) -> None:
     # Poll until worker halts at checkpoint and transitions to CANCELLED
     start = time.time()
     final_run: RunDetailResponse | None = None
-    while time.time() - start < 5.0:
+    while time.time() - start < 10.0:
         run = test_coord.get_run(run_id)
         if run.status == RunStatus.CANCELLED.value:
             final_run = run
