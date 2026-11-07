@@ -577,11 +577,7 @@ def run_baseline(
 
     # Validate holdout size if using default holdout as eval
     holdout_len = len(bundle.holdout) if isinstance(bundle.holdout, Sized) else 0
-    if (
-        eval_dataset is None
-        and holdout_len < 200
-        and not kwargs.get("allow_small_holdout", True)
-    ):
+    if eval_dataset is None and holdout_len < 200 and not kwargs.get("allow_small_holdout", True):
         raise HoldoutTooSmallError(
             f"Holdout dataset size ({holdout_len}) is below minimum of 200",
             details={"size": holdout_len},

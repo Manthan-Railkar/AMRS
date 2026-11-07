@@ -448,6 +448,7 @@ def evaluate_targets_m1_m10(
     # -----------------------------------------------------------------------
     # M6: Knowledge retention (Mean retained-correct rate >= 0.95)
     # -----------------------------------------------------------------------
+    mean_retention = 0.0
     if amrs_trials:
         all_retentions = [t.get("retention", 0.0) for t in amrs_trials]
         mean_retention = float(np.mean(all_retentions))
@@ -493,6 +494,7 @@ def evaluate_targets_m1_m10(
     # M8: Responsiveness (S1 run <= 10 min on T4, <= 15 min on CPU variant)
     # -----------------------------------------------------------------------
     s1_amrs = [t for t in amrs_trials if t["scenario_id"] == "s1_overfit"]
+    mean_s1_wall = 0.0
     if s1_amrs:
         mean_s1_wall = float(np.mean([t.get("wall_s", 0.0) for t in s1_amrs]))
         if mean_s1_wall <= 900.0:

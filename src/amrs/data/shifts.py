@@ -6,6 +6,7 @@ shifts to image datasets, testing model resilience under covariate distribution 
 
 from __future__ import annotations
 
+from collections.abc import Sized
 from typing import Any, Literal
 
 import numpy as np
@@ -41,13 +42,13 @@ class ShiftedDataset(Dataset):
         # Inherit stable ids if present on the base dataset
         if hasattr(base_ds, "ids"):
             self.ids = [f"{sid}_shifted" for sid in getattr(base_ds, "ids")]
-        elif hasattr(base_ds, "__len__"):
-            self.ids = [f"sample_{i:06d}_shifted" for i in range(len(base_ds))]  # type: ignore[arg-type]
+        elif isinstance(base_ds, Sized):
+            self.ids = [f"sample_{i:06d}_shifted" for i in range(len(base_ds))]
         else:
             self.ids = []
 
     def __len__(self) -> int:
-        return len(self.base_ds) if hasattr(self.base_ds, "__len__") else 0  # type: ignore[arg-type]
+        return len(self.base_ds) if isinstance(self.base_ds, Sized) else 0
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, Any] | torch.Tensor:
         item = self.base_ds[idx]

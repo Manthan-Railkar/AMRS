@@ -11,6 +11,7 @@ import copy
 import re
 import time
 from collections import OrderedDict
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +46,7 @@ def _extract_epoch_number(path: Path | str) -> int:
     return 0
 
 
-def _sort_checkpoints_chronologically(checkpoints: list[Path | str]) -> list[Path]:
+def _sort_checkpoints_chronologically(checkpoints: Sequence[Path | str]) -> list[Path]:
     """Sort checkpoints ascending by epoch number, falling back to lexicographical filename."""
     parsed = [Path(p) for p in checkpoints]
     return sorted(parsed, key=lambda p: (_extract_epoch_number(p), p.name))

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 from amrs.transformer.allowlist import validate_loading_security
@@ -17,7 +19,7 @@ class TransformerLoRAConfig(BaseModel):
         default=None,
         description="Target module names to apply LoRA. If None, architecture default is used.",
     )
-    bias: str = Field(
+    bias: Literal["none", "all", "lora_only"] = Field(
         default="none", description="Bias type for LoRA ('none', 'all', 'lora_only')."
     )
     task_type: str = Field(default="SEQ_CLS", description="PEFT task type.")

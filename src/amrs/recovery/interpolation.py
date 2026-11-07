@@ -13,6 +13,7 @@ from __future__ import annotations
 import copy
 import time
 from collections import OrderedDict
+from collections.abc import Mapping
 from typing import Any
 
 import torch
@@ -105,8 +106,8 @@ def validate_interpolation_compatibility(
 
 
 def interpolate_state_dicts(
-    orig_state: OrderedDict[str, torch.Tensor],
-    cand_state: OrderedDict[str, torch.Tensor],
+    orig_state: Mapping[str, Any],
+    cand_state: Mapping[str, Any],
     alpha: float,
     buffer_policy: str = DEFAULT_BUFFER_POLICY,
 ) -> OrderedDict[str, torch.Tensor]:

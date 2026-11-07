@@ -240,8 +240,8 @@ def test_checkpoint_averaging_full_workflow(tmp_path: Path):
     y_val = torch.randint(0, 10, (80,))
     val_loader = DataLoader(TensorDataset(x_val, y_val), batch_size=32, shuffle=False)
 
-    ckpt_paths: list[Path] = []
-    state_dicts: list[OrderedDict[str, torch.Tensor]] = []
+    ckpt_paths: list[Path | str] = []
+    state_dicts: list[dict[str, torch.Tensor]] = []
 
     for ep in range(1, 4):
         m_ep = copy.deepcopy(model)

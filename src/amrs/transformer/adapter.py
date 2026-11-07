@@ -55,9 +55,10 @@ class TransformerModelAdapter:
 
         # Extract config dictionary for config hash
         config_dict: dict[str, Any] = {}
-        if hasattr(model, "config") and hasattr(model.config, "to_dict"):
+        model_config = getattr(model, "config", None)
+        if model_config is not None and hasattr(model_config, "to_dict"):
             try:
-                config_dict = model.config.to_dict()
+                config_dict = model_config.to_dict()
             except Exception:
                 config_dict = {"model_type": self.architecture}
         else:
@@ -162,7 +163,9 @@ class TransformerModelAdapter:
             raise ValueError("Cannot save adapter: model is not a PEFT adapter model.")
 
         # Save PEFT adapter weights
-        self.model.save_pretrained(str(save_path))
+        save_fn = getattr(self.model, "save_pretrained", None)
+        if callable(save_fn):
+            save_fn(str(save_path))
 
         # Save AMRS metadata
         meta_file = save_path / "amrs_transformer_meta.json"

@@ -5,7 +5,7 @@ PYTHON ?= python
 all: install lint type test
 
 install:
-	$(PYTHON) -m pip install -e .[dev]
+	$(PYTHON) -m pip install -e .[dev,transformers]
 
 lint:
 	$(PYTHON) -m ruff check src tests

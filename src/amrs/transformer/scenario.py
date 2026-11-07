@@ -33,7 +33,7 @@ def build_tiny_transformer_classifier(
         num_attention_heads=num_heads,
         num_hidden_layers=num_layers,
         intermediate_size=hidden_size * 2,
-        num_labels=num_labels,
+        num_labels=num_labels,  # type: ignore[call-arg]
         classifier_dropout=0.1,
     )
     return BertForSequenceClassification(config)
@@ -81,8 +81,13 @@ def create_transformer_scenario(
     if degrade_base:
         # Zero out classifier weights to simulate degraded / unadapted classification performance
         with torch.no_grad():
-            if hasattr(model, "classifier"):
-                model.classifier.weight.zero_()
-                model.classifier.bias.zero_()
+            classifier = getattr(model, "classifier", None)
+            if classifier is not None:
+                weight = getattr(classifier, "weight", None)
+                if weight is not None and hasattr(weight, "zero_"):
+                    weight.zero_()
+                bias = getattr(classifier, "bias", None)
+                if bias is not None and hasattr(bias, "zero_"):
+                    bias.zero_()
 
     return model, train_loader, val_loader, holdout_loader

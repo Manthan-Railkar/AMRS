@@ -10,7 +10,7 @@ from amrs.config import load_config
 from amrs.evaluation.gate import VerificationGate
 from amrs.pipeline.orchestrator import HoldoutIsolatedContext
 from amrs.recovery.base import RecoveryContext
-from amrs.transformer.adapter import TransformerModelAdapter
+from amrs.transformer.adapter import PEFT_AVAILABLE, TransformerModelAdapter
 from amrs.transformer.allowlist import (
     ArchitectureNotSupportedError,
     TargetModuleNotAllowedError,
@@ -24,9 +24,12 @@ from amrs.transformer.config import TransformerLoRAConfig
 from amrs.transformer.lora import TransformerLoRAStrategy
 from amrs.transformer.metadata import compute_state_dict_sha256
 from amrs.transformer.scenario import (
+    TRANSFORMERS_AVAILABLE,
     build_tiny_transformer_classifier,
     create_transformer_scenario,
 )
+
+TRANSFORMERS_AND_PEFT_AVAILABLE = PEFT_AVAILABLE and TRANSFORMERS_AVAILABLE
 
 # ---------------------------------------------------------------------------
 # 1. Architecture Allowlist & Security Boundaries
@@ -75,6 +78,7 @@ def test_transformer_remote_code_security_enforcement():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(not TRANSFORMERS_AND_PEFT_AVAILABLE, reason="transformers and peft required")
 def test_transformer_adapter_contract_and_metadata():
     """TransformerModelAdapter captures metadata and audits parameter freezing."""
     model = build_tiny_transformer_classifier(seed=42)
@@ -90,6 +94,7 @@ def test_transformer_adapter_contract_and_metadata():
     assert "peft" in adapter.metadata.package_versions
 
 
+@pytest.mark.skipif(not TRANSFORMERS_AND_PEFT_AVAILABLE, reason="transformers and peft required")
 def test_transformer_adapter_lora_wrapping_freezes_base_model():
     """Wrapping with LoRA must freeze all base parameters and unfreeze only adapter weights."""
     model = build_tiny_transformer_classifier(seed=42)
@@ -117,6 +122,7 @@ def test_transformer_adapter_lora_wrapping_freezes_base_model():
     assert trainable_frac < 0.20
 
 
+@pytest.mark.skipif(not TRANSFORMERS_AND_PEFT_AVAILABLE, reason="transformers and peft required")
 def test_transformer_adapter_save_and_provenance(tmp_path: Path):
     """Saving adapted model persists PEFT weights and AMRS metadata JSON."""
     model = build_tiny_transformer_classifier(seed=42)
@@ -136,6 +142,7 @@ def test_transformer_adapter_save_and_provenance(tmp_path: Path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(not TRANSFORMERS_AND_PEFT_AVAILABLE, reason="transformers and peft required")
 def test_transformer_lora_strategy_trains_adapter_only():
     """TransformerLoRAStrategy updates adapter parameters while preserving base weights."""
     model, train_loader, val_loader, holdout_loader = create_transformer_scenario(
@@ -190,6 +197,7 @@ def test_transformer_lora_strategy_trains_adapter_only():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(not TRANSFORMERS_AND_PEFT_AVAILABLE, reason="transformers and peft required")
 def test_transformer_verification_gate_end_to_end():
     """Adapted transformer candidate can be evaluated and verified by VerificationGate."""
     model, train_loader, val_loader, holdout_loader = create_transformer_scenario(

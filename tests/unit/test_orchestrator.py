@@ -281,6 +281,7 @@ def test_orchestrator_cooperative_cancellation(tmp_path: Path):
 
     assert detail.status == "cancelled"
     assert detail.verdict == "rolled_back"
+    assert detail.error_message is not None
     assert "cancelled" in detail.error_message.lower()
 
     # Original model preserved

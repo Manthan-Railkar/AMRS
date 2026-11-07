@@ -22,6 +22,10 @@ from amrs.recovery.interpolation import (
 class ModelWithBuffers(nn.Module):
     """Model containing floating parameters, floating buffers, and integer buffers."""
 
+    fc: nn.Linear
+    bn: nn.BatchNorm1d
+    custom_step: torch.Tensor
+
     def __init__(self) -> None:
         super().__init__()
         self.fc = nn.Linear(4, 2)
@@ -36,6 +40,8 @@ class ModelWithBuffers(nn.Module):
 class IncompatibleShapeModel(nn.Module):
     """Model with mismatching linear layer shape."""
 
+    fc: nn.Linear
+
     def __init__(self) -> None:
         super().__init__()
         self.fc = nn.Linear(4, 5)
@@ -46,6 +52,8 @@ class IncompatibleShapeModel(nn.Module):
 
 class IncompatibleKeyModel(nn.Module):
     """Model with different layer naming."""
+
+    classifier: nn.Linear
 
     def __init__(self) -> None:
         super().__init__()
@@ -84,7 +92,10 @@ def test_boundary_alpha_zero_reproduces_original_exact():
     # Modify candidate parameters and buffers
     with torch.no_grad():
         m_cand.fc.weight.add_(1.5)
+        assert m_cand.fc.bias is not None
         m_cand.fc.bias.add_(-0.8)
+        assert m_cand.bn.running_mean is not None
+        assert m_cand.bn.running_var is not None
         m_cand.bn.running_mean.fill_(3.0)
         m_cand.bn.running_var.fill_(5.0)
         m_cand.custom_step.fill_(99)
@@ -106,7 +117,10 @@ def test_boundary_alpha_one_reproduces_candidate_exact():
 
     with torch.no_grad():
         m_cand.fc.weight.add_(2.5)
+        assert m_cand.fc.bias is not None
         m_cand.fc.bias.add_(-1.2)
+        assert m_cand.bn.running_mean is not None
+        assert m_cand.bn.running_var is not None
         m_cand.bn.running_mean.fill_(7.0)
         m_cand.bn.running_var.fill_(9.0)
         m_cand.custom_step.fill_(123)
@@ -186,22 +200,30 @@ def test_buffer_policy_non_floating_buffers():
     with torch.no_grad():
         m_orig.custom_step.fill_(10)
         m_cand.custom_step.fill_(80)
+        assert m_orig.bn.num_batches_tracked is not None
+        assert m_cand.bn.num_batches_tracked is not None
         m_orig.bn.num_batches_tracked.fill_(5)
         m_cand.bn.num_batches_tracked.fill_(50)
 
     # Alpha 0.25 (< 0.5) -> takes from original
     interp_low = interpolate_weights(m_orig, m_cand, alpha=0.25)
+    assert isinstance(interp_low, ModelWithBuffers)
     assert interp_low.custom_step.item() == 10
+    assert interp_low.bn.num_batches_tracked is not None
     assert interp_low.bn.num_batches_tracked.item() == 5
 
     # Alpha 0.50 (>= 0.5) -> takes from candidate
     interp_mid = interpolate_weights(m_orig, m_cand, alpha=0.50)
+    assert isinstance(interp_mid, ModelWithBuffers)
     assert interp_mid.custom_step.item() == 80
+    assert interp_mid.bn.num_batches_tracked is not None
     assert interp_mid.bn.num_batches_tracked.item() == 50
 
     # Alpha 0.75 (>= 0.5) -> takes from candidate
     interp_high = interpolate_weights(m_orig, m_cand, alpha=0.75)
+    assert isinstance(interp_high, ModelWithBuffers)
     assert interp_high.custom_step.item() == 80
+    assert interp_high.bn.num_batches_tracked is not None
     assert interp_high.bn.num_batches_tracked.item() == 50
 
 
@@ -211,16 +233,23 @@ def test_batchnorm_running_stats_floating_interpolation():
     m_cand = ModelWithBuffers()
 
     with torch.no_grad():
+        assert m_orig.bn.running_mean is not None
+        assert m_cand.bn.running_mean is not None
+        assert m_orig.bn.running_var is not None
+        assert m_cand.bn.running_var is not None
         m_orig.bn.running_mean.copy_(torch.tensor([0.0, 10.0]))
         m_cand.bn.running_mean.copy_(torch.tensor([4.0, 2.0]))
         m_orig.bn.running_var.copy_(torch.tensor([1.0, 3.0]))
         m_cand.bn.running_var.copy_(torch.tensor([5.0, 7.0]))
 
     interp = interpolate_weights(m_orig, m_cand, alpha=0.5)
+    assert isinstance(interp, ModelWithBuffers)
 
     expected_mean = torch.tensor([2.0, 6.0])
     expected_var = torch.tensor([3.0, 5.0])
 
+    assert interp.bn.running_mean is not None
+    assert interp.bn.running_var is not None
     assert torch.allclose(interp.bn.running_mean, expected_mean)
     assert torch.allclose(interp.bn.running_var, expected_var)
 
@@ -237,6 +266,7 @@ def test_compatibility_key_mismatch_rejected():
 
     compat, reason = validate_interpolation_compatibility(m1, m2)
     assert compat is False
+    assert reason is not None
     assert "KEY_MISMATCH" in reason
 
 
@@ -247,6 +277,7 @@ def test_compatibility_shape_mismatch_rejected():
 
     compat, reason = validate_interpolation_compatibility(m1, m2)
     assert compat is False
+    assert reason is not None
     assert "SHAPE_MISMATCH" in reason
 
 
@@ -260,6 +291,7 @@ def test_compatibility_non_finite_tensors_rejected():
 
     compat, reason = validate_interpolation_compatibility(m1, m2)
     assert compat is False
+    assert reason is not None
     assert "NON_FINITE" in reason
 
 

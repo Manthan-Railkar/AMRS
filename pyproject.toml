@@ -38,6 +38,7 @@ dev = [
 ]
 transformers = [
     "peft>=0.4.0",
+    "transformers>=4.30.0",
 ]
 
 [project.scripts]
@@ -69,6 +70,7 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
+plugins = ["pydantic.mypy"]
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false

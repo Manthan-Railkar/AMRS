@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from collections.abc import Sized
 from typing import Any, Sequence
 
 import numpy as np
@@ -70,7 +71,10 @@ def _extract_labels_and_ids(ds: Dataset) -> tuple[np.ndarray, list[str]]:
         else:
             for idx in range(n):
                 item = ds[idx]
-                labels.append(int(item[1]))
+                if isinstance(item, (tuple, list)) and len(item) >= 2:
+                    labels.append(int(item[1]))
+                else:
+                    labels.append(0)
     else:
         # Fallback iteration
         for idx in range(n):
@@ -271,7 +275,7 @@ def make_bundle(
     # ---------------------------------------------------------------------------
     # Holdout Size and Class Coverage Validation
     # ---------------------------------------------------------------------------
-    holdout_size = len(final_holdout) if hasattr(final_holdout, "__len__") else 0  # type: ignore[arg-type]
+    holdout_size = len(final_holdout) if isinstance(final_holdout, Sized) else 0
 
     if holdout_size < 200:
         if not allow_small_holdout:
@@ -306,7 +310,10 @@ def make_bundle(
     num_classes = len(train_classes.union(holdout_classes)) if train_classes else 10
     sample_item = final_train[0]
     sample_x = sample_item[0] if isinstance(sample_item, tuple) else sample_item
-    input_shape = tuple(sample_x.shape) if hasattr(sample_x, "shape") else (3, 32, 32)
+    shape_attr = getattr(sample_x, "shape", None)
+    input_shape = (
+        tuple(shape_attr) if isinstance(shape_attr, (tuple, list, torch.Size)) else (3, 32, 32)
+    )
 
     return DataBundle(
         train=final_train,

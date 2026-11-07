@@ -146,11 +146,13 @@ class ScenarioSpec:
             raw = raw_loaded if isinstance(raw_loaded, dict) else {}
 
         profiles = raw.get("profiles", {})
-        p_cfg = profiles.get(profile, {}) if isinstance(profiles, dict) else {}
+        p_cfg: dict[str, Any] = (
+            profiles.get(profile, {})
+            if isinstance(profiles, dict) and isinstance(profiles.get(profile), dict)
+            else {}
+        )
         arch = str(
-            p_cfg.get(
-                "arch", "mlp_small" if profile == "tiny" else raw.get("arch", "small_cnn")
-            )
+            p_cfg.get("arch", "mlp_small" if profile == "tiny" else raw.get("arch", "small_cnn"))
         )
         dataset = str(
             p_cfg.get(
@@ -158,19 +160,20 @@ class ScenarioSpec:
                 "synthetic" if profile == "tiny" else raw.get("dataset", "fashion_mnist"),
             )
         )
-        num_classes = int(
-            p_cfg.get(
-                "num_classes", raw.get("num_classes", 4 if profile == "tiny" else 10)
-            )
+        raw_num_classes = raw.get("num_classes", 4 if profile == "tiny" else 10)
+        num_classes_val = p_cfg.get("num_classes", raw_num_classes)
+        num_classes = (
+            int(num_classes_val)
+            if num_classes_val is not None
+            else (4 if profile == "tiny" else 10)
         )
-        input_shape = tuple(
-            p_cfg.get(
-                "input_shape",
-                raw.get(
-                    "input_shape", (1, 8, 8) if profile == "tiny" else (1, 28, 28)
-                ),
-            )
-        )
+
+        raw_shape_default = (1, 8, 8) if profile == "tiny" else (1, 28, 28)
+        raw_shape = p_cfg.get("input_shape", raw.get("input_shape", raw_shape_default))
+        if isinstance(raw_shape, (list, tuple)):
+            input_shape: tuple[int, ...] = tuple(int(x) for x in raw_shape)
+        else:
+            input_shape = raw_shape_default
 
         return cls(
             id=canon_id,
@@ -258,9 +261,9 @@ def _prepare_scenario_data(spec: ScenarioSpec, seed: int) -> tuple[DataBundle, A
             # Flip 20% of labels in val and holdout to cap maximum accuracy around 80%
             with torch.no_grad():
                 rng_flip = np.random.default_rng(seed + 303)
-                flip_mask = rng_flip.random(len(noisy_val.labels)) < 0.20
+                flip_mask = torch.from_numpy(rng_flip.random(len(noisy_val.labels)) < 0.20)
                 noisy_val.labels[flip_mask] = (noisy_val.labels[flip_mask] + 1) % spec.num_classes
-                h_flip_mask = rng_flip.random(len(noisy_holdout.labels)) < 0.20
+                h_flip_mask = torch.from_numpy(rng_flip.random(len(noisy_holdout.labels)) < 0.20)
                 noisy_holdout.labels[h_flip_mask] = (
                     noisy_holdout.labels[h_flip_mask] + 1
                 ) % spec.num_classes
@@ -357,7 +360,7 @@ def train_model(
     np.random.seed(seed)
 
     # 1. Prepare data
-    bundle, raw_dataset = _prepare_scenario_data(spec, seed)
+    bundle, _ = _prepare_scenario_data(spec, seed)
     p_cfg = spec.profile_cfg
 
     train_loader = make_loader(bundle.train, batch_size=32, shuffle=True, seed=seed)
@@ -485,7 +488,7 @@ def train_model(
         head_opt = torch.optim.Adam(adapter.head_params(), lr=0.02)
         noise_ratio = spec.raw_config.get("noise_ratio", 0.40)
 
-        for ep in range(1, 4):
+        for _ in range(1, 4):
             model.train()
             for bx, by in train_loader:
                 bx, by = bx.to(device), by.to(device)

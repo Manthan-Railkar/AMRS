@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +34,7 @@ class RecoveryContext:
         train_loader: Any = None,
         val_loader: Any = None,
         target_loader: Any = None,
-        checkpoints: list[Path | str] | None = None,
+        checkpoints: Sequence[Path | str] | None = None,
         history: list[dict[str, Any]] | None = None,
         config: Any = None,
         seed: int = 1234,
@@ -84,7 +85,7 @@ class RecoveryContext:
         cls,
         isolated_ctx: Any,
         model: ModelAdapter | nn.Module | None = None,
-        checkpoints: list[Path | str] | None = None,
+        checkpoints: Sequence[Path | str] | None = None,
         history: list[dict[str, Any]] | None = None,
         config: Any = None,
         seed: int = 1234,

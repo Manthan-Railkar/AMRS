@@ -14,6 +14,7 @@ import argparse
 import json
 import sys
 import time
+from typing import Any
 
 from amrs import __version__
 
@@ -36,29 +37,32 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
     meta = SCENARIO_CATALOG.get(scenario_id, {})
     label = meta.get("ground_truth_label", "overfitting")
 
-    report = {
+    diagnoses: list[dict[str, Any]] = [
+        {
+            "label": label,
+            "confidence": 0.94,
+            "rank": 1,
+            "evidence": {
+                "explanation": f"Fired rule for scenario {scenario_id}",
+                "metric_values": {"generalization_gap": 0.24, "val_loss_trend": "increasing"},
+                "threshold_values": {"gap_min": 0.10},
+                "source_split": "val",
+            },
+        }
+    ]
+    report: dict[str, Any] = {
         "scenario_id": scenario_id,
-        "diagnoses": [
-            {
-                "label": label,
-                "confidence": 0.94,
-                "rank": 1,
-                "evidence": {
-                    "explanation": f"Fired rule for scenario {scenario_id}",
-                    "metric_values": {"generalization_gap": 0.24, "val_loss_trend": "increasing"},
-                    "threshold_values": {"gap_min": 0.10},
-                    "source_split": "val",
-                },
-            }
-        ],
+        "diagnoses": diagnoses,
     }
 
     if args.format == "json":
         print(json.dumps(report, indent=2))
     else:
         print(f"\n=== AMRS Diagnosis Report: {scenario_id} ===")
-        for d in report["diagnoses"]:
-            print(f"Rank {d['rank']}: {d['label'].upper()} (Confidence: {d['confidence']:.2f})")
+        for d in diagnoses:
+            print(
+                f"Rank {d['rank']}: {str(d['label']).upper()} (Confidence: {d['confidence']:.2f})"
+            )
             print(f"  Explanation: {d['evidence']['explanation']}")
             print(f"  Evidence: {d['evidence']['metric_values']}")
         print("==========================================\n")
