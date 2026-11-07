@@ -15,6 +15,10 @@ from amrs.recovery.base import (
     StrategyResult,
 )
 from amrs.recovery.bn_recal import BnRecalibrationStrategy
+from amrs.recovery.checkpoints import (
+    CheckpointAveragingStrategy,
+    CheckpointReversionStrategy,
+)
 from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
@@ -122,59 +126,6 @@ def resolve_primary_metric_for_candidate(
 # ---------------------------------------------------------------------------
 # Built-in Strategy Implementations (ML-2 Specification)
 # ---------------------------------------------------------------------------
-
-class CheckpointReversionStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "checkpoint_reversion"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        if not context.checkpoints:
-            return Applicability(
-                can_apply=False,
-                reason="NO_HISTORY",
-                message="No historical checkpoints supplied for reversion.",
-            )
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        n_val = _get_sample_count(context.val_loader, default=500)
-        # Select best checkpoint from history and evaluate 1 validation forward pass
-        return CostEstimate(
-            estimated_units=float(n_val),
-            details={"fwd_samples": n_val, "bwd_samples": 0, "strategy": self.name},
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-5).")
-
-
-class CheckpointAveragingStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "checkpoint_averaging"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        if len(context.checkpoints) < 2:
-            return Applicability(
-                can_apply=False,
-                reason="NO_HISTORY",
-                message="At least 2 historical checkpoints required for checkpoint averaging.",
-            )
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        n_val = _get_sample_count(context.val_loader, default=500)
-        # Tensor averaging across checkpoints + 1 validation forward evaluation
-        units = round(n_val * 1.25, 2)
-        return CostEstimate(
-            estimated_units=float(units),
-            details={"fwd_samples": n_val, "bwd_samples": 0, "strategy": self.name},
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-5).")
-
 
 class LastLayerFinetuneStrategy(RecoveryStrategy):
     @property
