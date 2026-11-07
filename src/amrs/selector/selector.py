@@ -14,6 +14,7 @@ from amrs.recovery.base import (
     RecoveryStrategy,
     StrategyResult,
 )
+from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
     DiagnosisReport,
@@ -120,27 +121,6 @@ def resolve_primary_metric_for_candidate(
 # ---------------------------------------------------------------------------
 # Built-in Strategy Implementations (ML-2 Specification)
 # ---------------------------------------------------------------------------
-
-class TemperatureScalingStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "temperature_scaling"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        # Temperature scaling has no special prerequisites
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        n_val = _get_sample_count(context.val_loader, default=500)
-        # 1 validation forward pass to extract logits; T optimization is on scalar logits
-        return CostEstimate(
-            estimated_units=float(n_val),
-            details={"fwd_samples": n_val, "bwd_samples": 0, "strategy": self.name},
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-3).")
-
 
 class BnRecalibrationStrategy(RecoveryStrategy):
     @property
