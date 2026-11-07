@@ -300,6 +300,67 @@ class DiagnosisReport(BaseModel):
     evidence_trail: dict[str, Any] = Field(default_factory=dict)
 
 
+# ---------------------------------------------------------------------------
+# Recovery & Selector Schemas
+# ---------------------------------------------------------------------------
+
+class Applicability(BaseModel):
+    can_apply: bool
+    reason: str | None = None
+    message: str | None = None
+
+
+class CostEstimate(BaseModel):
+    estimated_units: float
+    wall_s: float | None = None
+    is_estimate: bool = True
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class StrategyCandidate(BaseModel):
+    strategy: str
+    eligible_for: list[str] = Field(default_factory=list)
+    estimated_cost: float
+    priority: int = 1
+    params: dict[str, Any] = Field(default_factory=dict)
+    cost_details: dict[str, Any] = Field(default_factory=dict)
+    primary_metric: str = "accuracy"
+    is_estimate: bool = True
+
+
+class SkippedCandidate(BaseModel):
+    strategy: str
+    reason: str
+    eligible_for: list[str] = Field(default_factory=list)
+    message: str | None = None
+    estimated_cost: float | None = None
+
+
+class SelectionReport(BaseModel):
+    candidates: list[StrategyCandidate] = Field(default_factory=list)
+    skipped: list[SkippedCandidate] = Field(default_factory=list)
+    total_estimated_cost: float = 0.0
+    compute_budget: float = 0.0
+    retrain_reference_units: float = 0.0
+    max_candidates: int = 4
+    primary_label: str | None = None
+    is_healthy: bool = False
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class StrategyResult(BaseModel):
+    strategy_name: str
+    success: bool
+    params: dict[str, Any] = Field(default_factory=dict)
+    seed: int = 1234
+    elapsed_wall_s: float = 0.0
+    compute_units: float = 0.0
+    grad_steps: int = 0
+    warnings: list[str] = Field(default_factory=list)
+    artifact_metadata: dict[str, Any] = Field(default_factory=dict)
+    error_message: str | None = None
+
+
 class CandidateSummary(BaseModel):
     id: str
     run_id: str
