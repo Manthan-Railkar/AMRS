@@ -17,6 +17,10 @@ from amrs.recovery.checkpoints import (
     average_state_dicts,
     validate_checkpoint,
 )
+from amrs.recovery.last_layer import (
+    LastLayerFinetuneStrategy,
+    finetune_last_layer,
+)
 from amrs.recovery.temperature import (
     CalibratedModel,
     CalibrationArtifact,
@@ -40,4 +44,6 @@ __all__ = [
     "CheckpointAveragingStrategy",
     "average_state_dicts",
     "validate_checkpoint",
+    "LastLayerFinetuneStrategy",
+    "finetune_last_layer",
 ]

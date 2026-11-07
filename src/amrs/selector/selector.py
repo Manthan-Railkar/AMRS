@@ -19,6 +19,7 @@ from amrs.recovery.checkpoints import (
     CheckpointAveragingStrategy,
     CheckpointReversionStrategy,
 )
+from amrs.recovery.last_layer import LastLayerFinetuneStrategy
 from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
@@ -126,54 +127,6 @@ def resolve_primary_metric_for_candidate(
 # ---------------------------------------------------------------------------
 # Built-in Strategy Implementations (ML-2 Specification)
 # ---------------------------------------------------------------------------
-
-class LastLayerFinetuneStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "last_layer_finetune"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        if not _has_identifiable_head(model):
-            return Applicability(
-                can_apply=False,
-                reason="NO_IDENTIFIABLE_HEAD",
-                message="Model has no identifiable classification head.",
-            )
-        if context.train_loader is None and context.val_loader is None:
-            return Applicability(
-                can_apply=False,
-                reason="MISSING_TRAINING_DATA",
-                message="Training data required for fine-tuning.",
-            )
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        adapter = model or context.adapter
-        epochs = 5
-        if context.config and hasattr(context.config, "strategies"):
-            epochs = getattr(context.config.strategies.last_layer_finetune, "epochs", 5)
-
-        n_train = _get_sample_count(context.train_loader, default=1000)
-        r_head = _get_head_param_ratio(adapter)
-
-        fwd_samples = epochs * n_train
-        bwd_samples = epochs * n_train * r_head
-        units = round(fwd_samples + 3.0 * bwd_samples, 2)
-
-        return CostEstimate(
-            estimated_units=float(units),
-            details={
-                "epochs": epochs,
-                "fwd_samples": fwd_samples,
-                "bwd_samples": bwd_samples,
-                "head_param_ratio": r_head,
-                "strategy": self.name,
-            },
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-6).")
-
 
 class SelectiveFinetuneL2spStrategy(RecoveryStrategy):
     @property
