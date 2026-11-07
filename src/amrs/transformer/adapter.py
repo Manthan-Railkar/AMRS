@@ -129,7 +129,7 @@ class TransformerModelAdapter:
 
         # Deep-copy base model to ensure original is preserved
         model_copy = copy.deepcopy(self.model)
-        peft_model = get_peft_model(model_copy, lora_cfg)
+        peft_model = get_peft_model(model_copy, lora_cfg)  # type: ignore[arg-type]
 
         # Audit: verify all base parameters are frozen and only adapter parameters require grad
         for name, p in peft_model.named_parameters():
