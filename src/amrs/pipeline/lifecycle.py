@@ -40,6 +40,7 @@ LEGAL_TRANSITIONS: dict[RunStatus, set[RunStatus]] = {
         RunStatus.SUCCEEDED,
         RunStatus.FAILED,
         RunStatus.CANCEL_REQUESTED,
+        RunStatus.CANCELLED,
     },
     RunStatus.CANCEL_REQUESTED: {
         RunStatus.CANCELLED,

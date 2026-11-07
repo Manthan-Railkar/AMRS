@@ -16,6 +16,10 @@ def test_api_restart_persistence_with_sqlite_file(tmp_path: Path) -> None:
     # Step 1: Start API instance 1 connected to db_file
     db1 = Database(db_file)
     coord1 = JobCoordinator(db=db1)
+    # Intercept worker submission: this test explicitly manually simulates worker steps
+    import concurrent.futures
+
+    coord1._executor.submit = lambda *args, **kwargs: concurrent.futures.Future()
     app1 = create_app()
     # Override coordinator in app1
     from amrs.api import deps
@@ -68,6 +72,7 @@ def test_api_restart_persistence_with_sqlite_file(tmp_path: Path) -> None:
         accepted_strategy="checkpoint_reversion",
     )
 
+    coord1.shutdown(wait=False)
     db1.close()
 
     # Step 2: "Restart" - Create a completely fresh API instance connected to the same file
@@ -93,4 +98,5 @@ def test_api_restart_persistence_with_sqlite_file(tmp_path: Path) -> None:
     assert data["candidates"][0]["strategy"] == "checkpoint_reversion"
     assert data["candidates"][0]["gate_decision"] == "ACCEPT"
 
+    coord2.shutdown(wait=False)
     db2.close()

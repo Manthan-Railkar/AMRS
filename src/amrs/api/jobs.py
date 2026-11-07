@@ -282,18 +282,18 @@ class JobCoordinator:
         # Validate transition queued/running -> cancel_requested
         validate_status_transition(run.status, RunStatus.CANCEL_REQUESTED.value)
 
-        # Signal worker via cancellation token
-        with self._lock:
-            token = self._cancel_tokens.get(run_id)
-            if token:
-                token.set()
-
         # Update status in DB to cancel_requested
         self.run_repo.update_run_status(
             run_id=run_id,
             status=RunStatus.CANCEL_REQUESTED.value,
             progress_stage="cancel_requested",
         )
+
+        # Signal worker via cancellation token
+        with self._lock:
+            token = self._cancel_tokens.get(run_id)
+            if token:
+                token.set()
 
         return run_id
 
