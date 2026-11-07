@@ -30,6 +30,7 @@ class Database:
             self._keepalive = None
 
         self._local = threading.local()
+        self._tx_lock = threading.RLock()
 
     def get_connection(self) -> sqlite3.Connection:
         """Create or return a thread-local configured SQLite connection."""
@@ -54,21 +55,22 @@ class Database:
     def transaction(self) -> Generator[sqlite3.Connection, None, None]:
         """Context manager providing an atomic transaction boundary.
 
-        Issues BEGIN if not already in a transaction, yields the connection,
-        and issues COMMIT upon normal exit. If an exception is raised, issues
-        ROLLBACK and re-raises the exception.
+        Serializes write transactions across threads and executes BEGIN IMMEDIATE
+        to eliminate database-is-locked deadlocks. Issues COMMIT upon normal exit
+        or ROLLBACK on exceptions.
         """
-        conn = self.get_connection()
-        if not conn.in_transaction:
-            conn.execute("BEGIN;")
-        try:
-            yield conn
-            if conn.in_transaction:
+        with self._tx_lock:
+            conn = self.get_connection()
+            conn.execute("BEGIN IMMEDIATE;")
+            try:
+                yield conn
                 conn.execute("COMMIT;")
-        except Exception:
-            if conn.in_transaction:
-                conn.execute("ROLLBACK;")
-            raise
+            except Exception:
+                try:
+                    conn.execute("ROLLBACK;")
+                except Exception:
+                    pass
+                raise
 
     def close(self) -> None:
         """Close keepalive connection and thread-local connections."""

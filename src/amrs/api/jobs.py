@@ -456,13 +456,20 @@ class JobCoordinator:
             )
         )
 
-        self.run_repo.update_run_status(
-            run_id=run_id,
-            status=RunStatus.CANCELLED.value,
-            progress_stage="cancelled",
-            verdict="rolled_back",
-            error_message="Run cancelled by user request",
-        )
+        for attempt in range(5):
+            try:
+                self.run_repo.update_run_status(
+                    run_id=run_id,
+                    status=RunStatus.CANCELLED.value,
+                    progress_stage="cancelled",
+                    verdict="rolled_back",
+                    error_message="Run cancelled by user request",
+                )
+                break
+            except Exception:
+                if attempt == 4:
+                    raise
+                time.sleep(0.05)
         logger.info("Worker confirmed cooperative cancellation for run %s", run_id)
 
     def list_runs(

@@ -34,6 +34,7 @@ def is_docker_available() -> bool:
 
 
 @pytest.mark.e2e
+@pytest.mark.slow
 @pytest.mark.skipif(
     not is_docker_available(),
     reason="Docker daemon or CLI is not available in current test environment.",

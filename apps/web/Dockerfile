@@ -1,14 +1,14 @@
 # Multi-stage Dockerfile for Next.js Frontend Web Application (INF-2.2 / FE-1)
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy dependency manifests
 COPY apps/web/package.json apps/web/package-lock.json* ./
-RUN npm ci
+RUN npm ci || npm install
 
 # Rebuild source code only when needed
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/web/ ./
@@ -23,7 +23,7 @@ ENV AMRS_API_INTERNAL_URL=http://api:8000
 RUN npm run build
 
 # Production image, copy all files and run Next.js
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

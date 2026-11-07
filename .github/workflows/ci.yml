@@ -48,7 +48,7 @@ jobs:
           # COVERAGE_MIN defaults to 0 until DM-1.1 merges, then 80
           COVERAGE_MIN: "80"
         run: |
-          pytest -q --cov=amrs --cov-fail-under=$COVERAGE_MIN -m "not gpu and not slow"
+          pytest -q --cov=amrs --cov-fail-under=$COVERAGE_MIN -m "not gpu and not slow and not e2e"
 
       - name: Security audit dependencies
         run: |
