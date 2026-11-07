@@ -99,7 +99,7 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
           if (data.session) {
             setSuccessMsg("Account created and saved to database! Redirecting...");
             setTimeout(() => {
-              router.push("/");
+              router.push("/dashboard");
               router.refresh();
             }, 1200);
           } else {
@@ -119,7 +119,7 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
         } else if (data.session) {
           setSuccessMsg("Logged in successfully! Redirecting...");
           setTimeout(() => {
-            router.push("/");
+            router.push("/dashboard");
             router.refresh();
           }, 1000);
         }

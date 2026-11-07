@@ -1,23 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-
-export interface HealthResponse {
-  status: string;
-  uptime_s: number;
-  active_jobs: number;
-  device: string;
-}
+import { getHealth } from "@/lib/api";
+import type { Health } from "@/lib/api/types";
 
 export function useApiHealth() {
-  return useQuery<HealthResponse>({
+  return useQuery<Health>({
     queryKey: ["health"],
-    queryFn: async () => {
-      const res = await fetch("/api/v1/health");
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return res.json();
-    },
-    refetchInterval: 5000,
+    queryFn: () => getHealth(),
+    refetchInterval: 15000,
   });
 }
-

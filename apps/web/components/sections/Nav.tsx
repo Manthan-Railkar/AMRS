@@ -5,6 +5,7 @@ import Image from 'next/image';
 import StaggeredMenu from '@/components/StaggeredMenu';
 
 const menuItems = [
+  { label: 'Dashboard', ariaLabel: 'Open AMRS Recovery Dashboard', link: '/dashboard' },
   { label: 'Features', ariaLabel: '4-step model recovery workflow', link: '#features' },
   { label: 'Strategies', ariaLabel: '6 model recovery strategies', link: '#templates' },
   { label: 'Benchmarks', ariaLabel: 'Performance metrics and evaluation', link: '#performance' },
@@ -142,6 +143,13 @@ export function Nav() {
               letterSpacing: '0.1em',
             }}
           >
+            <a
+              href="/dashboard"
+              className="text-white/70 hover:text-white transition-colors duration-200"
+              style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
+            >
+              Dashboard
+            </a>
             <a
               href="#features"
               className="text-white/70 hover:text-white transition-colors duration-200"

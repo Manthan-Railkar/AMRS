@@ -1,33 +1,30 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { getRun } from "@/lib/api";
+import type { Run } from "@/lib/api/types";
 
-export interface RunStatusResponse {
-  run_id: string;
-  status: string;
-  progress_stage: string;
-  progress_pct: number;
-  verdict: string | null;
-  accepted_strategy: string | null;
-}
+const TERMINAL_STATUSES: readonly string[] = ["succeeded", "failed", "cancelled"];
 
-export function useRunStatus(runId: string | null) {
-  return useQuery<RunStatusResponse>({
-    queryKey: ["runs", runId],
-    queryFn: async () => {
-      if (!runId) throw new Error("No runId provided");
-      const res = await fetch(`/api/v1/runs/${runId}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return res.json();
+export function useRunStatus(runId: string | null | undefined) {
+  return useQuery<Run>({
+    queryKey: ["run", runId],
+    queryFn: () => {
+      if (!runId) {
+        throw new Error("runId is required to fetch run status");
+      }
+      return getRun(runId);
     },
-    enabled: !!runId,
-    refetchInterval: (query: any) => {
-      const data = query.state.data;
-      if (data && ["succeeded", "failed", "cancelled"].includes(data.status)) {
+    enabled: Boolean(runId),
+    refetchInterval: (query) => {
+      const run = query.state.data;
+      if (!run) {
+        return 1500;
+      }
+      if (TERMINAL_STATUSES.includes(run.status)) {
         return false;
       }
-      return 1000;
+      return 1500;
     },
   });
 }
-
