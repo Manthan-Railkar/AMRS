@@ -1,6 +1,5 @@
 """Unit tests for AMRS domain errors and standardized error envelopes."""
 
-import pytest
 from amrs.errors import (
     AmrsError,
     CandidateError,
@@ -67,4 +66,3 @@ def test_standard_subclass_codes_and_statuses() -> None:
         assert payload["error"]["code"] == expected_code
         assert payload["error"]["message"] == "Testing error"
         assert payload["error"]["details"] == {"key": "val"}
-

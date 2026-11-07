@@ -1,6 +1,6 @@
 """Diagnosis module for AMRS (ML-1 / Section 2.8)."""
 
-from amrs.diagnosis.engine import DiagnosisEngine, TIE_BREAK_ORDER
+from amrs.diagnosis.engine import TIE_BREAK_ORDER, DiagnosisEngine
 from amrs.diagnosis.probes import (
     analyze_history_trend,
     analyze_instability,

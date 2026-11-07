@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from typing import Callable
+
 import torch
 import torch.nn as nn
 import torchvision.models as tv_models
@@ -113,7 +114,9 @@ def _build_small_cnn(num_classes: int = 10, in_shape: tuple[int, ...] = (3, 32, 
 
 
 @register("resnet18_cifar")
-def _build_resnet18_cifar(num_classes: int = 10, in_shape: tuple[int, ...] = (3, 32, 32)) -> nn.Module:
+def _build_resnet18_cifar(
+    num_classes: int = 10, in_shape: tuple[int, ...] = (3, 32, 32)
+) -> nn.Module:
     in_channels = in_shape[0] if len(in_shape) >= 1 else 3
     model = tv_models.resnet18(weights=None)
     # CIFAR stem: 3x3 conv, stride 1, no maxpool
@@ -146,4 +149,3 @@ def build(
             details={"requested_arch": name, "allowlisted_architectures": list_registered()},
         )
     return _REGISTRY[name](num_classes, in_shape)
-

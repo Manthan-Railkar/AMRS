@@ -2,9 +2,9 @@
 
 import copy
 from pathlib import Path
+
 import pytest
 import torch
-import torch.nn as nn
 
 from amrs.config import load_config
 from amrs.evaluation.gate import VerificationGate
@@ -25,14 +25,13 @@ from amrs.transformer.lora import TransformerLoRAStrategy
 from amrs.transformer.metadata import compute_state_dict_sha256
 from amrs.transformer.scenario import (
     build_tiny_transformer_classifier,
-    create_tiny_transformer_data,
     create_transformer_scenario,
 )
-
 
 # ---------------------------------------------------------------------------
 # 1. Architecture Allowlist & Security Boundaries
 # ---------------------------------------------------------------------------
+
 
 def test_transformer_allowlist_recognition():
     """Vetted architectures are correctly recognized and normalized."""
@@ -74,6 +73,7 @@ def test_transformer_remote_code_security_enforcement():
 # ---------------------------------------------------------------------------
 # 2. TransformerModelAdapter Contract & PEFT Parameter Freezing
 # ---------------------------------------------------------------------------
+
 
 def test_transformer_adapter_contract_and_metadata():
     """TransformerModelAdapter captures metadata and audits parameter freezing."""
@@ -135,9 +135,12 @@ def test_transformer_adapter_save_and_provenance(tmp_path: Path):
 # 3. TransformerLoRAStrategy Execution & Base Immutability Audit
 # ---------------------------------------------------------------------------
 
+
 def test_transformer_lora_strategy_trains_adapter_only():
     """TransformerLoRAStrategy updates adapter parameters while preserving base weights."""
-    model, train_loader, val_loader, holdout_loader = create_transformer_scenario(seed=42, degrade_base=True)
+    model, train_loader, val_loader, holdout_loader = create_transformer_scenario(
+        seed=42, degrade_base=True
+    )
 
     strategy = TransformerLoRAStrategy(
         TransformerLoRAConfig(r=4, lora_alpha=8, epochs=2, learning_rate=5e-3)
@@ -186,9 +189,12 @@ def test_transformer_lora_strategy_trains_adapter_only():
 # 4. Verification Gate & Rollback Compatibility
 # ---------------------------------------------------------------------------
 
+
 def test_transformer_verification_gate_end_to_end():
     """Adapted transformer candidate can be evaluated and verified by VerificationGate."""
-    model, train_loader, val_loader, holdout_loader = create_transformer_scenario(seed=42, degrade_base=True)
+    model, train_loader, val_loader, holdout_loader = create_transformer_scenario(
+        seed=42, degrade_base=True
+    )
 
     strategy = TransformerLoRAStrategy(
         TransformerLoRAConfig(r=4, lora_alpha=8, epochs=2, learning_rate=1e-2)
@@ -227,4 +233,3 @@ def test_transformer_verification_gate_end_to_end():
     assert isinstance(decision.passed_all, bool)
     assert isinstance(decision.reasons, list)
     assert isinstance(decision.retained_correct_rate, float)
-

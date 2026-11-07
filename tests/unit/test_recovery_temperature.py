@@ -1,8 +1,8 @@
 """Unit tests for TemperatureScalingStrategy, CalibratedModel, and calibration serialization (ML-3)."""
 
 import hashlib
-import json
 from pathlib import Path
+
 import numpy as np
 import pytest
 import torch
@@ -10,9 +10,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from amrs.config import load_config
-from amrs.metrics.classification import accuracy, ece, nll, predict_logits
+from amrs.metrics.classification import accuracy, ece, nll
 from amrs.models.adapter import ModelAdapter
-from amrs.models.registry import build
 from amrs.recovery.base import RecoveryContext
 from amrs.recovery.temperature import (
     CalibratedModel,
@@ -53,6 +52,7 @@ def _make_loader(x: torch.Tensor, y: torch.Tensor, batch_size: int = 64) -> Data
 
 class DummyClassifier(nn.Module):
     """Simple linear classifier mapping 10 inputs to 5 classes."""
+
     def __init__(self, in_features: int = 10, num_classes: int = 5) -> None:
         super().__init__()
         self.fc = nn.Linear(in_features, num_classes)
@@ -64,6 +64,7 @@ class DummyClassifier(nn.Module):
 # ---------------------------------------------------------------------------
 # Core Fitting and Invariant Tests
 # ---------------------------------------------------------------------------
+
 
 def test_synthetic_overconfidence_calibration():
     """An intentionally overconfident model must yield T > 1.0, lower ECE, lower NLL, and identical top-1."""
@@ -135,6 +136,7 @@ def test_top1_predictions_strictly_preserved_on_random_logits():
 # Degenerate and Edge Cases
 # ---------------------------------------------------------------------------
 
+
 def test_degenerate_logits_nan_inf_rejected():
     """Inputs with NaN or Inf must raise ValueError."""
     logits = torch.randn(50, 4)
@@ -181,6 +183,7 @@ def test_convergence_with_low_max_iter():
 # ---------------------------------------------------------------------------
 # CalibratedModel Wrapper and Serialization Tests
 # ---------------------------------------------------------------------------
+
 
 def test_calibrated_model_wrapper_immutability():
     """CalibratedModel wrapper must not mutate base model weights."""
@@ -265,6 +268,7 @@ def test_calibrated_model_state_serialization_round_trip(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # TemperatureScalingStrategy and Context Integration Tests
 # ---------------------------------------------------------------------------
+
 
 def test_strategy_full_apply_workflow():
     """Full execution of TemperatureScalingStrategy on model and validation loader."""

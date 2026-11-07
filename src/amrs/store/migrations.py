@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+
 from amrs.store.db import Database
 
 CURRENT_SCHEMA_VERSION = 1
@@ -119,9 +120,7 @@ def apply_migrations(db: Database) -> int:
     conn.execute(
         "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);"
     )
-    row = conn.execute(
-        "SELECT MAX(version) AS cur_ver FROM schema_version;"
-    ).fetchone()
+    row = conn.execute("SELECT MAX(version) AS cur_ver FROM schema_version;").fetchone()
     cur_version = row["cur_ver"] if row and row["cur_ver"] is not None else 0
 
     if cur_version < 1:

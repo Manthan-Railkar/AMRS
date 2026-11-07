@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from torch.utils.data import Dataset
 
 # ---------------------------------------------------------------------------
 # Error Envelope Schemas
 # ---------------------------------------------------------------------------
 
+
 class ErrorDetail(BaseModel):
     """Normalized error payload detail."""
+
     model_config = ConfigDict(extra="forbid")
 
     code: str = Field(..., description="Machine-readable uppercase error string")
@@ -21,6 +25,7 @@ class ErrorDetail(BaseModel):
 
 class ErrorEnvelope(BaseModel):
     """Standardized top-level error response envelope."""
+
     model_config = ConfigDict(extra="forbid")
 
     error: ErrorDetail
@@ -30,8 +35,10 @@ class ErrorEnvelope(BaseModel):
 # Health Schemas
 # ---------------------------------------------------------------------------
 
+
 class HealthResponse(BaseModel):
     """Response returned by GET /api/v1/health."""
+
     status: Literal["healthy", "degraded", "unhealthy"] = "healthy"
     version: str = "0.1.0"
     db_status: Literal["ok", "error"] = "ok"
@@ -40,6 +47,7 @@ class HealthResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Configuration Schemas (matching configs/default.yaml and Section 2.7)
 # ---------------------------------------------------------------------------
+
 
 class SplitsConfig(BaseModel):
     val_frac: float = Field(0.5, ge=0.0, le=1.0)
@@ -74,10 +82,14 @@ class DiagnosisHeadDegradationConfig(BaseModel):
 
 class DiagnosisConfig(BaseModel):
     overfitting: DiagnosisOverfittingConfig = Field(default_factory=DiagnosisOverfittingConfig)
-    miscalibration: DiagnosisMiscalibrationConfig = Field(default_factory=DiagnosisMiscalibrationConfig)
+    miscalibration: DiagnosisMiscalibrationConfig = Field(
+        default_factory=DiagnosisMiscalibrationConfig
+    )
     bn_drift: DiagnosisBnDriftConfig = Field(default_factory=DiagnosisBnDriftConfig)
     instability: DiagnosisInstabilityConfig = Field(default_factory=DiagnosisInstabilityConfig)
-    head_degradation: DiagnosisHeadDegradationConfig = Field(default_factory=DiagnosisHeadDegradationConfig)
+    head_degradation: DiagnosisHeadDegradationConfig = Field(
+        default_factory=DiagnosisHeadDegradationConfig
+    )
     healthy_if_none: bool = True
 
 
@@ -127,22 +139,30 @@ class WeightInterpolationConfig(BaseModel):
 class StrategiesConfig(BaseModel):
     temperature_scaling: TemperatureScalingConfig = Field(default_factory=TemperatureScalingConfig)
     bn_recalibration: BnRecalibrationConfig = Field(default_factory=BnRecalibrationConfig)
-    checkpoint_reversion: CheckpointReversionConfig = Field(default_factory=CheckpointReversionConfig)
-    checkpoint_averaging: CheckpointAveragingConfig = Field(default_factory=CheckpointAveragingConfig)
+    checkpoint_reversion: CheckpointReversionConfig = Field(
+        default_factory=CheckpointReversionConfig
+    )
+    checkpoint_averaging: CheckpointAveragingConfig = Field(
+        default_factory=CheckpointAveragingConfig
+    )
     last_layer_finetune: LastLayerFinetuneConfig = Field(default_factory=LastLayerFinetuneConfig)
-    selective_finetune_l2sp: SelectiveFinetuneL2spConfig = Field(default_factory=SelectiveFinetuneL2spConfig)
-    weight_interpolation: WeightInterpolationConfig = Field(default_factory=WeightInterpolationConfig)
+    selective_finetune_l2sp: SelectiveFinetuneL2spConfig = Field(
+        default_factory=SelectiveFinetuneL2spConfig
+    )
+    weight_interpolation: WeightInterpolationConfig = Field(
+        default_factory=WeightInterpolationConfig
+    )
 
 
 class GateMinGainConfig(BaseModel):
-    accuracy: float = Field(0.005, ge=0.0)
-    ece: float = Field(0.01, ge=0.0)
+    accuracy: float = Field(0.005, ge=0.0, le=1.0)
+    ece: float = Field(0.01, ge=0.0, le=1.0)
 
 
 class GateMaxRegressionConfig(BaseModel):
-    accuracy: float = Field(0.005, ge=0.0)
+    accuracy: float = Field(0.005, ge=0.0, le=1.0)
     nll: float = Field(0.02, ge=0.0)
-    ece: float = Field(0.01, ge=0.0)
+    ece: float = Field(0.01, ge=0.0, le=1.0)
 
 
 class GateConfig(BaseModel):
@@ -176,6 +196,7 @@ class MonitorConfig(BaseModel):
 
 class ConfigDefaultsResponse(BaseModel):
     """Full resolved default configuration matching configs/default.yaml."""
+
     seed: int = 1234
     device: Literal["auto", "cpu", "cuda"] = "auto"
     splits: SplitsConfig = Field(default_factory=SplitsConfig)
@@ -189,6 +210,7 @@ class ConfigDefaultsResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Scenario Schemas
 # ---------------------------------------------------------------------------
+
 
 class ScenarioItem(BaseModel):
     scenario_id: str
@@ -208,6 +230,7 @@ class ScenarioListResponse(BaseModel):
 # Model Upload Schemas
 # ---------------------------------------------------------------------------
 
+
 class ModelUploadResponse(BaseModel):
     model_upload_id: str
     arch: str
@@ -219,6 +242,7 @@ class ModelUploadResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Run Lifecycle & Detail Schemas
 # ---------------------------------------------------------------------------
+
 
 class RunCreateRequest(BaseModel):
     scenario_id: str | None = Field(None, description="Preset scenario ID (e.g. s1_overfit)")
@@ -303,6 +327,7 @@ class DiagnosisReport(BaseModel):
 # ---------------------------------------------------------------------------
 # Recovery & Selector Schemas
 # ---------------------------------------------------------------------------
+
 
 class Applicability(BaseModel):
     can_apply: bool
@@ -410,8 +435,11 @@ class RunCancelResponse(BaseModel):
 # Live Training Monitor Replay Schemas
 # ---------------------------------------------------------------------------
 
+
 class MonitorReplayRequest(BaseModel):
-    scenario_id: str = Field(..., description="Scenario to replay (e.g. s1_overfit, s4_instability)")
+    scenario_id: str = Field(
+        ..., description="Scenario to replay (e.g. s1_overfit, s4_instability)"
+    )
     speed_multiplier: float = Field(1.0, ge=0.1, le=10.0)
 
 
@@ -438,10 +466,24 @@ class MonitorReplayDetailResponse(BaseModel):
 # Benchmark Schemas
 # ---------------------------------------------------------------------------
 
+
 class BenchmarkCreateRequest(BaseModel):
-    scenarios: list[str] = Field(default_factory=lambda: ["s1_overfit", "s2_miscalibration", "s3_bn_drift", "s4_instability", "s5_degraded_head", "s6_healthy"])
+    scenarios: list[str] = Field(
+        default_factory=lambda: [
+            "s1_overfit",
+            "s2_miscalibration",
+            "s3_bn_drift",
+            "s4_instability",
+            "s5_degraded_head",
+            "s6_healthy",
+        ]
+    )
     seeds: list[int] = Field(default_factory=lambda: [1234])
-    methods: list[str] = Field(default_factory=lambda: ["amrs", "early_stopping", "regularized_finetune", "full_retrain"])
+    methods: list[str] = Field(
+        default_factory=lambda: ["amrs", "early_stopping", "regularized_finetune", "full_retrain"]
+    )
+    profile: str = "tiny"
+    device: str = "cpu"
 
 
 class BenchmarkCreateResponse(BaseModel):
@@ -461,6 +503,56 @@ class BenchmarkResultItem(BaseModel):
     wall_s: float
     accepted: bool | None = None
     notes: str | None = None
+    agreement: float | None = None
+    status: Literal["completed", "failed", "pending"] = "completed"
+    error_message: str | None = None
+
+
+class TrialSpec(BaseModel):
+    """Immutable specification for a single benchmark trial execution."""
+
+    trial_id: str
+    benchmark_id: str
+    scenario_id: str
+    seed: int
+    method: str
+    profile: str = "tiny"
+    device: str = "cpu"
+    budget: float | None = None
+    config_overrides: dict[str, Any] = Field(default_factory=dict)
+
+
+class BenchmarkSummaryItem(BaseModel):
+    """Aggregated statistics for a given scenario and method."""
+
+    scenario_id: str
+    method: str
+    trials_count: int
+    accuracy_mean: float
+    accuracy_std: float
+    ece_mean: float
+    ece_std: float
+    nll_mean: float
+    nll_std: float
+    retention_mean: float
+    retention_std: float
+    compute_units_mean: float
+    compute_units_std: float
+    wall_s_mean: float
+    wall_s_std: float
+
+
+class PairedDeltaItem(BaseModel):
+    """Paired difference between AMRS and a baseline for a given scenario."""
+
+    scenario_id: str
+    baseline_method: str
+    pairs_count: int
+    accuracy_delta_mean: float
+    accuracy_delta_ci: tuple[float, float] | None = None
+    ece_delta_mean: float
+    ece_delta_ci: tuple[float, float] | None = None
+    compute_ratio_mean: float
 
 
 class BenchmarkDetailResponse(BaseModel):
@@ -468,4 +560,34 @@ class BenchmarkDetailResponse(BaseModel):
     created_at: str
     status: Literal["queued", "running", "succeeded", "failed"]
     results: list[BenchmarkResultItem] = Field(default_factory=list)
+    summaries: list[BenchmarkSummaryItem] = Field(default_factory=list)
+    paired_deltas: list[PairedDeltaItem] = Field(default_factory=list)
+    is_complete: bool = True
 
+
+# ---------------------------------------------------------------------------
+# Data Contract Schemas (DM-2.1)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class DataBundle:
+    """Four-way dataset container fulfilling the AMRS Data Contract (DM-2.1).
+
+    Attributes:
+        train: Labeled training dataset used for model training/tuning.
+        val: Labeled validation dataset used for diagnosis & candidate selection.
+        holdout: Strictly isolated labeled dataset reserved exclusively for the verification gate.
+        target: Optional unlabeled dataset (or None) used for unsupervised adaptation (e.g., BatchNorm recalibration).
+        num_classes: Number of discrete classification categories.
+        input_shape: Shape tuple of a single sample tensor (C, H, W).
+        provenance: Metadata dictionary tracking dataset source, split ratios, and seed.
+    """
+
+    train: Dataset
+    val: Dataset
+    holdout: Dataset
+    target: Dataset | None = None
+    num_classes: int = 10
+    input_shape: tuple[int, ...] = (3, 32, 32)
+    provenance: dict[str, Any] = field(default_factory=dict)

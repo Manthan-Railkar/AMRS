@@ -1,8 +1,5 @@
 """Unit tests for SelectiveFinetuneL2spStrategy, layer-group selection, L2-SP math, and S1 recovery (ML-7)."""
 
-import copy
-import hashlib
-from pathlib import Path
 import pytest
 import torch
 import torch.nn as nn
@@ -26,6 +23,7 @@ from amrs.recovery.selective_ft import (
 
 class HeadlessModel(nn.Module):
     """Model with convolutional layers but no identifiable Linear classification head."""
+
     def __init__(self) -> None:
         super().__init__()
         self.conv = nn.Conv2d(1, 8, kernel_size=3, padding=1)
@@ -57,20 +55,21 @@ def _generate_synthetic_separable_data(
 # 1. L2-SP Math & Hand Calculation Tests
 # ---------------------------------------------------------------------------
 
+
 def test_l2sp_formula_matches_hand_calculation():
     """Verify that compute_l2sp_penalty and L2SPRegularizer match an exact hand calculation.
-    
+
     Hand calculation:
         theta_1 = [1.0, 2.0, -1.0]
         anchor_1 = [0.5, 2.0, 1.0]
         diff_1 = [0.5, 0.0, -2.0]
         sq_diff_1 = [0.25, 0.0, 4.0] -> sum = 4.25
-        
+
         theta_2 = [[3.0, 4.0], [0.0, -2.0]]
         anchor_2 = [[2.0, 4.0], [1.0, -1.0]]
         diff_2 = [[1.0, 0.0], [-1.0, -1.0]]
         sq_diff_2 = [[1.0, 0.0], [1.0, 1.0]] -> sum = 3.0
-        
+
         Total penalty = 4.25 + 3.0 = 7.25
         With alpha = 0.2:
             contribution = 0.2 * 7.25 = 1.45
@@ -132,6 +131,7 @@ def test_l2sp_zero_initialization_penalty():
 # 2. Layer-Group Selection Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("arch", ["mlp_small", "small_cnn", "resnet18_cifar"])
 def test_layer_group_selection_across_architectures(arch: str):
     """Test top-N layer group selection with unfreeze_top_n=1 and unfreeze_top_n=2."""
@@ -174,6 +174,7 @@ def test_layer_group_selection_clamps_excessive_n():
 # ---------------------------------------------------------------------------
 # 3. Frozen-Parameter Audit & Immutability Tests
 # ---------------------------------------------------------------------------
+
 
 def test_frozen_parameter_audit_strict_immutability():
     """Unselected parameters must have zero difference after selective fine-tuning."""
@@ -236,6 +237,7 @@ def test_anchors_never_mutated():
 # 4. S1 Overfit Scenario Smoke Recovery Test
 # ---------------------------------------------------------------------------
 
+
 def test_s1_overfit_recovery_smoke():
     """Test recovery on synthetic overfit scenario: training accuracy high, validation improved."""
     torch.manual_seed(42)
@@ -266,7 +268,7 @@ def test_s1_overfit_recovery_smoke():
 
     model.eval()
     v_logits_before, v_labels_before = predict_logits(model, val_loader)
-    val_acc_before = accuracy(v_logits_before, v_labels_before)
+    accuracy(v_logits_before, v_labels_before)
 
     strategy = SelectiveFinetuneL2spStrategy()
     context = RecoveryContext(
@@ -289,6 +291,7 @@ def test_s1_overfit_recovery_smoke():
 # ---------------------------------------------------------------------------
 # 5. Safe Failure Modes & Edge Cases
 # ---------------------------------------------------------------------------
+
 
 def test_headless_model_skips_with_no_identifiable_head():
     """Strategy must gracefully reject models without an identifiable classification head."""
@@ -377,4 +380,3 @@ def test_strategy_rejects_holdout():
             val_loader=loader,
             holdout_loader=loader,
         )
-

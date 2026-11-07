@@ -1,0 +1,43 @@
+scenario_id: s5_degraded_head
+name: Degraded Head
+arch: resnet18_cifar
+ground_truth_label: head_degradation
+description: Healthy backbone with classification head fine-tuned on 40% label noise.
+dataset: cifar10
+num_classes: 10
+input_shape: [3, 32, 32]
+noise_ratio: 0.40
+profiles:
+  tiny:
+    arch: mlp_small
+    dataset: synthetic
+    num_classes: 4
+    input_shape: [1, 8, 8]
+    train_size: 400
+    val_size: 150
+    holdout_size: 150
+    pretrain_epochs: 10
+    head_noise_epochs: 3
+    lr: 0.01
+  cpu:
+    arch: small_cnn
+    dataset: fashion_mnist
+    num_classes: 10
+    input_shape: [1, 28, 28]
+    train_size: 2000
+    val_size: 500
+    holdout_size: 500
+    pretrain_epochs: 12
+    head_noise_epochs: 3
+    lr: 0.005
+  full:
+    arch: resnet18_cifar
+    dataset: cifar10
+    num_classes: 10
+    input_shape: [3, 32, 32]
+    train_size: 5000
+    val_size: 2000
+    holdout_size: 2000
+    pretrain_epochs: 30
+    head_noise_epochs: 3
+    lr: 0.01

@@ -1,6 +1,7 @@
 """Unit tests for the strategy registry, selector, prerequisites, cost estimation, and budgeting (ML-2)."""
 
 from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
@@ -17,7 +18,6 @@ from amrs.recovery.base import (
     StrategyResult,
 )
 from amrs.schemas import (
-    DiagnosisEvidence,
     DiagnosisItem,
     DiagnosisReport,
     SelectorConfig,
@@ -26,11 +26,12 @@ from amrs.selector.selector import (
     DIAGNOSIS_TO_STRATEGIES,
     StrategyRegistry,
     StrategySelector,
-    estimate_retrain_cost,
 )
 
 
-def _make_dummy_loader(n_samples: int = 100, in_features: int = 16, num_classes: int = 10) -> DataLoader:
+def _make_dummy_loader(
+    n_samples: int = 100, in_features: int = 16, num_classes: int = 10
+) -> DataLoader:
     x = torch.randn(n_samples, 1, in_features, in_features)
     y = torch.randint(0, num_classes, (n_samples,))
     return DataLoader(TensorDataset(x, y), batch_size=32, shuffle=False)
@@ -52,6 +53,7 @@ def _make_dummy_report(label: str, confidence: float = 0.9) -> DiagnosisReport:
 
 class HeadlessNet(nn.Module):
     """Network with no identifiable Linear classification head."""
+
     def __init__(self) -> None:
         super().__init__()
         self.conv = nn.Conv2d(1, 4, 3)
@@ -62,6 +64,7 @@ class HeadlessNet(nn.Module):
 
 class NonBnNet(nn.Module):
     """Network with Linear head but no BatchNorm layers."""
+
     def __init__(self) -> None:
         super().__init__()
         self.fc1 = nn.Linear(16, 16)
@@ -100,12 +103,17 @@ def standard_setup(tmp_path: Path):
 # Section 2.9 Table-Driven Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "diagnosis_label, expected_strategies, expected_primary_metric",
     [
         ("miscalibration", ["temperature_scaling"], "ece"),
         ("bn_drift", ["bn_recalibration", "last_layer_finetune"], "accuracy"),
-        ("instability", ["checkpoint_reversion", "checkpoint_averaging", "selective_finetune_l2sp"], "accuracy"),
+        (
+            "instability",
+            ["checkpoint_reversion", "checkpoint_averaging", "selective_finetune_l2sp"],
+            "accuracy",
+        ),
         (
             "overfitting",
             [
@@ -137,7 +145,9 @@ def test_section_2_9_mapping_all_diagnoses(
     )
 
     # 2. Priorities are sequentially assigned 1, 2, ...
-    assert [c.priority for c in selection.candidates] == list(range(1, len(expected_strategies) + 1))
+    assert [c.priority for c in selection.candidates] == list(
+        range(1, len(expected_strategies) + 1)
+    )
 
     # 3. Eligible for contains the diagnosis
     for c in selection.candidates:
@@ -171,6 +181,7 @@ def test_force_mode_on_healthy(standard_setup):
 # ---------------------------------------------------------------------------
 # Multi-Label Deduplication and Reason Merging Tests
 # ---------------------------------------------------------------------------
+
 
 def test_multi_label_deduplication_overfitting_and_instability(standard_setup):
     model, context, selector = standard_setup
@@ -229,6 +240,7 @@ def test_multi_label_deduplication_bn_drift_and_head_degradation(standard_setup)
 # ---------------------------------------------------------------------------
 # Missing Prerequisites Tests
 # ---------------------------------------------------------------------------
+
 
 def test_missing_prerequisites_no_history(tmp_path: Path):
     model = build("small_cnn", num_classes=10, in_shape=(1, 16, 16))
@@ -348,6 +360,7 @@ def test_missing_prerequisites_missing_target():
 # Deterministic Ordering and Tie-Break Tests
 # ---------------------------------------------------------------------------
 
+
 class DummyStrategyA(RecoveryStrategy):
     @property
     def name(self) -> str:
@@ -356,10 +369,14 @@ class DummyStrategyA(RecoveryStrategy):
     def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         return CostEstimate(estimated_units=500.0)
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         raise NotImplementedError()
 
 
@@ -371,10 +388,14 @@ class DummyStrategyB(RecoveryStrategy):
     def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         return CostEstimate(estimated_units=500.0)
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         raise NotImplementedError()
 
 
@@ -405,6 +426,7 @@ def test_equal_cost_deterministic_name_tie_break():
 # Budget Enforcement Tests (Candidate Count & Compute Ratio)
 # ---------------------------------------------------------------------------
 
+
 def test_max_candidates_budget_enforcement(standard_setup):
     model, context, selector = standard_setup
     report = _make_dummy_report("overfitting")  # 4 eligible strategies
@@ -414,7 +436,10 @@ def test_max_candidates_budget_enforcement(standard_setup):
 
     # Exactly 2 candidates scheduled
     assert len(selection.candidates) == 2
-    assert [c.strategy for c in selection.candidates] == ["checkpoint_reversion", "checkpoint_averaging"]
+    assert [c.strategy for c in selection.candidates] == [
+        "checkpoint_reversion",
+        "checkpoint_averaging",
+    ]
 
     # Remaining 2 skipped with BUDGET_EXCEEDED
     skipped_reasons = {s.strategy: s.reason for s in selection.skipped}
@@ -451,6 +476,7 @@ def test_compute_budget_ratio_enforcement(standard_setup):
 # Split Discipline and Holdout Isolation Tests
 # ---------------------------------------------------------------------------
 
+
 def test_holdout_isolation_rejection_in_context():
     loader = _make_dummy_loader(100)
     with pytest.raises(ValueError) as exc:
@@ -485,6 +511,7 @@ def test_holdout_isolated_context_conversion_does_not_access_holdout():
 # ---------------------------------------------------------------------------
 # Serialization and Consistency Tests
 # ---------------------------------------------------------------------------
+
 
 def test_selection_report_serialization(standard_setup):
     model, context, selector = standard_setup

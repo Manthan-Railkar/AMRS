@@ -1,0 +1,5 @@
+method: fixed_strategy
+description: Applies a fixed preselected recovery strategy unconditionally without diagnosis or adaptive selection.
+strategy: temperature_scaling
+max_iter: 50
+

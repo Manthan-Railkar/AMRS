@@ -269,3 +269,18 @@ class PayloadTooLargeError(AmrsError):
             status_code=413,
         )
 
+
+class ScenarioNotReproducedError(AmrsError):
+    """Scenario verification failed to reproduce the expected failure symptom (DM-4.1)."""
+
+    def __init__(
+        self,
+        message: str = "Scenario symptom was not reproduced",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            code="SCENARIO_NOT_REPRODUCED",
+            message=message,
+            details=details,
+            status_code=422,
+        )

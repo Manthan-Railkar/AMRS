@@ -1,5 +1,7 @@
 # AMRS — Adaptive Model Recovery System
 
+[![CI](https://github.com/Manthan-Railkar/AMRS/actions/workflows/ci.yml/badge.svg)](https://github.com/Manthan-Railkar/AMRS/actions/workflows/ci.yml)
+
 > **Intelligent Failure Diagnosis & Targeted Parameter Recovery for Machine Learning Models**
 
 AMRS (Adaptive Model Recovery System) is an intelligent framework designed to diagnose degraded or underperforming machine learning models and execute targeted recovery techniques instead of defaulting to expensive and compute-intensive full retraining.

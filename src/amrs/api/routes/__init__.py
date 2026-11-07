@@ -1,2 +1,1 @@
 """AMRS API route modules."""
-

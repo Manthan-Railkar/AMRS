@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from amrs.diagnosis.engine import DiagnosisEngine, TIE_BREAK_ORDER
+from amrs.diagnosis.engine import TIE_BREAK_ORDER, DiagnosisEngine
 from amrs.diagnosis.rules import (
     check_bn_drift,
     check_head_degradation,
@@ -236,7 +236,12 @@ def test_head_degradation_rule_positive_negative_boundary_and_missing() -> None:
     assert item_neg.confidence == 0.0
 
     # Boundary at exact equality: probe gain == 0.02 -> must fire
-    res_bound = {"evaluable": True, "probe_gain": 0.02, "probe_val_acc": 0.82, "model_val_acc": 0.80}
+    res_bound = {
+        "evaluable": True,
+        "probe_gain": 0.02,
+        "probe_val_acc": 0.82,
+        "model_val_acc": 0.80,
+    }
     fired_bound, item_bound, _ = check_head_degradation(res_bound, cfg)
     assert fired_bound is True
     assert pytest.approx(item_bound.confidence, abs=1e-4) == 0.02 / 0.04  # 0.50

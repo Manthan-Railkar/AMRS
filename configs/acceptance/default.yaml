@@ -1,0 +1,15 @@
+gate:
+  holdout_min_size: 300
+  allow_small_holdout: false
+  max_holdout_evaluations: 4
+  family_alpha: 0.05
+  bootstrap_samples: 500
+  min_gain:
+    accuracy: 0.005
+    ece: 0.01
+  max_regression:
+    accuracy: 0.005
+    nll: 0.02
+    ece: 0.01
+  min_retention: 0.95
+

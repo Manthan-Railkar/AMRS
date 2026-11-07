@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 try:
     from transformers import BertConfig, BertForSequenceClassification
+
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
@@ -48,7 +48,7 @@ def create_tiny_transformer_data(
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Generate train, val, and holdout DataLoader splits for sequence classification."""
     torch.manual_seed(seed)
-    
+
     # Generate synthetic input_ids
     # Signal: presence of specific token markers (e.g. tokens > vocab_size / 2) determines class
     input_ids = torch.randint(0, vocab_size, (n_samples, seq_len), dtype=torch.long)
@@ -63,7 +63,9 @@ def create_tiny_transformer_data(
 
     train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=batch_size, shuffle=False)
     val_loader = DataLoader(TensorDataset(val_x, val_y), batch_size=batch_size, shuffle=False)
-    holdout_loader = DataLoader(TensorDataset(holdout_x, holdout_y), batch_size=batch_size, shuffle=False)
+    holdout_loader = DataLoader(
+        TensorDataset(holdout_x, holdout_y), batch_size=batch_size, shuffle=False
+    )
 
     return train_loader, val_loader, holdout_loader
 
@@ -84,4 +86,3 @@ def create_transformer_scenario(
                 model.classifier.bias.zero_()
 
     return model, train_loader, val_loader, holdout_loader
-

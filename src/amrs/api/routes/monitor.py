@@ -1,6 +1,7 @@
 """Live training monitor replay endpoints."""
 
 from fastapi import APIRouter, Depends, status
+
 from amrs.api.deps import get_coordinator
 from amrs.api.jobs import JobCoordinator
 from amrs.schemas import (
@@ -38,4 +39,3 @@ async def get_monitor_replay_detail(
     coordinator: JobCoordinator = Depends(get_coordinator),
 ) -> MonitorReplayDetailResponse:
     return coordinator.get_monitor_replay(replay_id)
-

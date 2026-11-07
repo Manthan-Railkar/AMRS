@@ -1,0 +1,42 @@
+scenario_id: s1_overfit
+name: Overfit
+arch: resnet18_cifar
+ground_truth_label: overfitting
+description: Small training subset without regularization leading to a high generalization gap.
+dataset: cifar10
+num_classes: 10
+input_shape: [3, 32, 32]
+profiles:
+  tiny:
+    arch: mlp_small
+    dataset: synthetic
+    num_classes: 4
+    input_shape: [1, 8, 8]
+    train_size: 40
+    val_size: 150
+    holdout_size: 150
+    epochs: 15
+    lr: 0.02
+    weight_decay: 0.0
+  cpu:
+    arch: small_cnn
+    dataset: fashion_mnist
+    num_classes: 10
+    input_shape: [1, 28, 28]
+    train_size: 250
+    val_size: 500
+    holdout_size: 500
+    epochs: 25
+    lr: 0.01
+    weight_decay: 0.0
+  full:
+    arch: resnet18_cifar
+    dataset: cifar10
+    num_classes: 10
+    input_shape: [3, 32, 32]
+    train_size: 1000
+    val_size: 2000
+    holdout_size: 2000
+    epochs: 60
+    lr: 0.01
+    weight_decay: 0.0

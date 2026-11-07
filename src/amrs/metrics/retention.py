@@ -20,9 +20,7 @@ def retained_correct_rate(
     cand_arr = np.asarray(cand_correct, dtype=bool)
 
     if len(orig_arr) != len(cand_arr):
-        raise ValueError(
-            f"Array length mismatch: orig ({len(orig_arr)}) vs cand ({len(cand_arr)})"
-        )
+        raise ValueError(f"Array length mismatch: orig ({len(orig_arr)}) vs cand ({len(cand_arr)})")
 
     orig_correct_count = int(np.sum(orig_arr))
     if orig_correct_count == 0:
@@ -46,4 +44,3 @@ def top1_agreement(
 
     agreement = (preds_a == preds_b).float().mean().item()
     return float(agreement)
-

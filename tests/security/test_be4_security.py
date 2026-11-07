@@ -16,16 +16,15 @@ from __future__ import annotations
 
 import io
 import os
-from pathlib import Path
 import pickle
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from amrs.api.deps import get_coordinator
 from amrs.api.jobs import JobCoordinator
 from amrs.api.main import create_app
-from amrs.errors import UnsafeOrInvalidCheckpointError, ValidationError
-from amrs.models.loader import load_state_dict_safe
 from amrs.models.registry import build
 from amrs.store.db import Database
 
@@ -163,7 +162,9 @@ def test_oversized_upload_rejection(sec_app, monkeypatch: pytest.MonkeyPatch) ->
 # ---------------------------------------------------------------------------
 
 
-def test_malicious_pickle_rejected_without_rce(sec_app, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_malicious_pickle_rejected_without_rce(
+    sec_app, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     client, _, _, _ = sec_app
     monkeypatch.setenv("AMRS_ALLOW_UPLOAD", "1")
 
@@ -194,6 +195,7 @@ def test_non_tensor_state_dict_upload_rejected(sec_app, monkeypatch: pytest.Monk
 
     buf = io.BytesIO()
     import torch
+
     torch.save({"layer1": "string_not_tensor"}, buf)
 
     files = {"file": ("invalid.pt", buf.getvalue(), "application/octet-stream")}
@@ -216,6 +218,7 @@ def test_unknown_architecture_rejected(sec_app, monkeypatch: pytest.MonkeyPatch)
     model = build("mlp_small")
     buf = io.BytesIO()
     import torch
+
     torch.save(model.state_dict(), buf)
 
     files = {"file": ("weights.pt", buf.getvalue(), "application/octet-stream")}
@@ -239,6 +242,7 @@ def test_malicious_filenames_rejected(sec_app, monkeypatch: pytest.MonkeyPatch) 
     model = build("mlp_small")
     buf = io.BytesIO()
     import torch
+
     torch.save(model.state_dict(), buf)
     valid_bytes = buf.getvalue()
 
@@ -273,7 +277,7 @@ def test_cross_run_artifact_isolation(sec_app) -> None:
     run_id_a = res_a.json()["run_id"]
 
     # Create run B
-    res_b = client.post("/api/v1/runs", json={"scenario_id": "s2_miscalibration"})
+    client.post("/api/v1/runs", json={"scenario_id": "s2_miscalibration"})
     # Wait, single-worker allows one active run; let run A finish or query after
     # But even with opaque IDs:
     dir_a = coordinator.get_run_artifact_dir(run_id_a)
@@ -285,7 +289,9 @@ def test_cross_run_artifact_isolation(sec_app) -> None:
     assert res1.content == b"MODEL_A_WEIGHTS"
 
     # Querying nonexistent run ID returns 404 Not Found
-    res2 = client.get("/api/v1/runs/00000000-0000-0000-0000-000000000000/artifacts/accepted_model.pt")
+    res2 = client.get(
+        "/api/v1/runs/00000000-0000-0000-0000-000000000000/artifacts/accepted_model.pt"
+    )
     assert res2.status_code == 404
     assert res2.json()["error"]["code"] == "NOT_FOUND"
 
@@ -295,7 +301,9 @@ def test_cross_run_artifact_isolation(sec_app) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_error_envelopes_never_leak_filesystem_paths_or_secrets(sec_app, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_error_envelopes_never_leak_filesystem_paths_or_secrets(
+    sec_app, monkeypatch: pytest.MonkeyPatch
+) -> None:
     client, coordinator, _, _ = sec_app
 
     monkeypatch.setenv("AMRS_API_INTERNAL_URL", "http://internal-secret-service:8080")

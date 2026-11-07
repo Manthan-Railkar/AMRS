@@ -18,4 +18,3 @@ __all__ = [
     "list_history",
     "atomic_write_bytes",
 ]
-

@@ -75,4 +75,3 @@ def test_custom_registration_decorator() -> None:
     model = build("test_dummy_model", num_classes=5)
     assert isinstance(model, nn.Linear)
     assert model.out_features == 5
-

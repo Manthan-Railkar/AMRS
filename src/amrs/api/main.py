@@ -178,9 +178,7 @@ def create_app() -> FastAPI:
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(
-        request: Request, exc: HTTPException
-    ) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         content = {
             "error": {
                 "code": f"HTTP_{exc.status_code}",
@@ -194,9 +192,7 @@ def create_app() -> FastAPI:
         )
 
     @app.exception_handler(Exception)
-    async def generic_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled server exception: %s", exc)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

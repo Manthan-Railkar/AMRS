@@ -1,6 +1,5 @@
 """Integration tests for the AMRS FastAPI endpoints and OpenAPI contract."""
 
-import os
 import pytest
 from fastapi.testclient import TestClient
 
@@ -19,6 +18,7 @@ def reset_coordinator_state() -> None:
 # ---------------------------------------------------------------------------
 # Health & Config Endpoints
 # ---------------------------------------------------------------------------
+
 
 def test_health_endpoints() -> None:
     # 1. Primary path under /api/v1
@@ -68,6 +68,7 @@ def test_scenarios_catalog() -> None:
 # Recovery Runs Endpoints
 # ---------------------------------------------------------------------------
 
+
 def test_create_run_and_lifecycle() -> None:
     # 1. Create run
     create_res = client.post(
@@ -112,6 +113,7 @@ def test_create_run_and_lifecycle() -> None:
 
     # Poll until cooperative cancellation is finalized by worker to 'cancelled'
     import time
+
     for _ in range(50):
         detail_res_after = client.get(f"/api/v1/runs/{run_id}")
         if detail_res_after.json()["status"] == "cancelled":
@@ -172,6 +174,7 @@ def test_artifacts_download() -> None:
 # Models Upload Endpoints
 # ---------------------------------------------------------------------------
 
+
 def test_model_upload_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("AMRS_ALLOW_UPLOAD", raising=False)
     files = {"file": ("model.pt", b"dummy model bytes", "application/octet-stream")}
@@ -183,7 +186,9 @@ def test_model_upload_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_model_upload_success_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     import io
+
     import torch
+
     from amrs.models.registry import build
 
     monkeypatch.setenv("AMRS_ALLOW_UPLOAD", "1")
@@ -216,6 +221,7 @@ def test_model_upload_invalid_arch(monkeypatch: pytest.MonkeyPatch) -> None:
 # Monitor Replay Endpoints
 # ---------------------------------------------------------------------------
 
+
 def test_monitor_replay_flow() -> None:
     # 1. Start replay
     post_res = client.post(
@@ -242,6 +248,7 @@ def test_monitor_replay_flow() -> None:
 # ---------------------------------------------------------------------------
 # Benchmarks Endpoints
 # ---------------------------------------------------------------------------
+
 
 def test_benchmarks_flow() -> None:
     # 1. Start benchmark
@@ -278,6 +285,7 @@ def test_benchmarks_flow() -> None:
 # OpenAPI Schema Verification
 # ---------------------------------------------------------------------------
 
+
 def test_openapi_schema_contains_all_canonical_routes() -> None:
     openapi = app.openapi()
     assert openapi["info"]["title"] == "AMRS API"
@@ -302,4 +310,3 @@ def test_openapi_schema_contains_all_canonical_routes() -> None:
 
     for route in expected_routes:
         assert route in paths, f"Route '{route}' missing from OpenAPI paths"
-

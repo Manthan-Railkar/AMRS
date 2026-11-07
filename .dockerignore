@@ -1,0 +1,70 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts and caches
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv
+venv/
+ENV/
+env/
+
+# AMRS artifacts, model weights, and local databases
+*.pt
+*.pth
+*.bin
+*.tar.gz
+*.db
+*.sqlite3
+artifacts/*
+!artifacts/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Next.js / Node.js
+node_modules
+apps/web/node_modules
+apps/web/.next
+apps/web/out
+.next
+out
+
+# Testing & Coverage
+.pytest_cache
+.coverage
+htmlcov/
+.mypy_cache
+.ruff_cache
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+

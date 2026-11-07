@@ -5,10 +5,9 @@ from __future__ import annotations
 import copy
 import logging
 import time
-from typing import Any
+
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
 from amrs.models.adapter import ModelAdapter
 from amrs.recovery.base import (
@@ -44,7 +43,9 @@ class TransformerLoRAStrategy(RecoveryStrategy):
     def name(self) -> str:
         return "transformer_lora"
 
-    def is_applicable(self, model: ModelAdapter | nn.Module, context: RecoveryContext) -> Applicability:
+    def is_applicable(
+        self, model: ModelAdapter | nn.Module, context: RecoveryContext
+    ) -> Applicability:
         raw_model = model.model if isinstance(model, ModelAdapter) else model
         if raw_model is None:
             return Applicability(can_apply=False, reason="NO_MODEL_PROVIDED")
@@ -167,7 +168,10 @@ class TransformerLoRAStrategy(RecoveryStrategy):
                 if isinstance(batch, (list, tuple)) and len(batch) == 2:
                     x, y = batch
                     if isinstance(x, dict):
-                        inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in x.items()}
+                        inputs = {
+                            k: v.to(device) if isinstance(v, torch.Tensor) else v
+                            for k, v in x.items()
+                        }
                         outputs = peft_model(**inputs)
                     else:
                         x = x.to(device)
@@ -176,7 +180,11 @@ class TransformerLoRAStrategy(RecoveryStrategy):
                 elif isinstance(batch, dict):
                     label_key = "labels" if "labels" in batch else "label"
                     y = batch[label_key].to(device)
-                    inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items() if k != label_key}
+                    inputs = {
+                        k: v.to(device) if isinstance(v, torch.Tensor) else v
+                        for k, v in batch.items()
+                        if k != label_key
+                    }
                     outputs = peft_model(**inputs)
                 else:
                     x, y = batch
@@ -210,7 +218,10 @@ class TransformerLoRAStrategy(RecoveryStrategy):
                         if isinstance(batch, (list, tuple)) and len(batch) == 2:
                             x, y = batch
                             if isinstance(x, dict):
-                                inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in x.items()}
+                                inputs = {
+                                    k: v.to(device) if isinstance(v, torch.Tensor) else v
+                                    for k, v in x.items()
+                                }
                                 out = peft_model(**inputs)
                             else:
                                 x = x.to(device)
@@ -219,7 +230,11 @@ class TransformerLoRAStrategy(RecoveryStrategy):
                         elif isinstance(batch, dict):
                             label_key = "labels" if "labels" in batch else "label"
                             y = batch[label_key].to(device)
-                            inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items() if k != label_key}
+                            inputs = {
+                                k: v.to(device) if isinstance(v, torch.Tensor) else v
+                                for k, v in batch.items()
+                                if k != label_key
+                            }
                             out = peft_model(**inputs)
                         else:
                             x, y = batch
@@ -227,8 +242,8 @@ class TransformerLoRAStrategy(RecoveryStrategy):
                             y = y.to(device)
                             out = peft_model(x)
 
-                        l = out.logits if hasattr(out, "logits") else out
-                        b_loss = criterion(l, y)
+                        val_logits = out.logits if hasattr(out, "logits") else out
+                        b_loss = criterion(val_logits, y)
                         val_loss += b_loss.item() * len(y)
                         val_count += len(y)
 
@@ -263,4 +278,3 @@ class TransformerLoRAStrategy(RecoveryStrategy):
                 "adapter_config": self.config.model_dump(),
             },
         )
-

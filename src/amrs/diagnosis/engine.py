@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-import torch
+
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
@@ -28,7 +28,6 @@ from amrs.diagnosis.rules import (
 from amrs.schemas import (
     ConfigDefaultsResponse,
     DiagnosisConfig,
-    DiagnosisEvidence,
     DiagnosisItem,
     DiagnosisReport,
 )
@@ -131,15 +130,11 @@ class DiagnosisEngine:
         fired_overfit, item_overfit, raw_overfit = check_overfitting(
             train_acc, val_acc, history_trend_res, cfg.overfitting
         )
-        fired_miscal, item_miscal, raw_miscal = check_miscalibration(
-            temp_res, cfg.miscalibration
-        )
+        fired_miscal, item_miscal, raw_miscal = check_miscalibration(temp_res, cfg.miscalibration)
         fired_bndrift, item_bndrift, raw_bndrift = check_bn_drift(
             bn_res, train_acc, val_acc, cfg.bn_drift
         )
-        fired_instab, item_instab, raw_instab = check_instability(
-            instability_res, cfg.instability
-        )
+        fired_instab, item_instab, raw_instab = check_instability(instability_res, cfg.instability)
         fired_headdeg, item_headdeg, raw_headdeg = check_head_degradation(
             probe_res, cfg.head_degradation
         )

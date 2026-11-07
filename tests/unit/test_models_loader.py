@@ -2,8 +2,9 @@
 
 import io
 import os
-from pathlib import Path
 import pickle
+from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
@@ -12,7 +13,6 @@ from amrs.errors import (
     ForbiddenError,
     ModelArchMismatchError,
     UnsafeOrInvalidCheckpointError,
-    ValidationError,
 )
 from amrs.models.loader import (
     build_and_load,
@@ -66,7 +66,9 @@ def test_load_state_dict_safe_rejects_malicious_pickle_without_execution(tmp_pat
     assert exc_info.value.code == "UNSAFE_OR_INVALID_CHECKPOINT"
 
     # Assert sentinel file was NEVER created
-    assert not sentinel_file.exists(), "CRITICAL SECURITY FAILURE: Arbitrary pickled object executed code!"
+    assert not sentinel_file.exists(), (
+        "CRITICAL SECURITY FAILURE: Arbitrary pickled object executed code!"
+    )
 
 
 def test_load_state_dict_safe_rejects_non_tensor_entries() -> None:
@@ -150,4 +152,3 @@ def make_test_model():
     assert isinstance(model, nn.Linear)
     assert model.in_features == 8
     assert model.out_features == 2
-

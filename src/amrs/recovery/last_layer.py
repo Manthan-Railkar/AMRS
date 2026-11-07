@@ -9,7 +9,7 @@ from __future__ import annotations
 import copy
 import time
 from typing import Any
-import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,7 +48,7 @@ def finetune_last_layer(
     device: str = "cpu",
 ) -> tuple[nn.Module, dict[str, Any]]:
     """Fine-tune only the classification head of the model while freezing the backbone.
-    
+
     Returns:
         (candidate_model, stats_dict)
     """
@@ -56,9 +56,11 @@ def finetune_last_layer(
     adapter = ModelAdapter(model)
 
     try:
-        head_module = adapter.head_module()
+        adapter.head_module()
     except Exception as exc:
-        raise ValueError(f"Could not identify classification head in model (NO_IDENTIFIABLE_HEAD): {exc}")
+        raise ValueError(
+            f"Could not identify classification head in model (NO_IDENTIFIABLE_HEAD): {exc}"
+        )
 
     # Deep-copy candidate model so original remains byte-identical
     candidate = copy.deepcopy(model)
@@ -77,7 +79,9 @@ def finetune_last_layer(
 
     # 2. Strict optimizer parameter audit: verify optimizer contains ONLY head parameters
     trainable_params = [p for p in candidate.parameters() if p.requires_grad]
-    if len(trainable_params) != len(head_params) or any(id(p) not in head_param_ids for p in trainable_params):
+    if len(trainable_params) != len(head_params) or any(
+        id(p) not in head_param_ids for p in trainable_params
+    ):
         raise RuntimeError(
             "Optimizer parameter audit failed: trainable parameters contain backbone tensors!"
         )
@@ -218,7 +222,9 @@ class LastLayerFinetuneStrategy(RecoveryStrategy):
 
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         """Estimate compute units: epochs * N_train * (1 + 3 * r_head) (BR12)."""
         adapter = model or context.adapter
         epochs = 5
@@ -263,13 +269,17 @@ class LastLayerFinetuneStrategy(RecoveryStrategy):
             },
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         """Apply head-only fine-tuning on a deep copy of model using training inputs."""
         t0 = time.monotonic()
 
         # Split isolation check: NEVER evaluate or train on holdout
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter LastLayerFinetuneStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter LastLayerFinetuneStrategy."
+            )
 
         if not _has_identifiable_head(model_copy):
             return model_copy, StrategyResult(
@@ -305,7 +315,9 @@ class LastLayerFinetuneStrategy(RecoveryStrategy):
         val_ece_before = 0.0
         if context.val_loader is not None:
             try:
-                v_logits, v_labels = predict_logits(model_copy, context.val_loader, device=context.device)
+                v_logits, v_labels = predict_logits(
+                    model_copy, context.val_loader, device=context.device
+                )
                 val_acc_before = accuracy(v_logits, v_labels)
                 val_nll_before = nll(v_logits, v_labels)
                 val_ece_before = ece(v_logits, v_labels)
@@ -343,7 +355,9 @@ class LastLayerFinetuneStrategy(RecoveryStrategy):
         val_ece_after = val_ece_before
         if context.val_loader is not None:
             try:
-                v_logits, v_labels = predict_logits(candidate_model, context.val_loader, device=context.device)
+                v_logits, v_labels = predict_logits(
+                    candidate_model, context.val_loader, device=context.device
+                )
                 val_acc_after = accuracy(v_logits, v_labels)
                 val_nll_after = nll(v_logits, v_labels)
                 val_ece_after = ece(v_logits, v_labels)

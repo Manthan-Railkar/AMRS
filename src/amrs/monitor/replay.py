@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 import uuid
 
 from amrs.monitor.callback import AMRSCallback
@@ -17,7 +16,7 @@ def replay_metric_series(
     action: str = "log",
 ) -> MonitorReplayDetailResponse:
     """Replay recorded metric series step-by-step through AMRSCallback.
-    
+
     Returns:
         MonitorReplayDetailResponse with emitted monitor events and smoothed series.
     """

@@ -3,25 +3,23 @@
 from __future__ import annotations
 
 from typing import Any
+
 import torch.nn as nn
 
 from amrs.config import load_config
 from amrs.models.adapter import ModelAdapter
 from amrs.recovery.base import (
-    Applicability,
-    CostEstimate,
     RecoveryContext,
     RecoveryStrategy,
-    StrategyResult,
 )
 from amrs.recovery.bn_recal import BnRecalibrationStrategy
 from amrs.recovery.checkpoints import (
     CheckpointAveragingStrategy,
     CheckpointReversionStrategy,
 )
+from amrs.recovery.interpolation import WeightInterpolationStrategy
 from amrs.recovery.last_layer import LastLayerFinetuneStrategy
 from amrs.recovery.selective_ft import SelectiveFinetuneL2spStrategy
-from amrs.recovery.interpolation import WeightInterpolationStrategy
 from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
@@ -107,7 +105,7 @@ def estimate_retrain_cost(
     retrain_epochs: int = 25,
 ) -> float:
     """Estimate compute units for full model retraining (BR12).
-    
+
     Formula: 4 * retrain_epochs * N_train (1 fwd + 3 bwd per sample).
     """
     n_train = _get_sample_count(context.train_loader, default=1000)
@@ -129,6 +127,7 @@ def resolve_primary_metric_for_candidate(
 # ---------------------------------------------------------------------------
 # Strategy Registry
 # ---------------------------------------------------------------------------
+
 
 class StrategyRegistry:
     """Registry maintaining available recovery strategies and their diagnosis mappings."""
@@ -180,6 +179,7 @@ default_registry = StrategyRegistry()
 # ---------------------------------------------------------------------------
 # Strategy Selector
 # ---------------------------------------------------------------------------
+
 
 class StrategySelector:
     """Deterministically selects and budgets recovery strategies from diagnosis reports."""
@@ -245,7 +245,7 @@ class StrategySelector:
         force: bool = False,
     ) -> SelectionReport:
         """Select, prioritize, and budget recovery candidates from a DiagnosisReport.
-        
+
         Follows Section 2.9, BR6 (cheapest-first) and BR7 (budget bounds).
         """
         # Resolve configuration

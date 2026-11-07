@@ -6,6 +6,7 @@ import dataclasses
 import hashlib
 import json
 from typing import Any
+
 import torch
 import torch.nn as nn
 
@@ -42,13 +43,16 @@ def get_environment_package_versions() -> dict[str, str]:
 @dataclasses.dataclass(frozen=True)
 class TransformerMetadata:
     """Immutable audit record for transformer base model and recovery adapter."""
+
     base_model_name_or_path: str
     base_model_revision: str | None
     base_model_sha256: str
     config_hash: str
     architecture: str
     adapter_config: dict[str, Any] = dataclasses.field(default_factory=dict)
-    package_versions: dict[str, str] = dataclasses.field(default_factory=get_environment_package_versions)
+    package_versions: dict[str, str] = dataclasses.field(
+        default_factory=get_environment_package_versions
+    )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert metadata to JSON-serializable dictionary."""
@@ -74,4 +78,3 @@ class TransformerMetadata:
             adapter_config=data.get("adapter_config", {}),
             package_versions=data.get("package_versions", {}),
         )
-

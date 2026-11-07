@@ -1,4 +1,15 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# AMRS gitignore
+artifacts/
+*.pt
+__pycache__/
+.venv/
+*.db
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
 
 # dependencies
 /node_modules
@@ -10,29 +21,21 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# testing & coverage
 /coverage
+.coverage
+htmlcov/
 
-# next.js
+# next.js & web
 .next/
 out/
-
-# production
 /build
 
 # misc
 .DS_Store
 *.pem
-*.db
-
-# AMRS artifacts & Python
-/artifacts/*
-!/artifacts/.gitkeep
 /uploads/*
 !/uploads/.gitkeep
-*.pt
-__pycache__/
-.venv/
 
 # debug
 npm-debug.log*
@@ -40,8 +43,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
 # vercel
 .vercel

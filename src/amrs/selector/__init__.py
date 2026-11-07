@@ -1,5 +1,13 @@
 """AMRS strategy eligibility, registry, and cost-first selection module (Section 2.9, ML-2)."""
 
+from amrs.schemas import (
+    Applicability,
+    CostEstimate,
+    SelectionReport,
+    SkippedCandidate,
+    StrategyCandidate,
+    StrategyResult,
+)
 from amrs.selector.selector import (
     DIAGNOSIS_TO_STRATEGIES,
     BnRecalibrationStrategy,
@@ -14,14 +22,6 @@ from amrs.selector.selector import (
     default_registry,
     estimate_retrain_cost,
     resolve_primary_metric_for_candidate,
-)
-from amrs.schemas import (
-    Applicability,
-    CostEstimate,
-    SelectionReport,
-    SkippedCandidate,
-    StrategyCandidate,
-    StrategyResult,
 )
 
 __all__ = [

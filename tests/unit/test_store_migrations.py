@@ -45,4 +45,3 @@ def test_migrations_foreign_keys_and_wal() -> None:
     conn = db.get_connection()
     fk = conn.execute("PRAGMA foreign_keys;").fetchone()[0]
     assert fk == 1
-

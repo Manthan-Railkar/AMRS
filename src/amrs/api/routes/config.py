@@ -1,6 +1,7 @@
 """Configuration endpoints."""
 
 from fastapi import APIRouter
+
 from amrs.schemas import ConfigDefaultsResponse
 
 router = APIRouter(prefix="/config", tags=["Configuration"])
@@ -14,4 +15,3 @@ router = APIRouter(prefix="/config", tags=["Configuration"])
 )
 async def get_config_defaults() -> ConfigDefaultsResponse:
     return ConfigDefaultsResponse()
-

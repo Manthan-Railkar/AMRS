@@ -2,6 +2,7 @@
 
 import time
 from pathlib import Path
+
 import pytest
 
 from amrs.api.jobs import JobCoordinator
@@ -104,7 +105,9 @@ def test_cooperative_cancellation_workflow(test_coord: JobCoordinator) -> None:
     run_dir = test_coord.get_run_artifact_dir(run_id)
     orig_bytes = (run_dir / "original.pt").read_bytes()
     accepted_bytes = (run_dir / "accepted_model.pt").read_bytes()
-    assert orig_bytes == accepted_bytes, "Accepted model must be byte-identical to original upon cancellation"
+    assert orig_bytes == accepted_bytes, (
+        "Accepted model must be byte-identical to original upon cancellation"
+    )
 
 
 def test_startup_crash_recovery_stale_runs(tmp_path: Path) -> None:
@@ -147,4 +150,3 @@ def test_startup_crash_recovery_stale_runs(tmp_path: Path) -> None:
 
     coord2.shutdown(wait=False)
     db2.close()
-

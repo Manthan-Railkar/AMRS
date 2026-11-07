@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 from typing import Any
+
 import numpy as np
-from scipy.optimize import minimize_scalar
-from sklearn.linear_model import LogisticRegression
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from scipy.optimize import minimize_scalar
+from sklearn.linear_model import LogisticRegression
 from torch.utils.data import DataLoader
 
-from amrs.models.adapter import ModelAdapter
 from amrs.metrics.classification import accuracy, ece, predict_logits
+from amrs.models.adapter import ModelAdapter
 
 
 def compute_acc_and_gap(
@@ -71,7 +72,9 @@ def analyze_history_trend(
         if val_losses[t] > val_losses[t - 1] and train_losses[t] < train_losses[t - 1]:
             rise_count += 1
 
-    condition_met = (rise_count >= val_loss_rise_epochs) and (len(val_losses) - 1 >= val_loss_rise_epochs)
+    condition_met = (rise_count >= val_loss_rise_epochs) and (
+        len(val_losses) - 1 >= val_loss_rise_epochs
+    )
 
     return {
         "available": True,
@@ -136,6 +139,7 @@ def compute_bn_divergence(
 
     handles = []
     for i, bn in enumerate(bn_layers):
+
         def make_hook(idx: int):
             def hook(m: nn.Module, inp: tuple[Any, ...], out: Any) -> None:
                 if inp and isinstance(inp[0], torch.Tensor):
@@ -145,16 +149,16 @@ def compute_bn_divergence(
                         # (B, C, H, W) -> sum across (B, H, W)
                         cnt = x.shape[0] * x.shape[2] * x.shape[3]
                         s = x.sum(dim=(0, 2, 3)).cpu()
-                        s2 = (x ** 2).sum(dim=(0, 2, 3)).cpu()
+                        s2 = (x**2).sum(dim=(0, 2, 3)).cpu()
                     elif x.ndim == 2:
                         cnt = x.shape[0]
                         s = x.sum(dim=0).cpu()
-                        s2 = (x ** 2).sum(dim=0).cpu()
+                        s2 = (x**2).sum(dim=0).cpu()
                     else:
                         cnt = x.shape[0]
                         flat = x.reshape(x.shape[0], x.shape[1], -1)
                         s = flat.sum(dim=(0, 2)).cpu()
-                        s2 = (flat ** 2).sum(dim=(0, 2)).cpu()
+                        s2 = (flat**2).sum(dim=(0, 2)).cpu()
 
                     if stats[idx]["sum"] is None:
                         stats[idx]["sum"] = s
@@ -187,7 +191,7 @@ def compute_bn_divergence(
         if cnt == 0 or stats[i]["sum"] is None:
             continue
         mu_new = stats[i]["sum"] / cnt
-        var_new = (stats[i]["sum2"] / cnt) - (mu_new ** 2)
+        var_new = (stats[i]["sum2"] / cnt) - (mu_new**2)
         var_new = torch.clamp(var_new, min=0.0)
 
         mu_run = bn.running_mean.cpu() if bn.running_mean is not None else torch.zeros_like(mu_new)
@@ -248,7 +252,7 @@ def analyze_instability(
     start_idx = len(losses) - last_n
     for t in range(max(1, start_idx), len(losses)):
         loss_t = losses[t]
-        prev_window = losses[max(0, t - 5):t]
+        prev_window = losses[max(0, t - 5) : t]
         if prev_window:
             med = float(np.median(prev_window))
             r = loss_t / (med + 1e-8)

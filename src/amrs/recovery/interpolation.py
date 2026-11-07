@@ -10,11 +10,11 @@ for floating tensors, with documented deterministic policies for non-floating/Ba
 
 from __future__ import annotations
 
-from collections import OrderedDict
 import copy
 import time
+from collections import OrderedDict
 from typing import Any
-import numpy as np
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -30,7 +30,6 @@ from amrs.recovery.base import (
     StrategyResult,
 )
 from amrs.recovery.selective_ft import SelectiveFinetuneL2spStrategy
-
 
 # ---------------------------------------------------------------------------
 # Buffer Policy Documentation
@@ -62,7 +61,7 @@ def validate_interpolation_compatibility(
     candidate_model: nn.Module,
 ) -> tuple[bool, str | None]:
     """Validate tensor compatibility, shapes, dtypes, and finiteness between models.
-    
+
     Returns:
         (is_compatible, failure_reason)
     """
@@ -75,7 +74,10 @@ def validate_interpolation_compatibility(
     if orig_keys != cand_keys:
         missing = orig_keys - cand_keys
         extra = cand_keys - orig_keys
-        return False, f"KEY_MISMATCH: Missing keys: {sorted(list(missing))}, Extra keys: {sorted(list(extra))}"
+        return (
+            False,
+            f"KEY_MISMATCH: Missing keys: {sorted(list(missing))}, Extra keys: {sorted(list(extra))}",
+        )
 
     for key in orig_keys:
         t_orig = orig_state[key]
@@ -109,13 +111,13 @@ def interpolate_state_dicts(
     buffer_policy: str = DEFAULT_BUFFER_POLICY,
 ) -> OrderedDict[str, torch.Tensor]:
     """Deterministically interpolate floating tensors between original and candidate state dicts.
-    
+
     Args:
         orig_state: Original model state_dict.
         cand_state: Fine-tuned candidate model state_dict.
         alpha: Interpolation weight in [0.0, 1.0].
         buffer_policy: Policy for non-floating buffers.
-        
+
     Returns:
         New OrderedDict with interpolated tensor state.
     """
@@ -190,7 +192,7 @@ def evaluate_interpolation_sweep(
     device: str = "cpu",
 ) -> tuple[float, nn.Module, list[dict[str, Any]], float]:
     """Sweep across alphas on validation data and deterministically select the optimal model.
-    
+
     Returns:
         (best_alpha, best_model, sweep_records, total_eval_units)
     """
@@ -241,7 +243,11 @@ def evaluate_interpolation_sweep(
                     is_better = True
                 elif val_nll == best_record["val_nll"] and val_ece < best_record["val_ece"]:
                     is_better = True
-                elif val_nll == best_record["val_nll"] and val_ece == best_record["val_ece"] and alpha < best_alpha:
+                elif (
+                    val_nll == best_record["val_nll"]
+                    and val_ece == best_record["val_ece"]
+                    and alpha < best_alpha
+                ):
                     is_better = True
 
             if is_better or best_record is None:
@@ -278,6 +284,7 @@ def evaluate_interpolation_sweep(
 # ---------------------------------------------------------------------------
 # Recovery Strategy Implementation
 # ---------------------------------------------------------------------------
+
 
 class WeightInterpolationStrategy(RecoveryStrategy):
     """Weight interpolation strategy searching linear blending coefficients (ML-8, ML-8.1)."""
@@ -319,7 +326,9 @@ class WeightInterpolationStrategy(RecoveryStrategy):
 
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         """Estimate compute units: base fine-tuning units + len(alphas) * N_val evaluations (BR12)."""
         adapter = model or context.adapter
         alphas = [0.25, 0.5, 0.75]
@@ -366,13 +375,17 @@ class WeightInterpolationStrategy(RecoveryStrategy):
             },
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         """Execute weight interpolation search across configured alphas."""
         t0 = time.monotonic()
 
         # Split isolation check: NEVER evaluate or train on holdout
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter WeightInterpolationStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter WeightInterpolationStrategy."
+            )
 
         if not _has_identifiable_head(model_copy):
             return model_copy, StrategyResult(
@@ -393,7 +406,12 @@ class WeightInterpolationStrategy(RecoveryStrategy):
         base_compute_units = 0.0
         base_grad_steps = 0
 
-        for key in ("candidate_model", "finetuned_model", "parent_candidate", "finetuned_candidate"):
+        for key in (
+            "candidate_model",
+            "finetuned_model",
+            "parent_candidate",
+            "finetuned_candidate",
+        ):
             if key in context.extra and isinstance(context.extra[key], nn.Module):
                 cand_model = context.extra[key]
                 break
@@ -445,7 +463,9 @@ class WeightInterpolationStrategy(RecoveryStrategy):
         val_nll_before = 0.0
         val_ece_before = 0.0
         try:
-            v_logits, v_labels = predict_logits(model_copy, context.val_loader, device=context.device)
+            v_logits, v_labels = predict_logits(
+                model_copy, context.val_loader, device=context.device
+            )
             val_acc_before = accuracy(v_logits, v_labels)
             val_nll_before = nll(v_logits, v_labels)
             val_ece_before = ece(v_logits, v_labels)
@@ -471,7 +491,9 @@ class WeightInterpolationStrategy(RecoveryStrategy):
             )
 
         # Find best record
-        selected_record = next((r for r in sweep_records if r["alpha"] == best_alpha), sweep_records[0])
+        selected_record = next(
+            (r for r in sweep_records if r["alpha"] == best_alpha), sweep_records[0]
+        )
         val_acc_after = selected_record["val_acc"]
         val_nll_after = selected_record["val_nll"]
         val_ece_after = selected_record["val_ece"]

@@ -1,6 +1,7 @@
 """Health check endpoint."""
 
 from fastapi import APIRouter
+
 from amrs import __version__
 from amrs.schemas import HealthResponse
 
@@ -19,4 +20,3 @@ async def get_health() -> HealthResponse:
         version=__version__,
         db_status="ok",
     )
-

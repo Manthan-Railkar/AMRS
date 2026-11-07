@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
@@ -19,9 +20,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from amrs.config import compute_gate_policy_hash, load_config
 from amrs.errors import ForbiddenError
-from amrs.evaluation.evaluator import HoldoutIsolatedContext, ModelEvaluator
+from amrs.evaluation.evaluator import HoldoutIsolatedContext
 from amrs.evaluation.gate import VerificationGate
-from amrs.models.loader import load_state_dict_safe
 from amrs.models.registry import build
 from amrs.models.zoo import save_checkpoint
 from amrs.schemas import GateConfig
@@ -185,4 +185,3 @@ def test_policy_changes_are_versioned_and_auditable() -> None:
     h_lenient = compute_gate_policy_hash(lenient_cfg.gate)
 
     assert len({h_default, h_strict, h_lenient}) == 3, "Policy hashes must be distinct"
-

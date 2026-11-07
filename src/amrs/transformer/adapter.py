@@ -5,19 +5,19 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
-from typing import Any, Iterator
-import torch
+from typing import Any
+
 import torch.nn as nn
 
 try:
-    from peft import LoraConfig, PeftModel, get_peft_model, TaskType
+    from peft import LoraConfig, PeftModel, TaskType, get_peft_model
+
     PEFT_AVAILABLE = True
 except ImportError:
     PEFT_AVAILABLE = False
 
 from amrs.transformer.allowlist import (
     get_default_target_modules,
-    is_architecture_supported,
     normalize_architecture_name,
     validate_target_modules,
 )
@@ -48,7 +48,9 @@ class TransformerModelAdapter:
     ) -> None:
         self.model = model
         self.architecture = normalize_architecture_name(model)
-        self.base_model_name_or_path = base_model_name_or_path or getattr(model, "name_or_path", self.architecture)
+        self.base_model_name_or_path = base_model_name_or_path or getattr(
+            model, "name_or_path", self.architecture
+        )
         self.revision = revision
 
         # Extract config dictionary for config hash
@@ -170,4 +172,3 @@ class TransformerModelAdapter:
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Forward pass forwarding directly to the underlying model."""
         return self.model(*args, **kwargs)
-

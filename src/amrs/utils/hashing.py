@@ -1,4 +1,4 @@
-"""Cryptographic hashing utilities for models, datasets, and artifacts."""
+"""Cryptographic hashing utilities for models, datasets, and artifacts (INF-1.2)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,18 @@ def compute_sha256(source: str | Path | bytes) -> str:
     return hasher.hexdigest()
 
 
+def sha256_file(path: str | Path) -> str:
+    """Compute streaming SHA-256 hexadecimal digest for a file on disk."""
+    return compute_sha256(path)
+
+
 def verify_sha256(source: str | Path | bytes, expected_hash: str) -> bool:
     """Check whether SHA-256 matches the expected hexadecimal digest."""
     return compute_sha256(source).lower() == expected_hash.strip().lower()
 
+
+__all__ = [
+    "compute_sha256",
+    "sha256_file",
+    "verify_sha256",
+]

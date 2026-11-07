@@ -8,16 +8,14 @@ with non-floating buffer preservation and BatchNorm recalibration.
 from __future__ import annotations
 
 import copy
-from collections import OrderedDict
-import hashlib
-from pathlib import Path
 import re
 import time
+from collections import OrderedDict
+from pathlib import Path
 from typing import Any
-import numpy as np
+
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
 from amrs.metrics.classification import accuracy, ece, nll, predict_logits
 from amrs.metrics.compute import ComputeMeter
@@ -58,7 +56,7 @@ def validate_checkpoint(
     target_model: nn.Module,
 ) -> tuple[bool, str | None, OrderedDict[str, torch.Tensor] | None]:
     """Validate checkpoint architecture, tensor compatibility, and finiteness.
-    
+
     Returns:
         (is_valid, skip_reason, state_dict)
     """
@@ -68,7 +66,7 @@ def validate_checkpoint(
 
     try:
         state_dict = load_state_dict_safe(path)
-    except Exception as exc:
+    except Exception:
         return False, "INVALID_CHECKPOINT", None
 
     # 1. Finiteness check: reject any state_dict containing NaN or Inf
@@ -95,7 +93,7 @@ def average_state_dicts(
     state_dicts: list[OrderedDict[str, torch.Tensor]],
 ) -> OrderedDict[str, torch.Tensor]:
     """Deterministically average floating-point tensors across state dicts.
-    
+
     Non-floating buffers (e.g. integer batch counters) are copied from the latest state_dict.
     """
     if not state_dicts:
@@ -130,6 +128,7 @@ def average_state_dicts(
 # Checkpoint Reversion Strategy
 # ---------------------------------------------------------------------------
 
+
 class CheckpointReversionStrategy(RecoveryStrategy):
     """Reverts to the top-performing historical training checkpoint based on validation score."""
 
@@ -152,7 +151,9 @@ class CheckpointReversionStrategy(RecoveryStrategy):
             )
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         loader = context.val_loader
         n_val = 500
         if loader is not None:
@@ -170,12 +171,16 @@ class CheckpointReversionStrategy(RecoveryStrategy):
             details={"fwd_samples": n_val, "bwd_samples": 0, "strategy": self.name},
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         t0 = time.monotonic()
 
         # Split isolation check
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter CheckpointReversionStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter CheckpointReversionStrategy."
+            )
 
         if not context.checkpoints:
             return model_copy, StrategyResult(
@@ -237,14 +242,16 @@ class CheckpointReversionStrategy(RecoveryStrategy):
             val_loss = nll(val_logits, val_labels)
             val_ece = ece(val_logits, val_labels)
 
-            evaluated_checkpoints.append({
-                "path": str(ckpt_path),
-                "name": ckpt_path.name,
-                "epoch": _extract_epoch_number(ckpt_path),
-                "accuracy": round(val_acc, 6),
-                "nll": round(val_loss, 6),
-                "ece": round(val_ece, 6),
-            })
+            evaluated_checkpoints.append(
+                {
+                    "path": str(ckpt_path),
+                    "name": ckpt_path.name,
+                    "epoch": _extract_epoch_number(ckpt_path),
+                    "accuracy": round(val_acc, 6),
+                    "nll": round(val_loss, 6),
+                    "ece": round(val_ece, 6),
+                }
+            )
 
             valid_candidates.append((ckpt_path, state_dict, val_acc))
 
@@ -311,6 +318,7 @@ class CheckpointReversionStrategy(RecoveryStrategy):
 # Checkpoint Averaging Strategy
 # ---------------------------------------------------------------------------
 
+
 class CheckpointAveragingStrategy(RecoveryStrategy):
     """Averages floating-point weights across the last-K training checkpoints with BatchNorm recalibration."""
 
@@ -327,7 +335,9 @@ class CheckpointAveragingStrategy(RecoveryStrategy):
             )
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         loader = context.val_loader
         n_val = 500
         if loader is not None:
@@ -346,12 +356,16 @@ class CheckpointAveragingStrategy(RecoveryStrategy):
             details={"fwd_samples": n_val, "bwd_samples": 0, "strategy": self.name},
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         t0 = time.monotonic()
 
         # Split isolation check
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter CheckpointAveragingStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter CheckpointAveragingStrategy."
+            )
 
         # Config: last_k checkpoints limit
         last_k = 5
@@ -457,7 +471,9 @@ class CheckpointAveragingStrategy(RecoveryStrategy):
             "averaged_checkpoint_paths": [str(p) for p in valid_paths],
             "k_averaged": len(valid_paths),
             "epoch_range": [min(epochs_list), max(epochs_list)] if epochs_list else [],
-            "averaging_policy": "uniform_last_k_with_bn_recalibration" if bn_recalibrated else "uniform_last_k",
+            "averaging_policy": "uniform_last_k_with_bn_recalibration"
+            if bn_recalibrated
+            else "uniform_last_k",
             "bn_recalibrated": bn_recalibrated,
             "skipped_checkpoints": skipped_checkpoints,
             "val_acc_before": round(base_acc, 6),

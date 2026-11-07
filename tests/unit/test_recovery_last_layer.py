@@ -1,8 +1,7 @@
 """Unit tests for LastLayerFinetuneStrategy, backbone freezing, optimizer audit, and head recovery (ML-6)."""
 
-import copy
 import hashlib
-from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
@@ -29,6 +28,7 @@ def _compute_hash(tensors: list[torch.Tensor]) -> str:
 
 class HeadlessModel(nn.Module):
     """Model with convolutional layers but no identifiable Linear classification head."""
+
     def __init__(self) -> None:
         super().__init__()
         self.conv = nn.Conv2d(1, 8, kernel_size=3, padding=1)
@@ -61,6 +61,7 @@ def _generate_synthetic_separable_data(
 # ---------------------------------------------------------------------------
 # S5 Degraded Head Recovery and Frozen Backbone Tests
 # ---------------------------------------------------------------------------
+
 
 def test_synthetic_degraded_head_scenario_recovery():
     """Fine-tuning an intentionally degraded head must measurably recover validation accuracy."""
@@ -114,9 +115,7 @@ def test_frozen_backbone_strict_immutability():
         if id(p) not in head_param_ids
     }
     head_before = {
-        name: p.detach().clone()
-        for name, p in model.named_parameters()
-        if id(p) in head_param_ids
+        name: p.detach().clone() for name, p in model.named_parameters() if id(p) in head_param_ids
     }
 
     candidate, stats = finetune_last_layer(
@@ -141,10 +140,9 @@ def test_frozen_backbone_strict_immutability():
         for name, p in candidate.named_parameters()
         if id(p) in {id(hp) for hp in ModelAdapter(candidate).head_params()}
     }
-    assert any(
-        not torch.equal(head_cand[name], head_before[name])
-        for name in head_before
-    ), "Head parameters unexpectedly did not change!"
+    assert any(not torch.equal(head_cand[name], head_before[name]) for name in head_before), (
+        "Head parameters unexpectedly did not change!"
+    )
 
     # 3. Original input model was never mutated
     for name, p in model.named_parameters():
@@ -157,6 +155,7 @@ def test_frozen_backbone_strict_immutability():
 # ---------------------------------------------------------------------------
 # Optimizer Parameter Audit Tests
 # ---------------------------------------------------------------------------
+
 
 def test_optimizer_parameter_audit():
     """The optimizer parameter list must contain strictly head parameters and zero backbone parameters."""
@@ -181,6 +180,7 @@ def test_optimizer_parameter_audit():
 # ---------------------------------------------------------------------------
 # Early Stopping and Non-Finite Loss Tests
 # ---------------------------------------------------------------------------
+
 
 def test_early_stopping_restores_best_validation_epoch():
     """Candidate model must restore the weights from the epoch that achieved the highest validation accuracy."""
@@ -225,6 +225,7 @@ def test_non_finite_loss_fails_safely():
 # Head Ambiguity and Missing Data Tests
 # ---------------------------------------------------------------------------
 
+
 def test_headless_model_skips_with_no_identifiable_head():
     """Model with no identifiable head must return NO_IDENTIFIABLE_HEAD."""
     model = HeadlessModel()
@@ -258,11 +259,17 @@ def test_missing_training_data_rejected():
 
 def test_deterministic_seed_reproducibility():
     """Two fine-tuning runs with identical seed and configuration must produce identical candidate weights."""
-    train_loader, val_loader = _generate_synthetic_separable_data(n_samples=60, num_classes=5, seed=10)
+    train_loader, val_loader = _generate_synthetic_separable_data(
+        n_samples=60, num_classes=5, seed=10
+    )
     model = build("small_cnn", num_classes=5, in_shape=(1, 16, 16))
 
-    cand1, stats1 = finetune_last_layer(model, train_loader, val_loader, epochs=2, lr=0.01, seed=999)
-    cand2, stats2 = finetune_last_layer(model, train_loader, val_loader, epochs=2, lr=0.01, seed=999)
+    cand1, stats1 = finetune_last_layer(
+        model, train_loader, val_loader, epochs=2, lr=0.01, seed=999
+    )
+    cand2, stats2 = finetune_last_layer(
+        model, train_loader, val_loader, epochs=2, lr=0.01, seed=999
+    )
 
     for (n1, p1), (n2, p2) in zip(cand1.named_parameters(), cand2.named_parameters()):
         assert n1 == n2
@@ -276,4 +283,3 @@ def test_strategy_rejects_holdout():
 
     with pytest.raises(ValueError, match="Holdout data must never enter RecoveryContext"):
         RecoveryContext(model=model, train_loader=loader, holdout_loader=loader)
-

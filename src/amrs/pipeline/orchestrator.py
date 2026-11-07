@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import copy
 import datetime
-import hashlib
-from pathlib import Path
 import threading
 import time
-from typing import Any, Callable
 import uuid
+from pathlib import Path
+from typing import Any, Callable
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -30,7 +30,6 @@ from amrs.recovery.base import RecoveryContext
 from amrs.schemas import (
     CandidateSummary,
     ConfigDefaultsResponse,
-    DiagnosisItem,
     RunDetailResponse,
 )
 from amrs.selector.selector import StrategyRegistry, StrategySelector
@@ -116,7 +115,9 @@ class RecoveryOrchestrator:
         # -------------------------------------------------------------------
         # Stage 2: Data Contract & Context Splitting (20%)
         # -------------------------------------------------------------------
-        self._emit_progress(bundle, "data_contract", 20.0, "Validating data contract and split isolation.")
+        self._emit_progress(
+            bundle, "data_contract", 20.0, "Validating data contract and split isolation."
+        )
         if bundle.cancel_token and bundle.cancel_token.is_set():
             return self._finalize_cancellation(bundle, now, start_time)
 
@@ -188,13 +189,17 @@ class RecoveryOrchestrator:
                 output_model=bundle.model,  # Byte-identical preservation
                 report=report_dict,
             )
-            self._emit_progress(bundle, "complete", 100.0, "Model diagnosed healthy; no recovery needed.")
+            self._emit_progress(
+                bundle, "complete", 100.0, "Model diagnosed healthy; no recovery needed."
+            )
             return RunDetailResponse(**report_dict)
 
         # -------------------------------------------------------------------
         # Stage 4: Strategy Selection (50%)
         # -------------------------------------------------------------------
-        self._emit_progress(bundle, "selection", 50.0, "Selecting and ordering eligible recovery strategies.")
+        self._emit_progress(
+            bundle, "selection", 50.0, "Selecting and ordering eligible recovery strategies."
+        )
         if bundle.cancel_token and bundle.cancel_token.is_set():
             return self._finalize_cancellation(bundle, now, start_time)
 
@@ -234,7 +239,9 @@ class RecoveryOrchestrator:
                 output_model=bundle.model,
                 report=report_dict,
             )
-            self._emit_progress(bundle, "complete", 100.0, "No candidates scheduled; rolled back to original.")
+            self._emit_progress(
+                bundle, "complete", 100.0, "No candidates scheduled; rolled back to original."
+            )
             return RunDetailResponse(**report_dict)
 
         # -------------------------------------------------------------------
@@ -271,7 +278,7 @@ class RecoveryOrchestrator:
             # Retrieve strategy implementation
             try:
                 strategy = self.registry.get(cand_spec.strategy)
-            except Exception as exc:
+            except Exception:
                 continue
 
             # Execute on a fresh deep copy of the original model
@@ -500,5 +507,10 @@ class RecoveryOrchestrator:
             report=report_dict,
         )
 
-        self._emit_progress(bundle, "cancelled", 100.0, "Run cancelled; restored byte-identical original checkpoint.")
+        self._emit_progress(
+            bundle,
+            "cancelled",
+            100.0,
+            "Run cancelled; restored byte-identical original checkpoint.",
+        )
         return RunDetailResponse(**report_dict)

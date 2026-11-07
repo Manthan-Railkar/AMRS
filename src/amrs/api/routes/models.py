@@ -59,7 +59,9 @@ async def upload_model(
     if not allow_upload:
         raise ForbiddenError(
             message="Model uploads are disabled on this instance. Enable via AMRS_ALLOW_UPLOAD=1.",
-            details={"hint": "Set AMRS_ALLOW_UPLOAD=1 in server environment to enable model uploads."},
+            details={
+                "hint": "Set AMRS_ALLOW_UPLOAD=1 in server environment to enable model uploads."
+            },
         )
 
     # 2. Validate architecture against registry

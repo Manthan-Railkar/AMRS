@@ -1,8 +1,8 @@
 """Unit tests for AMRS checkpoint persistence and history discovery (BE-4 / DM-3.1)."""
 
 from pathlib import Path
+
 import torch
-import torch.nn as nn
 
 from amrs.models.loader import load_state_dict_safe
 from amrs.models.registry import build
@@ -58,4 +58,3 @@ def test_list_history_ordered(tmp_path: Path) -> None:
         "ckpt_epoch10.pt",
         "ckpt_epoch20.pt",
     ]
-

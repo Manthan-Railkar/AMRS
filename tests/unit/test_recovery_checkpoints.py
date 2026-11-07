@@ -1,16 +1,16 @@
 """Unit tests for CheckpointReversionStrategy, CheckpointAveragingStrategy, tensor arithmetic, buffer handling, and immutability (ML-5)."""
 
-from collections import OrderedDict
 import copy
 import hashlib
+from collections import OrderedDict
 from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from amrs.config import load_config
-from amrs.metrics.classification import accuracy, predict_logits
 from amrs.models.adapter import ModelAdapter
 from amrs.models.registry import build
 from amrs.recovery.base import RecoveryContext
@@ -42,6 +42,7 @@ def _hash_model_weights(model: nn.Module) -> str:
 
 class SimpleNet(nn.Module):
     """Simple linear network with an integer buffer for buffer testing."""
+
     def __init__(self) -> None:
         super().__init__()
         self.fc = nn.Linear(4, 2, bias=True)
@@ -55,20 +56,27 @@ class SimpleNet(nn.Module):
 # Tensor Averaging and Buffer Rule Tests
 # ---------------------------------------------------------------------------
 
+
 def test_tensor_averaging_arithmetic():
     """average_state_dicts must compute the exact arithmetic mean of floating-point tensors."""
-    sd1: OrderedDict[str, torch.Tensor] = OrderedDict([
-        ("weight", torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)),
-        ("bias", torch.tensor([1.0, 2.0], dtype=torch.float32)),
-    ])
-    sd2: OrderedDict[str, torch.Tensor] = OrderedDict([
-        ("weight", torch.tensor([[2.0, 4.0], [6.0, 8.0]], dtype=torch.float32)),
-        ("bias", torch.tensor([2.0, 4.0], dtype=torch.float32)),
-    ])
-    sd3: OrderedDict[str, torch.Tensor] = OrderedDict([
-        ("weight", torch.tensor([[3.0, 6.0], [9.0, 12.0]], dtype=torch.float32)),
-        ("bias", torch.tensor([3.0, 6.0], dtype=torch.float32)),
-    ])
+    sd1: OrderedDict[str, torch.Tensor] = OrderedDict(
+        [
+            ("weight", torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)),
+            ("bias", torch.tensor([1.0, 2.0], dtype=torch.float32)),
+        ]
+    )
+    sd2: OrderedDict[str, torch.Tensor] = OrderedDict(
+        [
+            ("weight", torch.tensor([[2.0, 4.0], [6.0, 8.0]], dtype=torch.float32)),
+            ("bias", torch.tensor([2.0, 4.0], dtype=torch.float32)),
+        ]
+    )
+    sd3: OrderedDict[str, torch.Tensor] = OrderedDict(
+        [
+            ("weight", torch.tensor([[3.0, 6.0], [9.0, 12.0]], dtype=torch.float32)),
+            ("bias", torch.tensor([3.0, 6.0], dtype=torch.float32)),
+        ]
+    )
 
     averaged = average_state_dicts([sd1, sd2, sd3])
 
@@ -81,18 +89,24 @@ def test_tensor_averaging_arithmetic():
 
 def test_integer_and_non_floating_buffer_handling():
     """Non-floating buffers must be deterministically copied from the latest (last) checkpoint."""
-    sd1: OrderedDict[str, torch.Tensor] = OrderedDict([
-        ("weight", torch.tensor([1.0, 2.0], dtype=torch.float32)),
-        ("num_batches_tracked", torch.tensor(10, dtype=torch.long)),
-    ])
-    sd2: OrderedDict[str, torch.Tensor] = OrderedDict([
-        ("weight", torch.tensor([3.0, 4.0], dtype=torch.float32)),
-        ("num_batches_tracked", torch.tensor(20, dtype=torch.long)),
-    ])
-    sd3: OrderedDict[str, torch.Tensor] = OrderedDict([
-        ("weight", torch.tensor([5.0, 6.0], dtype=torch.float32)),
-        ("num_batches_tracked", torch.tensor(30, dtype=torch.long)),
-    ])
+    sd1: OrderedDict[str, torch.Tensor] = OrderedDict(
+        [
+            ("weight", torch.tensor([1.0, 2.0], dtype=torch.float32)),
+            ("num_batches_tracked", torch.tensor(10, dtype=torch.long)),
+        ]
+    )
+    sd2: OrderedDict[str, torch.Tensor] = OrderedDict(
+        [
+            ("weight", torch.tensor([3.0, 4.0], dtype=torch.float32)),
+            ("num_batches_tracked", torch.tensor(20, dtype=torch.long)),
+        ]
+    )
+    sd3: OrderedDict[str, torch.Tensor] = OrderedDict(
+        [
+            ("weight", torch.tensor([5.0, 6.0], dtype=torch.float32)),
+            ("num_batches_tracked", torch.tensor(30, dtype=torch.long)),
+        ]
+    )
 
     averaged = average_state_dicts([sd1, sd2, sd3])
 
@@ -106,6 +120,7 @@ def test_integer_and_non_floating_buffer_handling():
 # ---------------------------------------------------------------------------
 # Checkpoint Compatibility and Validation Tests
 # ---------------------------------------------------------------------------
+
 
 def test_checkpoint_validation_catches_nan_inf(tmp_path: Path):
     """Checkpoints containing NaN or Inf must be flagged as NON_FINITE."""
@@ -150,6 +165,7 @@ def test_checkpoint_validation_catches_architecture_mismatch(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # Reversion Strategy Tests (Known-Best Fixture)
 # ---------------------------------------------------------------------------
+
 
 def test_checkpoint_reversion_selects_known_best_fixture(tmp_path: Path):
     """CheckpointReversionStrategy must evaluate on validation data and pick the known best checkpoint."""
@@ -215,6 +231,7 @@ def test_checkpoint_reversion_selects_known_best_fixture(tmp_path: Path):
 # Averaging Strategy Tests (Weight Interpolation and BN Recalibration)
 # ---------------------------------------------------------------------------
 
+
 def test_checkpoint_averaging_full_workflow(tmp_path: Path):
     """CheckpointAveragingStrategy averages weights and recalibrates BatchNorm stats."""
     model = build("small_cnn", num_classes=10, in_shape=(1, 16, 16))
@@ -237,7 +254,11 @@ def test_checkpoint_averaging_full_workflow(tmp_path: Path):
         state_dicts.append(m_ep.state_dict())
 
     # Record expected theoretical average for one parameter
-    expected_weight = (state_dicts[0]["block1.0.weight"] + state_dicts[1]["block1.0.weight"] + state_dicts[2]["block1.0.weight"]) / 3.0
+    expected_weight = (
+        state_dicts[0]["block1.0.weight"]
+        + state_dicts[1]["block1.0.weight"]
+        + state_dicts[2]["block1.0.weight"]
+    ) / 3.0
 
     strategy = CheckpointAveragingStrategy()
     context = RecoveryContext(
@@ -262,6 +283,7 @@ def test_checkpoint_averaging_full_workflow(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # Source Immutability and Skip Isolation Tests
 # ---------------------------------------------------------------------------
+
 
 def test_source_checkpoints_and_model_immutability(tmp_path: Path):
     """Neither source checkpoint files nor input model weights may be mutated."""

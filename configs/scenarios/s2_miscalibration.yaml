@@ -1,0 +1,43 @@
+scenario_id: s2_miscalibration
+name: Miscalibrated
+arch: resnet18_cifar
+ground_truth_label: miscalibration
+description: Healthy model with final-layer weights scaled x2.5 causing severe probability miscalibration.
+dataset: cifar10
+num_classes: 10
+input_shape: [3, 32, 32]
+scale_factor: 2.5
+profiles:
+  tiny:
+    arch: mlp_small
+    dataset: synthetic
+    num_classes: 4
+    input_shape: [1, 8, 8]
+    train_size: 400
+    val_size: 150
+    holdout_size: 150
+    epochs: 10
+    lr: 0.01
+    weight_decay: 0.0001
+  cpu:
+    arch: small_cnn
+    dataset: fashion_mnist
+    num_classes: 10
+    input_shape: [1, 28, 28]
+    train_size: 2000
+    val_size: 500
+    holdout_size: 500
+    epochs: 15
+    lr: 0.005
+    weight_decay: 0.0001
+  full:
+    arch: resnet18_cifar
+    dataset: cifar10
+    num_classes: 10
+    input_shape: [3, 32, 32]
+    train_size: 5000
+    val_size: 2000
+    holdout_size: 2000
+    epochs: 40
+    lr: 0.01
+    weight_decay: 0.0001

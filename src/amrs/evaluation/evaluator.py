@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -143,4 +144,3 @@ class ModelEvaluator:
             "retained_zero_orig_warning": ret_warning,
             "agreement": agreement,
         }
-

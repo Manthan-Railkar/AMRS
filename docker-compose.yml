@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        TORCH_INDEX: https://download.pytorch.org/whl/cpu
     container_name: amrs-api
     restart: unless-stopped
     environment:
@@ -17,7 +19,7 @@ services:
     volumes:
       - amrs_artifacts:/app/artifacts
       - amrs_uploads:/app/uploads
-    # Port 8000 is exposed ONLY to other services within the Docker network
+    # Port 8000 is exposed ONLY to other services within the Docker Compose network
     expose:
       - "8000"
     healthcheck:
@@ -37,11 +39,11 @@ services:
     container_name: amrs-web
     restart: unless-stopped
     environment:
-      # Private server-side communication to FastAPI
+      # Server-side proxy URL to internal FastAPI service (never exposed to browser clients)
       - AMRS_API_INTERNAL_URL=http://api:8000
       - NODE_ENV=production
     ports:
-      # Public browser access exclusively through Next.js reverse proxy
+      # Public browser access exclusively through Next.js reverse proxy on port 3000
       - "3000:3000"
     depends_on:
       api:
@@ -58,4 +60,3 @@ volumes:
 networks:
   amrs-network:
     driver: bridge
-

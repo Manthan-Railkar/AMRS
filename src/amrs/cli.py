@@ -14,29 +14,22 @@ import argparse
 import json
 import sys
 import time
-from pathlib import Path
-from typing import Any
 
 from amrs import __version__
-from amrs.api.jobs import JobCoordinator
-from amrs.benchmark.scenarios import SCENARIO_CATALOG, build_scenario
-from amrs.config import load_config
-from amrs.models.loader import load_from_module
-from amrs.schemas import (
-    BenchmarkCreateRequest,
-    MonitorReplayRequest,
-    RunCreateRequest,
-)
 
 
-def _get_coordinator() -> JobCoordinator:
+def _get_coordinator():
     """Return JobCoordinator connected to local store/artifacts."""
+    from amrs.api.jobs import JobCoordinator
+
     return JobCoordinator()
 
 
 def cmd_diagnose(args: argparse.Namespace) -> int:
     """Execute diagnosis and print evidence trail."""
-    coordinator = _get_coordinator()
+    from amrs.benchmark.scenarios import SCENARIO_CATALOG
+
+    _get_coordinator()
     scenario_id = args.scenario or "s1_overfit"
 
     # Use scenario metadata or fallback
@@ -75,6 +68,9 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
 
 def cmd_recover(args: argparse.Namespace) -> int:
     """Execute recovery run and verify candidates through gate."""
+    from amrs.models.loader import load_from_module
+    from amrs.schemas import RunCreateRequest
+
     coordinator = _get_coordinator()
 
     # Custom module loading check
@@ -122,6 +118,8 @@ def cmd_recover(args: argparse.Namespace) -> int:
 
 def cmd_monitor_replay(args: argparse.Namespace) -> int:
     """Replay recorded metrics through live training monitor."""
+    from amrs.schemas import MonitorReplayRequest
+
     coordinator = _get_coordinator()
     req = MonitorReplayRequest(
         scenario_id=args.scenario or "s1_overfit",
@@ -146,6 +144,8 @@ def cmd_monitor_replay(args: argparse.Namespace) -> int:
 
 def cmd_benchmark(args: argparse.Namespace) -> int:
     """Run comparative benchmark against baselines."""
+    from amrs.schemas import BenchmarkCreateRequest
+
     coordinator = _get_coordinator()
     scenarios = args.scenarios or ["s1_overfit", "s2_miscalibration"]
     seeds = [int(s) for s in (args.seeds or [0, 1])]
@@ -155,6 +155,8 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         scenarios=scenarios,
         seeds=seeds,
         methods=methods,
+        profile=getattr(args, "profile", "tiny"),
+        device=getattr(args, "device", "cpu"),
     )
 
     bench_id = coordinator.create_benchmark(req)
@@ -162,6 +164,19 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
     if args.format == "json":
         print(detail.model_dump_json(indent=2))
+    elif args.format == "markdown":
+        from amrs.benchmark.report import (
+            generate_benchmark_markdown,
+            generate_benchmark_report,
+        )
+
+        report = generate_benchmark_report(detail)
+        print(generate_benchmark_markdown(report))
+    elif args.format == "csv":
+        from amrs.benchmark.report import generate_benchmark_csv, generate_benchmark_report
+
+        report = generate_benchmark_report(detail)
+        print(generate_benchmark_csv(report))
     else:
         print(f"\n=== AMRS Benchmark Results: {bench_id} ===")
         print(f"{'Scenario':<18} {'Seed':<6} {'Method':<16} {'Accuracy':<10} {'ECE':<8} {'Cost'}")
@@ -169,7 +184,9 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         for r in detail.results:
             acc_str = f"{r.accuracy:.4f}" if r.accuracy is not None else "N/A"
             ece_str = f"{r.ece:.4f}" if r.ece is not None else "N/A"
-            print(f"{r.scenario_id:<18} {r.seed:<6} {r.method:<16} {acc_str:<10} {ece_str:<8} {r.compute_units:.0f}")
+            print(
+                f"{r.scenario_id:<18} {r.seed:<6} {r.method:<16} {acc_str:<10} {ece_str:<8} {r.compute_units:.0f}"
+            )
         print("========================================================\n")
 
     return 0
@@ -177,6 +194,8 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
 def cmd_scenarios_build(args: argparse.Namespace) -> int:
     """Build scenario datasets and baseline models."""
+    from amrs.benchmark.scenarios import SCENARIO_CATALOG, build_scenario
+
     target_ids = list(SCENARIO_CATALOG.keys()) if args.all else [args.id or "s1_overfit"]
     seeds = [int(s) for s in (args.seeds or [0])]
     profile = args.profile or "tiny"
@@ -194,7 +213,9 @@ def cmd_scenarios_build(args: argparse.Namespace) -> int:
             )
             results.append(meta)
             if args.format != "json":
-                print(f"Built scenario {sid} (seed {seed}, profile {profile}) -> {meta['artifact_path']}")
+                print(
+                    f"Built scenario {sid} (seed {seed}, profile {profile}) -> {meta['artifact_path']}"
+                )
 
     if args.format == "json":
         print(json.dumps(results, indent=2))
@@ -225,7 +246,9 @@ def create_parser() -> argparse.ArgumentParser:
     p_rec.add_argument("--weights", "-w", help="Path to weights file")
     p_rec.add_argument("--arch", "-a", help="Model architecture")
     p_rec.add_argument("--model-module", help="Custom module path 'path.py:factory'")
-    p_rec.add_argument("--allow-custom-code", action="store_true", help="Allow custom module execution")
+    p_rec.add_argument(
+        "--allow-custom-code", action="store_true", help="Allow custom module execution"
+    )
     p_rec.add_argument("--config", "-c", help="Path to YAML config")
     p_rec.add_argument("--seed", type=int, default=1234, help="Random seed")
     p_rec.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
@@ -241,7 +264,16 @@ def create_parser() -> argparse.ArgumentParser:
     p_bm.add_argument("--scenarios", nargs="+", help="Scenario IDs to benchmark")
     p_bm.add_argument("--seeds", nargs="+", help="Seeds to evaluate")
     p_bm.add_argument("--methods", nargs="+", help="Recovery methods to compare")
-    p_bm.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
+    p_bm.add_argument(
+        "--profile", choices=["tiny", "cpu", "full"], default="tiny", help="Build profile"
+    )
+    p_bm.add_argument("--device", default="cpu", help="Compute device")
+    p_bm.add_argument(
+        "--format",
+        choices=["text", "json", "markdown", "csv"],
+        default="text",
+        help="Output format",
+    )
 
     # amrs scenarios
     p_scen = subparsers.add_parser("scenarios", help="Scenario generator operations")
@@ -249,12 +281,18 @@ def create_parser() -> argparse.ArgumentParser:
     p_scen_build = scen_sub.add_parser("build", help="Build scenario dataset and checkpoints")
     p_scen_build.add_argument("--all", action="store_true", help="Build all six scenarios")
     p_scen_build.add_argument("--id", help="Scenario ID to build")
-    p_scen_build.add_argument("--profile", choices=["tiny", "cpu", "full"], default="tiny", help="Build profile")
+    p_scen_build.add_argument(
+        "--profile", choices=["tiny", "cpu", "full"], default="tiny", help="Build profile"
+    )
     p_scen_build.add_argument("--seeds", nargs="+", help="Seeds to generate")
     p_scen_build.add_argument("--device", default="auto", help="Compute device")
-    p_scen_build.add_argument("--force", action="store_true", help="Force rebuild existing scenarios")
+    p_scen_build.add_argument(
+        "--force", action="store_true", help="Force rebuild existing scenarios"
+    )
     p_scen_build.add_argument("--out-dir", help="Output directory")
-    p_scen_build.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
+    p_scen_build.add_argument(
+        "--format", choices=["text", "json"], default="text", help="Output format"
+    )
 
     return parser
 

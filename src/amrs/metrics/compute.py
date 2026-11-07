@@ -39,6 +39,13 @@ class ComputeMeter:
         """Total elapsed wall-clock seconds."""
         return round(time.monotonic() - self.start_time, 3)
 
+    def __enter__(self) -> ComputeMeter:
+        self.start_time = time.monotonic()
+        return self
+
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+        self.total_wall_s += time.monotonic() - self.start_time
+
     @contextlib.contextmanager
     def meter_scope(self, name: str = "") -> Generator[ComputeMeter, None, None]:
         """Scoped context manager for metering a specific block of computation."""
@@ -46,7 +53,17 @@ class ComputeMeter:
         try:
             yield self
         finally:
-            self.total_wall_s += (time.monotonic() - t0)
+            self.total_wall_s += time.monotonic() - t0
+
+
+@contextlib.contextmanager
+def meter_scope(
+    name: str = "", meter: ComputeMeter | None = None
+) -> Generator[ComputeMeter, None, None]:
+    """Module-level nested accounting scope."""
+    m = meter if meter is not None else ComputeMeter()
+    with m.meter_scope(name) as scope:
+        yield scope
 
 
 class NullMeter(ComputeMeter):
@@ -69,3 +86,8 @@ class NullMeter(ComputeMeter):
     def wall_s(self) -> float:
         return 0.0
 
+    def __enter__(self) -> NullMeter:
+        return self
+
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+        pass

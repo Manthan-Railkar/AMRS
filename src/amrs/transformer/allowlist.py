@@ -35,16 +35,19 @@ SUPPORTED_ARCHITECTURES: dict[str, dict[str, Any]] = {
 
 class ArchitectureNotSupportedError(ValueError):
     """Raised when an unvetted or untrusted transformer architecture is requested."""
+
     pass
 
 
 class TargetModuleNotAllowedError(ValueError):
     """Raised when PEFT target modules violate the vetted architecture allowlist."""
+
     pass
 
 
 class UntrustedSourceError(ValueError):
     """Raised when base model source or loading config violates security constraints."""
+
     pass
 
 
@@ -110,4 +113,3 @@ def validate_loading_security(
             "Arbitrary remote code loading (`trust_remote_code=True`) is strictly prohibited in AMRS "
             "to prevent remote code execution vulnerabilities."
         )
-

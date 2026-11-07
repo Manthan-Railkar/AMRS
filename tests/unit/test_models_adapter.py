@@ -1,8 +1,6 @@
 """Unit tests for AMRS ModelAdapter (BE-4 / DM-3.1)."""
 
-import pytest
 import torch
-import torch.nn as nn
 
 from amrs.models.adapter import ModelAdapter
 from amrs.models.registry import build
@@ -100,4 +98,3 @@ def test_adapter_layer_groups_covers_every_parameter_exactly_once() -> None:
         assert set(grouped_param_ids) == set(all_model_param_ids), (
             f"layer_groups does not cover all parameters for {arch}"
         )
-

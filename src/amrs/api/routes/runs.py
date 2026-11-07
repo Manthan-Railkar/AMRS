@@ -1,6 +1,7 @@
 """Recovery run lifecycle and artifact endpoints."""
 
 from fastapi import APIRouter, Depends, Query, Response, status
+
 from amrs.api.deps import get_coordinator
 from amrs.api.jobs import JobCoordinator
 from amrs.schemas import (
@@ -97,4 +98,3 @@ async def download_artifact(
     filename = f"{run_id}_{name}"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     return Response(content=content, media_type=media_type, headers=headers)
-

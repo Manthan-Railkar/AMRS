@@ -1,6 +1,7 @@
 """Benchmark runner and comparative analysis endpoints."""
 
 from fastapi import APIRouter, Depends, status
+
 from amrs.api.deps import get_coordinator
 from amrs.api.jobs import JobCoordinator
 from amrs.schemas import (
@@ -51,3 +52,32 @@ async def get_benchmark_detail(
 ) -> BenchmarkDetailResponse:
     return coordinator.get_benchmark(benchmark_id)
 
+
+@router.get(
+    "/{benchmark_id}/report",
+    summary="Get formatted benchmark evidence report",
+    description="Retrieve machine-readable JSON or human-readable Markdown/CSV report with target scorecard and statistical analysis.",
+)
+async def get_benchmark_report_endpoint(
+    benchmark_id: str,
+    format: str = "json",
+    coordinator: JobCoordinator = Depends(get_coordinator),
+):
+    detail = coordinator.get_benchmark(benchmark_id)
+    from fastapi.responses import PlainTextResponse
+
+    from amrs.benchmark.report import (
+        generate_benchmark_csv,
+        generate_benchmark_markdown,
+        generate_benchmark_report,
+    )
+
+    report_payload = generate_benchmark_report(detail)
+
+    if format == "markdown":
+        return PlainTextResponse(
+            generate_benchmark_markdown(report_payload), media_type="text/markdown"
+        )
+    elif format == "csv":
+        return PlainTextResponse(generate_benchmark_csv(report_payload), media_type="text/csv")
+    return report_payload

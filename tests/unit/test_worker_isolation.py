@@ -1,6 +1,7 @@
 """Unit tests for worker isolation, workspace directory sandboxing, and path safety (BE-3)."""
 
 from pathlib import Path
+
 import pytest
 
 from amrs.api.jobs import JobCoordinator
@@ -51,4 +52,3 @@ def test_path_traversal_prevention(coordinator_with_tmp_dir: JobCoordinator) -> 
         with pytest.raises(ValidationError) as exc:
             coordinator_with_tmp_dir.get_run_artifact_dir(bad_id)
         assert exc.value.code == "VALIDATION_ERROR"
-

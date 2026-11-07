@@ -11,12 +11,12 @@ Guarantees:
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from typing import Any
+from dataclasses import dataclass
+
 import torch.nn as nn
 
 from amrs.config import POLICY_VERSION, compute_gate_policy_hash
-from amrs.errors import ConflictError, HoldoutTooSmallError
+from amrs.errors import ConflictError
 from amrs.evaluation.evaluator import HoldoutIsolatedContext, ModelEvaluator
 from amrs.schemas import GateConfig
 
@@ -24,6 +24,7 @@ from amrs.schemas import GateConfig
 @dataclass(frozen=True)
 class GateDecision:
     """Immutable result emitted exclusively by the backend verification gate."""
+
     decision: str  # "ACCEPT" or "REJECT"
     passed_all: bool
     reasons: list[str]
@@ -129,7 +130,9 @@ class VerificationGate:
         # Rule 5a (continued): Paired bootstrap confidence lower bound >= 0
         if ci_low < 0.0:
             passed_all = False
-            reasons.append(f"CI_LOWER_BOUND_NEGATIVE: ci_low {ci_low:.4f} < 0.0 (conf: {confidence_level:.3f})")
+            reasons.append(
+                f"CI_LOWER_BOUND_NEGATIVE: ci_low {ci_low:.4f} < 0.0 (conf: {confidence_level:.3f})"
+            )
         else:
             reasons.append(f"CI_LOWER_BOUND_NON_NEGATIVE: ci_low {ci_low:.4f} >= 0.0")
 
@@ -138,19 +141,25 @@ class VerificationGate:
         acc_regression = orig_m["accuracy"] - cand_m["accuracy"]
         if primary_metric != "accuracy" and acc_regression > self.config.max_regression.accuracy:
             passed_all = False
-            reasons.append(f"ACCURACY_REGRESSION_EXCEEDED: {acc_regression:.4f} > {self.config.max_regression.accuracy:.4f}")
+            reasons.append(
+                f"ACCURACY_REGRESSION_EXCEEDED: {acc_regression:.4f} > {self.config.max_regression.accuracy:.4f}"
+            )
 
         # NLL regression: cand_nll - orig_nll
         nll_regression = cand_m["nll"] - orig_m["nll"]
         if nll_regression > self.config.max_regression.nll:
             passed_all = False
-            reasons.append(f"NLL_REGRESSION_EXCEEDED: {nll_regression:.4f} > {self.config.max_regression.nll:.4f}")
+            reasons.append(
+                f"NLL_REGRESSION_EXCEEDED: {nll_regression:.4f} > {self.config.max_regression.nll:.4f}"
+            )
 
         # ECE regression: cand_ece - orig_ece
         ece_regression = cand_m["ece"] - orig_m["ece"]
         if primary_metric != "ece" and ece_regression > self.config.max_regression.ece:
             passed_all = False
-            reasons.append(f"ECE_REGRESSION_EXCEEDED: {ece_regression:.4f} > {self.config.max_regression.ece:.4f}")
+            reasons.append(
+                f"ECE_REGRESSION_EXCEEDED: {ece_regression:.4f} > {self.config.max_regression.ece:.4f}"
+            )
 
         if not any("REGRESSION_EXCEEDED" in r for r in reasons):
             reasons.append("NO_SECONDARY_REGRESSION")
@@ -165,7 +174,9 @@ class VerificationGate:
         # Rule 5d: Compute budget
         if compute_units > compute_budget:
             passed_all = False
-            reasons.append(f"COMPUTE_BUDGET_EXCEEDED: {compute_units:.1f} > budget {compute_budget:.1f}")
+            reasons.append(
+                f"COMPUTE_BUDGET_EXCEEDED: {compute_units:.1f} > budget {compute_budget:.1f}"
+            )
         else:
             reasons.append(f"WITHIN_BUDGET: {compute_units:.1f} <= {compute_budget:.1f}")
 
@@ -192,4 +203,3 @@ class VerificationGate:
 
     # Convenience alias
     evaluate = evaluate_candidate
-

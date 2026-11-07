@@ -1,0 +1,42 @@
+scenario_id: s4_instability
+name: Unstable Training
+arch: resnet18_cifar
+ground_truth_label: instability
+description: Trained with excessive learning rate, landing on a loss spike.
+dataset: cifar10
+num_classes: 10
+input_shape: [3, 32, 32]
+profiles:
+  tiny:
+    arch: mlp_small
+    dataset: synthetic
+    num_classes: 4
+    input_shape: [1, 8, 8]
+    train_size: 400
+    val_size: 150
+    holdout_size: 150
+    epochs: 10
+    lr: 0.5
+    weight_decay: 0.0
+  cpu:
+    arch: small_cnn
+    dataset: fashion_mnist
+    num_classes: 10
+    input_shape: [1, 28, 28]
+    train_size: 2000
+    val_size: 500
+    holdout_size: 500
+    epochs: 12
+    lr: 0.5
+    weight_decay: 0.0
+  full:
+    arch: resnet18_cifar
+    dataset: cifar10
+    num_classes: 10
+    input_shape: [3, 32, 32]
+    train_size: 5000
+    val_size: 2000
+    holdout_size: 2000
+    epochs: 25
+    lr: 0.5
+    weight_decay: 0.0

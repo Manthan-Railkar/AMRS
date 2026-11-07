@@ -1,0 +1,7 @@
+method: full_retrain
+description: Retrains the model architecture from documented initialization on the available training data with standard hyperparameters.
+epochs: 10
+lr: 0.01
+weight_decay: 1.0e-4
+batch_size: 32
+

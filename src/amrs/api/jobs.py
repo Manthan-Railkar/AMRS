@@ -21,14 +21,12 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any
 
 from amrs.errors import ConflictError, NotFoundError, ValidationError
 from amrs.pipeline.lifecycle import RunStatus, validate_status_transition
 from amrs.schemas import (
     BenchmarkCreateRequest,
     BenchmarkDetailResponse,
-    BenchmarkResultItem,
     CandidateSummary,
     DiagnosisEvidence,
     DiagnosisItem,
@@ -74,7 +72,9 @@ class JobCoordinator:
         # Startup recovery: mark any interrupted runs from previous crash as failed
         recovered = self.run_repo.recover_interrupted_runs()
         if recovered > 0:
-            logger.info("Startup crash recovery: recovered %d interrupted runs to 'failed'", recovered)
+            logger.info(
+                "Startup crash recovery: recovered %d interrupted runs to 'failed'", recovered
+            )
 
         self._active_run_id: str | None = None
         self._cancel_tokens: dict[str, threading.Event] = {}
@@ -94,10 +94,17 @@ class JobCoordinator:
         with self._lock:
             for token in self._cancel_tokens.values():
                 token.set()
+            futures = list(self._active_futures.values())
             self._cancel_tokens.clear()
             self._active_futures.clear()
             self._active_run_id = None
             self._monitor_replays.clear()
+
+        for f in futures:
+            try:
+                f.result(timeout=2.0)
+            except Exception:
+                pass
 
         with self.db.transaction() as conn:
             conn.execute("DELETE FROM candidates;")
@@ -439,7 +446,9 @@ class JobCoordinator:
         # Verification guarantee: original weights preserved byte-identical on cancellation
         (run_dir / "accepted_model.pt").write_bytes(original_bytes)
         (run_dir / "report.json").write_text(
-            json.dumps({"run_id": run_id, "status": "cancelled", "message": "Original weights preserved."})
+            json.dumps(
+                {"run_id": run_id, "status": "cancelled", "message": "Original weights preserved."}
+            )
         )
 
         self.run_repo.update_run_status(
@@ -494,7 +503,10 @@ class JobCoordinator:
         if artifact_name not in ALLOWLISTED_ARTIFACTS:
             raise ValidationError(
                 message=f"Artifact '{artifact_name}' is not permitted. Allowlisted: {sorted(ALLOWLISTED_ARTIFACTS)}",
-                details={"artifact_name": artifact_name, "allowlisted": sorted(ALLOWLISTED_ARTIFACTS)},
+                details={
+                    "artifact_name": artifact_name,
+                    "allowlisted": sorted(ALLOWLISTED_ARTIFACTS),
+                },
             )
 
         run = self.get_run(run_id)
@@ -511,7 +523,10 @@ class JobCoordinator:
         # Enforce directory confinement
         resolved_path = file_path.resolve()
         resolved_run_dir = run_dir.resolve()
-        if not str(resolved_path).startswith(str(resolved_run_dir)) or resolved_path.parent != resolved_run_dir:
+        if (
+            not str(resolved_path).startswith(str(resolved_run_dir))
+            or resolved_path.parent != resolved_run_dir
+        ):
             raise ValidationError(
                 message="Path traversal detected in artifact retrieval.",
                 details={"artifact_name": artifact_name},
@@ -519,11 +534,15 @@ class JobCoordinator:
 
         if not file_path.exists():
             # Return virtual content if not yet written
-            content = f'{{"run_id": "{run.id}", "status": "{run.status}", "artifact": "{artifact_name}"}}'.encode("utf-8")
+            content = f'{{"run_id": "{run.id}", "status": "{run.status}", "artifact": "{artifact_name}"}}'.encode(
+                "utf-8"
+            )
         else:
             content = file_path.read_bytes()
 
-        media_type = "application/json" if artifact_name.endswith(".json") else "application/octet-stream"
+        media_type = (
+            "application/json" if artifact_name.endswith(".json") else "application/octet-stream"
+        )
         return content, media_type
 
     # -----------------------------------------------------------------------
@@ -538,7 +557,9 @@ class JobCoordinator:
             status="queued",
             events=[
                 MonitorEventItem(epoch=1, kind="overfit_warning", details={"gap": 0.12}),
-                MonitorEventItem(epoch=3, kind="trigger", details={"action": "recover", "snapshot_epoch": 2}),
+                MonitorEventItem(
+                    epoch=3, kind="trigger", details={"action": "recover", "snapshot_epoch": 2}
+                ),
             ],
             series={
                 "train_loss": [0.85, 0.60, 0.40, 0.25],
@@ -563,36 +584,45 @@ class JobCoordinator:
     # Benchmark Lifecycle
     # -----------------------------------------------------------------------
 
-    def create_benchmark(self, req: BenchmarkCreateRequest) -> str:
+    def create_benchmark(self, req: BenchmarkCreateRequest, run_async: bool = False) -> str:
+        """Create and execute a benchmark matrix evaluation."""
         benchmark_id = str(uuid.uuid4())
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        results: list[BenchmarkResultItem] = []
-        for sc in req.scenarios:
-            for seed in req.seeds:
-                for method in req.methods:
-                    results.append(
-                        BenchmarkResultItem(
-                            scenario_id=sc,
-                            seed=seed,
-                            method=method,
-                            accuracy=0.885,
-                            ece=0.035,
-                            nll=0.34,
-                            retention=0.96,
-                            compute_units=1250.0,
-                            wall_s=42.5,
-                            accepted=True if method == "amrs" else None,
-                            notes=None,
-                        )
-                    )
 
+        # Initialize benchmark record in database
         self.benchmark_repo.create_benchmark(
             benchmark_id=benchmark_id,
             created_at=now,
             config=req.model_dump(),
-            status="succeeded",
-            results=results,
+            status="queued",
         )
+
+        from amrs.benchmark.runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(db=self.db)
+
+        if run_async:
+
+            def _async_runner():
+                try:
+                    runner.run_benchmark(
+                        req,
+                        benchmark_id=benchmark_id,
+                        profile=req.profile,
+                        device=req.device,
+                    )
+                except Exception as exc:
+                    logger.exception("Async benchmark execution failed: %s", exc)
+
+            self._executor.submit(_async_runner)
+        else:
+            runner.run_benchmark(
+                req,
+                benchmark_id=benchmark_id,
+                profile=req.profile,
+                device=req.device,
+            )
+
         return benchmark_id
 
     def get_benchmark(self, benchmark_id: str) -> BenchmarkDetailResponse:

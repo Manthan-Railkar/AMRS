@@ -147,7 +147,9 @@ def check_bn_drift(
     divergence = float(bn_result.get("divergence", 0.0))
     acc_drop = float(train_acc - val_acc)
 
-    fired = bool((divergence >= cfg.divergence_min - 1e-7) and (acc_drop >= cfg.acc_drop_min - 1e-7))
+    fired = bool(
+        (divergence >= cfg.divergence_min - 1e-7) and (acc_drop >= cfg.acc_drop_min - 1e-7)
+    )
     raw_conf = min(1.0, max(0.0, divergence) / (2.0 * cfg.divergence_min))
     conf = raw_conf if fired else 0.0
 
@@ -289,9 +291,7 @@ def check_head_degradation(
             f"exceeds model accuracy {model_acc:.3f} by gain {probe_gain:.3f} >= {cfg.probe_gain_min:.3f}."
         )
     else:
-        explanation = (
-            f"Head intact: Linear probe gain {probe_gain:.3f} below threshold {cfg.probe_gain_min:.3f}."
-        )
+        explanation = f"Head intact: Linear probe gain {probe_gain:.3f} below threshold {cfg.probe_gain_min:.3f}."
 
     evidence = DiagnosisEvidence(
         metric_values={

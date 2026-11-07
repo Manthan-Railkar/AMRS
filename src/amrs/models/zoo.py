@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from pathlib import Path
 from typing import Any
+
 import torch
 import torch.nn as nn
 
@@ -75,4 +75,3 @@ def list_history(directory: str | Path) -> list[Path]:
     # Sort ascending by epoch number
     checkpoints.sort(key=lambda t: t[0])
     return [path for _, path in checkpoints]
-

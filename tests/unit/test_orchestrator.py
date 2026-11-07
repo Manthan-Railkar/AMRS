@@ -1,8 +1,8 @@
 """Integration tests for AMRS domain RecoveryOrchestrator (ML-9, ML-9.1)."""
 
-import hashlib
-from pathlib import Path
 import threading
+from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
@@ -10,11 +10,14 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from amrs.config import load_config
 from amrs.models.adapter import ModelAdapter
-from amrs.models.registry import build
-from amrs.pipeline.artifacts import hash_model_checkpoint
 from amrs.pipeline.orchestrator import RecoveryBundle, RecoveryOrchestrator
-from amrs.recovery.base import Applicability, CostEstimate, RecoveryContext, RecoveryStrategy, StrategyResult
-from amrs.schemas import ConfigDefaultsResponse, GateConfig, SelectorConfig
+from amrs.recovery.base import (
+    Applicability,
+    CostEstimate,
+    RecoveryContext,
+    RecoveryStrategy,
+    StrategyResult,
+)
 from amrs.selector.selector import StrategyRegistry
 
 
@@ -38,6 +41,7 @@ def _generate_synthetic_loaders(
 
 class SimpleLinearClassifier(nn.Module):
     """Simple linear classification model for pipeline testing."""
+
     def __init__(self, in_features: int = 4, num_classes: int = 2) -> None:
         super().__init__()
         self.fc = nn.Linear(in_features, num_classes)
@@ -48,6 +52,7 @@ class SimpleLinearClassifier(nn.Module):
 
 class FailingMockStrategy(RecoveryStrategy):
     """Mock strategy that raises a simulated hardware/execution exception."""
+
     @property
     def name(self) -> str:
         return "temperature_scaling"
@@ -55,16 +60,21 @@ class FailingMockStrategy(RecoveryStrategy):
     def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         return CostEstimate(estimated_units=10.0, details={"strategy": self.name})
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         raise RuntimeError("Simulated execution failure inside recovery strategy.")
 
 
 # ---------------------------------------------------------------------------
 # 1. S6 Healthy Control: No Action & Byte-Identical Original Preservation
 # ---------------------------------------------------------------------------
+
 
 def test_orchestrator_s6_healthy_no_action(tmp_path: Path):
     """Healthy model produces healthy_no_action verdict and byte-identical original artifact."""
@@ -109,6 +119,7 @@ def test_orchestrator_s6_healthy_no_action(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # 2. S2 Miscalibration Recovery Happy Path
 # ---------------------------------------------------------------------------
+
 
 def test_orchestrator_s2_miscalibration_recovery_happy_path(tmp_path: Path):
     """Miscalibrated model should trigger temperature_scaling and accept improved candidate."""
@@ -165,6 +176,7 @@ def test_orchestrator_s2_miscalibration_recovery_happy_path(tmp_path: Path):
 # 3. All Candidates Rejected & Byte-Identical Rollback
 # ---------------------------------------------------------------------------
 
+
 def test_orchestrator_all_candidates_rejected_triggers_rollback(tmp_path: Path):
     """When candidates fail the verification gate, orchestrator rolls back to original model."""
     train_loader, val_loader, holdout_loader = _generate_synthetic_loaders()
@@ -207,6 +219,7 @@ def test_orchestrator_all_candidates_rejected_triggers_rollback(tmp_path: Path):
 # 4. Strategy Exception Safety
 # ---------------------------------------------------------------------------
 
+
 def test_orchestrator_strategy_exception_does_not_corrupt_run(tmp_path: Path):
     """A crashing strategy must be recorded as rejected without crashing the orchestrator."""
     train_loader, val_loader, holdout_loader = _generate_synthetic_loaders()
@@ -216,7 +229,6 @@ def test_orchestrator_strategy_exception_does_not_corrupt_run(tmp_path: Path):
     registry.register(FailingMockStrategy())
 
     # Mock selection to invoke the failing strategy
-    from amrs.schemas import StrategyCandidate
     cfg = load_config()
     cfg.gate.allow_small_holdout = True
     cfg.selector.max_candidates = 1
@@ -244,6 +256,7 @@ def test_orchestrator_strategy_exception_does_not_corrupt_run(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # 5. Cooperative Cancellation Tests
 # ---------------------------------------------------------------------------
+
 
 def test_orchestrator_cooperative_cancellation(tmp_path: Path):
     """Setting cancel_token must halt orchestrator and restore byte-identical original."""
@@ -280,6 +293,7 @@ def test_orchestrator_cooperative_cancellation(tmp_path: Path):
 # 6. Split Discipline & Verification Gate Exclusivity
 # ---------------------------------------------------------------------------
 
+
 def test_orchestrator_split_discipline_no_holdout_in_strategy(tmp_path: Path):
     """Strategies must never have access to the holdout loader."""
     train_loader, val_loader, holdout_loader = _generate_synthetic_loaders()
@@ -293,10 +307,14 @@ def test_orchestrator_split_discipline_no_holdout_in_strategy(tmp_path: Path):
         def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
             return Applicability(can_apply=True)
 
-        def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+        def estimate_cost(
+            self, context: RecoveryContext, model: ModelAdapter | None = None
+        ) -> CostEstimate:
             return CostEstimate(estimated_units=1.0)
 
-        def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+        def apply(
+            self, model_copy: nn.Module, context: RecoveryContext
+        ) -> tuple[nn.Module, StrategyResult]:
             # Accessing holdout_loader on context must raise ValueError
             with pytest.raises(ValueError, match="prohibited"):
                 _ = context.holdout_loader
@@ -321,4 +339,3 @@ def test_orchestrator_split_discipline_no_holdout_in_strategy(tmp_path: Path):
     orchestrator = RecoveryOrchestrator(registry=registry)
     detail = orchestrator.run(bundle)
     assert detail.status == "succeeded"
-

@@ -95,7 +95,12 @@ def load_state_dict_safe(
 
 def build_and_load(
     arch: str,
-    weights_source: str | Path | dict[str, torch.Tensor] | OrderedDict[str, torch.Tensor] | io.BytesIO | bytes,
+    weights_source: str
+    | Path
+    | dict[str, torch.Tensor]
+    | OrderedDict[str, torch.Tensor]
+    | io.BytesIO
+    | bytes,
     num_classes: int = 10,
     in_shape: tuple[int, ...] = (3, 32, 32),
 ) -> nn.Module:

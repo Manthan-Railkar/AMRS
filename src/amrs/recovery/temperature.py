@@ -7,11 +7,11 @@ changing non-tied predicted class ordering.
 
 from __future__ import annotations
 
-import copy
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -136,7 +136,7 @@ def fit_temperature(
     lr: float = 0.05,
 ) -> tuple[float, bool, int]:
     """Fit a single positive scalar temperature on validation logits by minimizing NLL.
-    
+
     Returns:
         (fitted_temperature, converged, iterations)
     """
@@ -149,7 +149,9 @@ def fit_temperature(
     logits = val_logits.detach()
     labels = val_labels.detach()
 
-    raw_temp = nn.Parameter(torch.tensor([INITIAL_RAW_TEMPERATURE], dtype=torch.float32, device=device))
+    raw_temp = nn.Parameter(
+        torch.tensor([INITIAL_RAW_TEMPERATURE], dtype=torch.float32, device=device)
+    )
     optimizer = torch.optim.LBFGS(
         [raw_temp],
         lr=lr,
@@ -215,7 +217,9 @@ class TemperatureScalingStrategy(RecoveryStrategy):
             )
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         """Estimate compute units: 1 validation forward pass (BR12)."""
         loader = context.val_loader
         n_val = 500
@@ -234,13 +238,17 @@ class TemperatureScalingStrategy(RecoveryStrategy):
             details={"fwd_samples": n_val, "bwd_samples": 0, "strategy": self.name},
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         """Fit scalar temperature on validation logits and return CalibratedModel wrapper."""
         t0 = time.monotonic()
 
         # Split isolation check: NEVER evaluate or fit on holdout
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter TemperatureScalingStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter TemperatureScalingStrategy."
+            )
 
         # Extract max_iter from config
         max_iter = 50
@@ -269,9 +277,7 @@ class TemperatureScalingStrategy(RecoveryStrategy):
         top1_before = torch.argmax(val_logits, dim=-1)
 
         # 3. Fit scalar temperature
-        fitted_t, converged, iters = fit_temperature(
-            val_logits, val_labels, max_iter=max_iter
-        )
+        fitted_t, converged, iters = fit_temperature(val_logits, val_labels, max_iter=max_iter)
 
         # 4. After metrics
         scaled_logits = val_logits / fitted_t

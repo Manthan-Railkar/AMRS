@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any
-import torch
+
 import torch.nn as nn
 
 from amrs.models.zoo import save_checkpoint
@@ -100,13 +100,15 @@ def generate_markdown_report(report: dict[str, Any]) -> str:
             expl = ev.get("explanation", "")
             lines.append(f"| {rank} | `{label}` | {conf:.2f} | {split} | {expl} |")
 
-    lines.extend([
-        "",
-        "## 2. Recovery Candidates & Verification Gate",
-        "",
-        "| Order | Strategy | Cost (units) | Delta Primary | CI (95%) | Retention | Decision | Reasons |",
-        "|---|---|---|---|---|---|---|---|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 2. Recovery Candidates & Verification Gate",
+            "",
+            "| Order | Strategy | Cost (units) | Delta Primary | CI (95%) | Retention | Decision | Reasons |",
+            "|---|---|---|---|---|---|---|---|",
+        ]
+    )
 
     candidates = report.get("candidates", [])
     if not candidates:
@@ -126,16 +128,22 @@ def generate_markdown_report(report: dict[str, Any]) -> str:
                 f"| {order} | `{strat}` | {cost:.1f} | {delta:+.4f} | [{ci_low:.4f}, {ci_high:.4f}] | {ret:.3f} | **{dec}** | {reasons} |"
             )
 
-    lines.extend([
-        "",
-        "## 3. Rollback & Immutability Guarantee",
-        "",
-        "The original model checkpoint was cryptographically verified and hashed.",
-        f"- Original SHA-256: `{report.get('original_sha256', '')}`",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 3. Rollback & Immutability Guarantee",
+            "",
+            "The original model checkpoint was cryptographically verified and hashed.",
+            f"- Original SHA-256: `{report.get('original_sha256', '')}`",
+        ]
+    )
     if verdict == "accepted":
-        lines.append(f"- An independently verified candidate (`{accepted_strat}`) passed all gate criteria and was promoted.")
+        lines.append(
+            f"- An independently verified candidate (`{accepted_strat}`) passed all gate criteria and was promoted."
+        )
     else:
-        lines.append("- Output artifact (`accepted_model.pt`) is byte-identical to the original input model (rollback safety guaranteed).")
+        lines.append(
+            "- Output artifact (`accepted_model.pt`) is byte-identical to the original input model (rollback safety guaranteed)."
+        )
 
     return "\n".join(lines) + "\n"

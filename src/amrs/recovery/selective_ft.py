@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import time
 from typing import Any
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -43,11 +44,11 @@ def select_trainable_groups(
     unfreeze_top_n: int = 2,
 ) -> tuple[list[nn.Parameter], list[nn.Parameter], list[str]]:
     """Select the top-N layer groups plus the classification head.
-    
+
     Args:
         model: PyTorch model module.
         unfreeze_top_n: Number of backbone layer groups to unfreeze.
-        
+
     Returns:
         (trainable_parameters, frozen_parameters, selected_group_names)
     """
@@ -116,7 +117,7 @@ def finetune_selective_l2sp(
     device: str = "cpu",
 ) -> tuple[nn.Module, dict[str, Any]]:
     """Fine-tune top-N backbone layer groups plus classification head with L2-SP anchors.
-    
+
     Returns:
         (candidate_model, stats_dict)
     """
@@ -146,14 +147,16 @@ def finetune_selective_l2sp(
 
     # 3. Strict optimizer parameter audit: verify optimizer contains only trainable parameters
     active_params = [p for p in candidate.parameters() if p.requires_grad]
-    if len(active_params) != len(trainable_params) or any(id(p) not in trainable_ids for p in active_params):
-        raise RuntimeError("Optimizer parameter audit failed: active parameters contain unselected tensors!")
+    if len(active_params) != len(trainable_params) or any(
+        id(p) not in trainable_ids for p in active_params
+    ):
+        raise RuntimeError(
+            "Optimizer parameter audit failed: active parameters contain unselected tensors!"
+        )
 
     # Snapshot frozen parameters before training for immutability verification
     frozen_before = {
-        name: p.detach().clone()
-        for name, p in candidate.named_parameters()
-        if id(p) in frozen_ids
+        name: p.detach().clone() for name, p in candidate.named_parameters() if id(p) in frozen_ids
     }
 
     # 4. Initialize L2-SP regularizer with immutable anchors
@@ -171,7 +174,9 @@ def finetune_selective_l2sp(
     for group in optimizer.param_groups:
         for p in group["params"]:
             if id(p) in frozen_ids:
-                raise RuntimeError("Optimizer parameter audit failed: frozen tensor found in optimizer group!")
+                raise RuntimeError(
+                    "Optimizer parameter audit failed: frozen tensor found in optimizer group!"
+                )
 
     meter = ComputeMeter()
     samples_trained = 0
@@ -322,7 +327,9 @@ class SelectiveFinetuneL2spStrategy(RecoveryStrategy):
 
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         """Estimate compute units: epochs * N_train * (1 + 3 * r_unfrozen) (BR12)."""
         adapter = model or context.adapter
         epochs = 8
@@ -364,13 +371,17 @@ class SelectiveFinetuneL2spStrategy(RecoveryStrategy):
             },
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         """Execute selective fine-tuning with L2-SP anchor regularization."""
         t0 = time.monotonic()
 
         # Split isolation check: NEVER evaluate or train on holdout
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter SelectiveFinetuneL2spStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter SelectiveFinetuneL2spStrategy."
+            )
 
         if not _has_identifiable_head(model_copy):
             return model_copy, StrategyResult(
@@ -411,7 +422,9 @@ class SelectiveFinetuneL2spStrategy(RecoveryStrategy):
         val_ece_before = 0.0
         if context.val_loader is not None:
             try:
-                v_logits, v_labels = predict_logits(model_copy, context.val_loader, device=context.device)
+                v_logits, v_labels = predict_logits(
+                    model_copy, context.val_loader, device=context.device
+                )
                 val_acc_before = accuracy(v_logits, v_labels)
                 val_nll_before = nll(v_logits, v_labels)
                 val_ece_before = ece(v_logits, v_labels)
@@ -452,7 +465,9 @@ class SelectiveFinetuneL2spStrategy(RecoveryStrategy):
         val_ece_after = val_ece_before
         if context.val_loader is not None:
             try:
-                v_logits, v_labels = predict_logits(candidate_model, context.val_loader, device=context.device)
+                v_logits, v_labels = predict_logits(
+                    candidate_model, context.val_loader, device=context.device
+                )
                 val_acc_after = accuracy(v_logits, v_labels)
                 val_nll_after = nll(v_logits, v_labels)
                 val_ece_after = ece(v_logits, v_labels)

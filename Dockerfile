@@ -1,14 +1,15 @@
-# AMRS Dockerfile - Multi-stage Python Backend Service (BE-6 / INF-1.2)
-FROM python:3.11-slim as base
+# AMRS Multi-Service Dockerfile (INF-2.2 / BE-6)
+# Python 3.11-slim base image for secure, lean container footprint
+FROM python:3.11-slim AS base
 
-# Prevent Python from writing .pyc files and buffer stdout/stderr
+# Prevent Python from writing bytecode and buffer stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/src
 
 WORKDIR /app
 
-# Install system dependencies
+# Install minimal OS dependencies for network probes and building packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
@@ -21,14 +22,14 @@ RUN pip install --no-cache-dir torch torchvision --index-url ${TORCH_INDEX}
 # Copy package dependency manifests
 COPY pyproject.toml /app/
 
-# Install Python dependencies and AMRS package
+# Install AMRS package and requirements in editable mode
 COPY src/ /app/src/
 RUN pip install --no-cache-dir -e .
 
-# Create persistent storage directories
+# Create persistent storage directories for artifacts, uploads, and runtime DB
 RUN mkdir -p /app/artifacts /app/uploads /app/configs
 
-# Copy configurations
+# Copy default configurations
 COPY configs/ /app/configs/
 
 # Create non-root system user for secure container execution
@@ -37,8 +38,8 @@ RUN useradd -m -u 10001 amrs && \
 
 USER amrs
 
-# FastAPI internal service port (never exposed directly to public internet)
-EXPOSE 8000
+# Expose backend port 8000 and optional web port 3000
+EXPOSE 8000 3000
 
 # Container healthcheck on standardized health endpoint
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
@@ -46,4 +47,3 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
 
 # Start Uvicorn ASGI server bound to internal container network
 CMD ["uvicorn", "amrs.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
-

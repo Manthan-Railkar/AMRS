@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 import uuid
 from typing import Any
 
@@ -197,7 +198,9 @@ class RunRepository:
             )
             count = cur.rowcount
             if count > 0:
-                logger.warning("Crash recovery: recovered %d interrupted runs to 'failed' status", count)
+                logger.warning(
+                    "Crash recovery: recovered %d interrupted runs to 'failed' status", count
+                )
             return count
 
     def get_run(self, run_id: str) -> RunDetailResponse | None:
@@ -381,7 +384,7 @@ class BenchmarkRepository:
         created_at: str,
         config: dict[str, Any],
         status: str,
-        results: list[BenchmarkResultItem],
+        results: list[BenchmarkResultItem] | None = None,
     ) -> None:
         with self.db.transaction() as conn:
             conn.execute(
@@ -391,39 +394,67 @@ class BenchmarkRepository:
                 """,
                 (benchmark_id, created_at, _dump_json(config), status),
             )
-            for res in results:
-                res_id = str(uuid.uuid4())
-                accepted_val = 1 if res.accepted is True else (0 if res.accepted is False else None)
-                conn.execute(
-                    """
-                    INSERT INTO benchmark_results (
-                        id, benchmark_id, scenario_id, seed, method,
-                        accuracy, ece, nll, retention, compute_units,
-                        wall_s, accepted, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                    """,
-                    (
-                        res_id,
-                        benchmark_id,
-                        res.scenario_id,
-                        res.seed,
-                        res.method,
-                        res.accuracy,
-                        res.ece,
-                        res.nll,
-                        res.retention,
-                        res.compute_units,
-                        res.wall_s,
-                        accepted_val,
-                        res.notes,
-                    ),
-                )
+            if results:
+                for res in results:
+                    self._insert_trial_result(conn, benchmark_id, res)
+
+    def _insert_trial_result(
+        self,
+        conn: sqlite3.Connection,
+        benchmark_id: str,
+        res: BenchmarkResultItem,
+    ) -> None:
+        res_id = str(uuid.uuid4())
+        accepted_val = 1 if res.accepted is True else (0 if res.accepted is False else None)
+        conn.execute(
+            """
+            INSERT INTO benchmark_results (
+                id, benchmark_id, scenario_id, seed, method,
+                accuracy, ece, nll, retention, compute_units,
+                wall_s, accepted, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                res_id,
+                benchmark_id,
+                res.scenario_id,
+                res.seed,
+                res.method,
+                res.accuracy,
+                res.ece,
+                res.nll,
+                res.retention,
+                res.compute_units,
+                res.wall_s,
+                accepted_val,
+                res.notes,
+            ),
+        )
+
+    def record_trial_result(
+        self,
+        benchmark_id: str,
+        result: BenchmarkResultItem,
+    ) -> None:
+        """Persist an individual trial result incrementally."""
+        with self.db.transaction() as conn:
+            self._insert_trial_result(conn, benchmark_id, result)
+
+    def update_benchmark_status(
+        self,
+        benchmark_id: str,
+        status: str,
+    ) -> None:
+        """Update overall status of benchmark run ('queued', 'running', 'succeeded', 'failed')."""
+        with self.db.transaction() as conn:
+            conn.execute(
+                "UPDATE benchmark_runs SET status = ? WHERE id = ?;",
+                (status, benchmark_id),
+            )
 
     def get_benchmark(self, benchmark_id: str) -> BenchmarkDetailResponse | None:
         conn = self.db.get_connection()
-        row = conn.execute(
-            "SELECT * FROM benchmark_runs WHERE id = ?;", (benchmark_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM benchmark_runs WHERE id = ?;", (benchmark_id,)).fetchone()
         if not row:
             return None
 
@@ -464,4 +495,3 @@ class BenchmarkRepository:
         if not row:
             return None
         return self.get_benchmark(row["id"])
-

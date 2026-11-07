@@ -1,0 +1,9 @@
+method: regularized_finetune
+description: Fixed predeclared recipe fine-tuning the model with weight decay and small learning rate on training data.
+epochs: 5
+lr: 0.005
+weight_decay: 0.01
+batch_size: 32
+validation_patience: 2
+patience: 2
+

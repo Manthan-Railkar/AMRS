@@ -22,7 +22,9 @@ def predict_logits(
             if isinstance(batch, (list, tuple)) and len(batch) == 2:
                 x, y = batch
                 if isinstance(x, dict):
-                    x_dev = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in x.items()}
+                    x_dev = {
+                        k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in x.items()
+                    }
                     logits = model(**x_dev)
                 else:
                     x = x.to(device)
@@ -31,7 +33,11 @@ def predict_logits(
             elif isinstance(batch, dict):
                 label_key = "labels" if "labels" in batch else "label"
                 y = batch[label_key].to(device)
-                inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items() if k != label_key}
+                inputs = {
+                    k: v.to(device) if isinstance(v, torch.Tensor) else v
+                    for k, v in batch.items()
+                    if k != label_key
+                }
                 logits = model(**inputs)
             else:
                 x, y = batch

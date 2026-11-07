@@ -6,12 +6,14 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from amrs.errors import ConflictError, ForbiddenError, HoldoutTooSmallError
-from amrs.evaluation.evaluator import HoldoutIsolatedContext, ModelEvaluator
+from amrs.evaluation.evaluator import HoldoutIsolatedContext
 from amrs.evaluation.gate import VerificationGate
-from amrs.schemas import GateConfig, GateMinGainConfig, GateMaxRegressionConfig
+from amrs.schemas import GateConfig, GateMinGainConfig
 
 
-def create_dummy_dataset(n_samples: int = 500, in_features: int = 10, num_classes: int = 2) -> DataLoader:
+def create_dummy_dataset(
+    n_samples: int = 500, in_features: int = 10, num_classes: int = 2
+) -> DataLoader:
     torch.manual_seed(42)
     x = torch.randn(n_samples, in_features)
     y = torch.randint(0, num_classes, (n_samples,))
@@ -50,16 +52,22 @@ def test_gate_evaluations_count_cap_raises_conflict() -> None:
     gate = VerificationGate(config=GateConfig(max_holdout_evaluations=2))
 
     # Evaluation 1: allowed
-    _ = gate.evaluate_candidate(model, model, ctx, primary_metric="accuracy", candidate_idx=1, total_candidates=3)
+    _ = gate.evaluate_candidate(
+        model, model, ctx, primary_metric="accuracy", candidate_idx=1, total_candidates=3
+    )
     assert ctx.holdout_evaluations_count == 1
 
     # Evaluation 2: allowed
-    _ = gate.evaluate_candidate(model, model, ctx, primary_metric="accuracy", candidate_idx=2, total_candidates=3)
+    _ = gate.evaluate_candidate(
+        model, model, ctx, primary_metric="accuracy", candidate_idx=2, total_candidates=3
+    )
     assert ctx.holdout_evaluations_count == 2
 
     # Evaluation 3: must be rejected with ConflictError
     with pytest.raises(ConflictError) as exc_info:
-        gate.evaluate_candidate(model, model, ctx, primary_metric="accuracy", candidate_idx=3, total_candidates=3)
+        gate.evaluate_candidate(
+            model, model, ctx, primary_metric="accuracy", candidate_idx=3, total_candidates=3
+        )
     assert exc_info.value.status_code == 409
     assert "Exceeded maximum permitted holdout evaluations" in str(exc_info.value.message)
 
@@ -154,4 +162,3 @@ def test_gate_multiple_comparison_bonferroni_adjustment() -> None:
     # k = 2 candidates -> confidence = 1 - 0.05/2 = 0.975
     dec2 = gate.evaluate_candidate(model, model, ctx, total_candidates=2)
     assert pytest.approx(dec2.confidence_level, abs=1e-4) == 0.975
-

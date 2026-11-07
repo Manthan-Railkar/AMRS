@@ -10,30 +10,34 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
-    "torch",
-    "torchvision",
-    "numpy",
-    "pandas",
-    "scikit-learn",
-    "pydantic>=2",
-    "pyyaml",
-    "fastapi",
-    "uvicorn",
-    "httpx",
-    "requests",
-    "python-multipart",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "scikit-learn>=1.3.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "plotly>=5.15.0",
+    "matplotlib>=3.7.0",
+    "httpx>=0.24.0",
+    "requests>=2.31.0",
+    "python-multipart>=0.0.6",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-cov",
-    "ruff",
-    "mypy",
-    "hypothesis",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.3.0",
+    "pip-audit>=2.6.0",
+    "hypothesis>=6.82.0",
 ]
 transformers = [
-    "peft",
+    "peft>=0.4.0",
 ]
 
 [project.scripts]
@@ -42,3 +46,30 @@ amrs = "amrs.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+markers = [
+    "gpu: marks tests requiring GPU hardware acceleration (deselect with -m 'not gpu')",
+    "slow: marks tests with long execution times (deselect with -m 'not slow')",
+    "e2e: marks end-to-end integration and browser tests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

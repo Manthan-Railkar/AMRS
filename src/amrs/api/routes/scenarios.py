@@ -1,6 +1,7 @@
 """Pre-built failure scenario endpoints."""
 
 from fastapi import APIRouter
+
 from amrs.schemas import ScenarioItem, ScenarioListResponse
 
 router = APIRouter(prefix="/scenarios", tags=["Scenarios"])
@@ -68,4 +69,3 @@ async def list_scenarios() -> ScenarioListResponse:
         scenarios=SCENARIOS_CATALOG,
         total=len(SCENARIOS_CATALOG),
     )
-

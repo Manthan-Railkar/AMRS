@@ -1,7 +1,8 @@
 """Unit tests for SQLite repositories covering CRUD, transactions, pagination, restart persistence, and malformed records."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from amrs.schemas import (
     BenchmarkResultItem,
@@ -27,7 +28,9 @@ def test_db() -> Database:
     return db
 
 
-def create_sample_run(run_id: str = "run-001", verdict: str | None = None, scenario_id: str = "s1_overfit") -> RunDetailResponse:
+def create_sample_run(
+    run_id: str = "run-001", verdict: str | None = None, scenario_id: str = "s1_overfit"
+) -> RunDetailResponse:
     return RunDetailResponse(
         id=run_id,
         created_at="2026-11-06T12:00:00Z",
@@ -64,7 +67,9 @@ def test_run_crud(test_db: Database) -> None:
     assert fetched.config_json == {"seed": 1234, "diagnosis": {"gap_min": 0.1}}
 
     # Update - transition queued -> running -> succeeded
-    repo.update_run_status(run_id="run-crud-1", status="running", progress_stage="diagnosis", progress_pct=25.0)
+    repo.update_run_status(
+        run_id="run-crud-1", status="running", progress_stage="diagnosis", progress_pct=25.0
+    )
     repo.update_run_status(
         run_id="run-crud-1",
         status="succeeded",
@@ -139,9 +144,7 @@ def test_transaction_rollback_on_error(test_db: Database) -> None:
     # Deliberate failure inside transaction
     with pytest.raises(RuntimeError):
         with test_db.transaction() as conn:
-            conn.execute(
-                "UPDATE runs SET status = 'failed' WHERE id = 'run-rollback';"
-            )
+            conn.execute("UPDATE runs SET status = 'failed' WHERE id = 'run-rollback';")
             raise RuntimeError("Simulated crash mid-transaction")
 
     # Status must still be 'queued' because transaction was rolled back
@@ -195,9 +198,7 @@ def test_malformed_json_handling(test_db: Database) -> None:
 
     # Corrupt the config_json manually in database
     conn = test_db.get_connection()
-    conn.execute(
-        "UPDATE runs SET config_json = '{bad-json-syntax' WHERE id = 'run-malformed';"
-    )
+    conn.execute("UPDATE runs SET config_json = '{bad-json-syntax' WHERE id = 'run-malformed';")
 
     # Reading should not crash, but fallback gracefully to empty dict
     fetched = repo.get_run("run-malformed")
@@ -299,4 +300,3 @@ def test_benchmark_repository(test_db: Database) -> None:
     latest = repo.get_latest_benchmark()
     assert latest is not None
     assert latest.benchmark_id == bm_id
-

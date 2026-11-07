@@ -9,10 +9,10 @@ from amrs.monitor.detectors import InstabilityDetector, OverfitDetector
 from amrs.monitor.replay import replay_metric_series
 from amrs.schemas import MonitorConfig, MonitorInstabilityConfig, MonitorOverfitConfig
 
-
 # ---------------------------------------------------------------------------
 # 1. Detector Unit Tests
 # ---------------------------------------------------------------------------
+
 
 def test_overfit_detector_condition():
     """OverfitDetector should flag when gap rises above threshold and val loss rises."""
@@ -28,7 +28,9 @@ def test_overfit_detector_condition():
     assert cond2 is False
 
     # Epoch 3: train_acc=0.85, val_acc=0.80 -> gap=0.05 (gap_rise=0.05 >= 0.03) and val_loss=0.53 > 0.50
-    cond3, details = detector.update(3, train_loss=0.40, train_acc=0.85, val_loss=0.53, val_acc=0.80)
+    cond3, details = detector.update(
+        3, train_loss=0.40, train_acc=0.85, val_loss=0.53, val_acc=0.80
+    )
     assert cond3 is True
     assert details["gap_rise"] >= 0.03
     assert details["val_loss_rising"] is True
@@ -61,6 +63,7 @@ def test_instability_detector_spike_ratio():
 # 2. EMA Smoothing Tests
 # ---------------------------------------------------------------------------
 
+
 def test_callback_ema_smoothing():
     """Metrics should be smoothed via EMA formula: beta * prev + (1 - beta) * curr."""
     cfg = MonitorConfig(ema_beta=0.6, patience=3, cooldown_epochs=5)
@@ -79,10 +82,13 @@ def test_callback_ema_smoothing():
 # 3. Patience & Cooldown Integration Tests
 # ---------------------------------------------------------------------------
 
+
 def test_callback_patience_triggers_only_after_consecutive_epochs():
     """Trigger must fire only after condition holds for patience consecutive epochs."""
     # Patience = 3, cooldown = 5
-    cfg = MonitorConfig(patience=3, cooldown_epochs=5, overfit={"gap_rise_min": 0.03, "val_loss_rise": False})
+    cfg = MonitorConfig(
+        patience=3, cooldown_epochs=5, overfit={"gap_rise_min": 0.03, "val_loss_rise": False}
+    )
     cb = AMRSCallback(config=cfg, action="log")
 
     # Baseline epoch 1: gap = 0.0
@@ -108,7 +114,9 @@ def test_callback_patience_triggers_only_after_consecutive_epochs():
 
 def test_callback_patience_resets_if_condition_breaks():
     """If condition breaks before patience is reached, the streak counter must reset to 0."""
-    cfg = MonitorConfig(patience=3, cooldown_epochs=5, overfit={"gap_rise_min": 0.03, "val_loss_rise": False})
+    cfg = MonitorConfig(
+        patience=3, cooldown_epochs=5, overfit={"gap_rise_min": 0.03, "val_loss_rise": False}
+    )
     cb = AMRSCallback(config=cfg)
 
     # Epoch 1: baseline
@@ -130,7 +138,9 @@ def test_callback_patience_resets_if_condition_breaks():
 
 def test_callback_cooldown_prevents_duplicate_triggers():
     """During cooldown epochs, no triggers or duplicate alerts may fire."""
-    cfg = MonitorConfig(patience=2, cooldown_epochs=3, overfit={"gap_rise_min": 0.03, "val_loss_rise": False})
+    cfg = MonitorConfig(
+        patience=2, cooldown_epochs=3, overfit={"gap_rise_min": 0.03, "val_loss_rise": False}
+    )
     cb = AMRSCallback(config=cfg)
 
     # Epoch 1: baseline
@@ -167,9 +177,12 @@ def test_callback_cooldown_prevents_duplicate_triggers():
 # 4. Actions: Early Stop & Snapshot Recovery
 # ---------------------------------------------------------------------------
 
+
 def test_callback_action_early_stop():
     """Action 'early_stop' must set should_stop=True upon trigger."""
-    cfg = MonitorConfig(patience=1, cooldown_epochs=2, overfit={"gap_rise_min": 0.01, "val_loss_rise": False})
+    cfg = MonitorConfig(
+        patience=1, cooldown_epochs=2, overfit={"gap_rise_min": 0.01, "val_loss_rise": False}
+    )
     cb = AMRSCallback(config=cfg, action="early_stop")
 
     assert cb.should_stop is False
@@ -209,6 +222,7 @@ def test_callback_tracks_best_model_snapshot():
 # 5. Replay Service Tests
 # ---------------------------------------------------------------------------
 
+
 def test_replay_metric_series():
     """Replay service should execute metric history through callback and return response."""
     series = {
@@ -217,11 +231,12 @@ def test_replay_metric_series():
         "val_loss": [0.65, 0.55, 0.60, 0.70],
         "val_acc": [0.68, 0.75, 0.74, 0.72],
     }
-    cfg = MonitorConfig(patience=1, cooldown_epochs=5, overfit={"gap_rise_min": 0.05, "val_loss_rise": True})
+    cfg = MonitorConfig(
+        patience=1, cooldown_epochs=5, overfit={"gap_rise_min": 0.05, "val_loss_rise": True}
+    )
     resp = replay_metric_series(series, config=cfg, scenario_id="s1_overfit")
 
     assert resp.status == "succeeded"
     assert resp.scenario_id == "s1_overfit"
     assert len(resp.series["train_loss_ema"]) == 4
     assert len(resp.events) > 0
-

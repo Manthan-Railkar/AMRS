@@ -1,0 +1,6 @@
+method: early_stopping
+description: Evaluates all checkpoints saved during training on the validation split and selects the checkpoint with best validation loss/accuracy.
+metric: val_loss
+patience: 3
+mode: min
+

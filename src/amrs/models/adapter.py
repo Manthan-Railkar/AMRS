@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 import torch
 import torch.nn as nn
 from torch.nn.modules.batchnorm import _BatchNorm
@@ -69,7 +70,6 @@ class ModelAdapter:
 
         handle = head.register_forward_hook(hook)
         try:
-            was_training = self.model.training
             # Run forward pass (with hooks active)
             _ = self.model(x)
         finally:
@@ -91,18 +91,18 @@ class ModelAdapter:
         # Architecture-specific natural partitioning if available
         if hasattr(self.model, "conv1") and hasattr(self.model, "layer1"):
             # ResNet structure
-            resnet_stages = [
-                [self.model.conv1, getattr(self.model, "bn1", None)],
-                [self.model.layer1],
-                [self.model.layer2],
-                [self.model.layer3],
-                [self.model.layer4],
+            resnet_stages: list[list[Any]] = [
+                [getattr(self.model, "conv1"), getattr(self.model, "bn1", None)],
+                [getattr(self.model, "layer1")],
+                [getattr(self.model, "layer2")],
+                [getattr(self.model, "layer3")],
+                [getattr(self.model, "layer4")],
                 [self.head_module()],
             ]
             for stage in resnet_stages:
                 stage_params = []
                 for mod in stage:
-                    if mod is not None:
+                    if isinstance(mod, nn.Module):
                         for p in mod.parameters():
                             if id(p) not in covered_ids:
                                 stage_params.append(p)
@@ -112,34 +112,36 @@ class ModelAdapter:
         elif hasattr(self.model, "block1") and hasattr(self.model, "block2"):
             # SmallCNN structure
             cnn_stages = [
-                self.model.block1,
-                self.model.block2,
-                self.model.block3,
+                getattr(self.model, "block1"),
+                getattr(self.model, "block2"),
+                getattr(self.model, "block3"),
                 self.head_module(),
             ]
             for mod in cnn_stages:
-                stage_params = []
-                for p in mod.parameters():
-                    if id(p) not in covered_ids:
-                        stage_params.append(p)
-                        covered_ids.add(id(p))
-                if stage_params:
-                    groups.append(stage_params)
+                if isinstance(mod, nn.Module):
+                    stage_params = []
+                    for p in mod.parameters():
+                        if id(p) not in covered_ids:
+                            stage_params.append(p)
+                            covered_ids.add(id(p))
+                    if stage_params:
+                        groups.append(stage_params)
         elif hasattr(self.model, "fc1") and hasattr(self.model, "fc2"):
             # MLPSmall structure
             mlp_stages = [
-                self.model.fc1,
-                self.model.fc2,
+                getattr(self.model, "fc1"),
+                getattr(self.model, "fc2"),
                 self.head_module(),
             ]
             for mod in mlp_stages:
-                stage_params = []
-                for p in mod.parameters():
-                    if id(p) not in covered_ids:
-                        stage_params.append(p)
-                        covered_ids.add(id(p))
-                if stage_params:
-                    groups.append(stage_params)
+                if isinstance(mod, nn.Module):
+                    stage_params = []
+                    for p in mod.parameters():
+                        if id(p) not in covered_ids:
+                            stage_params.append(p)
+                            covered_ids.add(id(p))
+                    if stage_params:
+                        groups.append(stage_params)
         else:
             # Fallback: top-level children
             for child in self.model.children():
@@ -157,4 +159,3 @@ class ModelAdapter:
             groups.append(remaining)
 
         return groups
-

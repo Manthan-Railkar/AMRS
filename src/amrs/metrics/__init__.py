@@ -9,7 +9,7 @@ from amrs.metrics.classification import (
     per_sample_correct,
     predict_logits,
 )
-from amrs.metrics.compute import ComputeMeter, NullMeter
+from amrs.metrics.compute import ComputeMeter, NullMeter, meter_scope
 from amrs.metrics.retention import retained_correct_rate, top1_agreement
 
 __all__ = [
@@ -24,5 +24,5 @@ __all__ = [
     "paired_bootstrap_delta",
     "ComputeMeter",
     "NullMeter",
+    "meter_scope",
 ]
-

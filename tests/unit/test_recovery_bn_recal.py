@@ -1,14 +1,12 @@
 """Unit tests for BnRecalibrationStrategy, parameter immutability, mode restoration, and shift adaptation (ML-4)."""
 
-import copy
 import hashlib
-from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from amrs.config import load_config
 from amrs.models.adapter import ModelAdapter
 from amrs.models.registry import build
 from amrs.recovery.base import RecoveryContext
@@ -29,6 +27,7 @@ def _hash_model_weights(model: nn.Module) -> str:
 
 class ModelWithDropoutAndBN(nn.Module):
     """Network with Conv2d, BatchNorm2d, Dropout2d, and Linear head for mode testing."""
+
     def __init__(self) -> None:
         super().__init__()
         self.conv = nn.Conv2d(1, 8, kernel_size=3, padding=1)
@@ -47,6 +46,7 @@ class ModelWithDropoutAndBN(nn.Module):
 
 class ModelWithoutBN(nn.Module):
     """Network without any BatchNorm layers."""
+
     def __init__(self) -> None:
         super().__init__()
         self.conv = nn.Conv2d(1, 8, kernel_size=3, padding=1)
@@ -75,6 +75,7 @@ def _make_loader(
 # Shift Adaptation and Parameter Immutability Tests
 # ---------------------------------------------------------------------------
 
+
 def test_bn_recalibration_updates_running_stats_on_shifted_inputs():
     """Recalibration on distribution-shifted inputs must update running means/variances while preserving all parameters."""
     model = build("small_cnn", num_classes=10, in_shape=(1, 16, 16))
@@ -102,24 +103,38 @@ def test_bn_recalibration_updates_running_stats_on_shifted_inputs():
     recal_means = [bn.running_mean.detach().clone() for bn in recal_adapter.bn_layers()]
     recal_vars = [bn.running_var.detach().clone() for bn in recal_adapter.bn_layers()]
 
-    mean_diffs = [torch.mean(torch.abs(m_new - m_old)).item() for m_new, m_old in zip(recal_means, initial_means)]
-    var_diffs = [torch.mean(torch.abs(v_new - v_old)).item() for v_new, v_old in zip(recal_vars, initial_vars)]
+    mean_diffs = [
+        torch.mean(torch.abs(m_new - m_old)).item()
+        for m_new, m_old in zip(recal_means, initial_means)
+    ]
+    var_diffs = [
+        torch.mean(torch.abs(v_new - v_old)).item()
+        for v_new, v_old in zip(recal_vars, initial_vars)
+    ]
 
-    assert max(mean_diffs) > 0.1, f"Running means should shift significantly, max diff: {max(mean_diffs)}"
-    assert max(var_diffs) > 0.1, f"Running variances should shift significantly, max diff: {max(var_diffs)}"
+    assert max(mean_diffs) > 0.1, (
+        f"Running means should shift significantly, max diff: {max(mean_diffs)}"
+    )
+    assert max(var_diffs) > 0.1, (
+        f"Running variances should shift significantly, max diff: {max(var_diffs)}"
+    )
     assert stats["mean_divergence"] > 0.05
     assert stats["var_divergence"] > 0.05
 
     # 4. Learned parameters (both BN affine weights/biases and Conv/Linear weights/biases) must be strictly identical
     weights_hash_after = _hash_model_weights(recal_model)
-    assert weights_hash_before == weights_hash_after, "Learned weights changed during BatchNorm recalibration!"
+    assert weights_hash_before == weights_hash_after, (
+        "Learned weights changed during BatchNorm recalibration!"
+    )
 
     # Explicit tensor-level parameter comparison
     for (name_orig, p_orig), (name_recal, p_recal) in zip(
         warm_model.named_parameters(), recal_model.named_parameters()
     ):
         assert name_orig == name_recal
-        assert torch.equal(p_orig, p_recal), f"Parameter '{name_orig}' differed after recalibration!"
+        assert torch.equal(p_orig, p_recal), (
+            f"Parameter '{name_orig}' differed after recalibration!"
+        )
 
 
 def test_parameter_immutability_original_model_unchanged():
@@ -141,6 +156,7 @@ def test_parameter_immutability_original_model_unchanged():
 # ---------------------------------------------------------------------------
 # Missing BN, Empty Data, and Prerequisite Handling
 # ---------------------------------------------------------------------------
+
 
 def test_no_bn_layers_returns_explicit_skip_reason():
     """Model without BatchNorm layers must return NO_BN_LAYERS and refuse execution."""
@@ -170,7 +186,9 @@ def test_no_bn_layers_returns_explicit_skip_reason():
 def test_empty_target_data_fails_safely():
     """Empty data loader must fail safely and report EMPTY_DATA."""
     model = build("small_cnn", num_classes=10, in_shape=(1, 16, 16))
-    empty_loader = DataLoader(TensorDataset(torch.empty(0, 1, 16, 16), torch.empty(0, dtype=torch.long)))
+    empty_loader = DataLoader(
+        TensorDataset(torch.empty(0, 1, 16, 16), torch.empty(0, dtype=torch.long))
+    )
 
     with pytest.raises(ValueError, match="EMPTY_DATA"):
         recalibrate_bn_stats(model, empty_loader)
@@ -221,6 +239,7 @@ def test_fallback_to_val_loader_when_target_absent():
 # Batch Limit and Accounting Tests
 # ---------------------------------------------------------------------------
 
+
 def test_batch_limit_is_strictly_honored():
     """Recalibration must stop after exactly max_batches batches."""
     model = build("small_cnn", num_classes=10, in_shape=(1, 16, 16))
@@ -238,6 +257,7 @@ def test_batch_limit_is_strictly_honored():
 # ---------------------------------------------------------------------------
 # Module Mode Restoration and Dropout Isolation Tests
 # ---------------------------------------------------------------------------
+
 
 def test_dropout_mode_restoration_and_no_gradient_updates():
     """Dropout must NOT be active during BN recalibration, modes must be restored, and no gradients computed."""
@@ -278,6 +298,7 @@ def test_dropout_mode_restoration_and_no_gradient_updates():
 # Split Discipline and Holdout Isolation Tests
 # ---------------------------------------------------------------------------
 
+
 def test_bn_recalibration_rejects_holdout():
     """Ensure holdout loader cannot be passed into RecoveryContext."""
     model = build("small_cnn", num_classes=10, in_shape=(1, 16, 16))
@@ -285,4 +306,3 @@ def test_bn_recalibration_rejects_holdout():
 
     with pytest.raises(ValueError, match="Holdout data must never enter RecoveryContext"):
         RecoveryContext(model=model, target_loader=loader, holdout_loader=loader)
-

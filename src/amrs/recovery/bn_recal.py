@@ -9,10 +9,10 @@ from __future__ import annotations
 import copy
 import time
 from typing import Any
+
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn.modules.batchnorm import _BatchNorm
 from torch.utils.data import DataLoader
 
 from amrs.metrics.classification import accuracy, ece, nll, predict_logits
@@ -36,7 +36,7 @@ def recalibrate_bn_stats(
     device: str = "cpu",
 ) -> tuple[nn.Module, dict[str, Any]]:
     """Recompute BatchNorm running statistics on unlabeled data without parameter updates.
-    
+
     Args:
         model: PyTorch model containing BatchNorm layers.
         loader: DataLoader providing unlabeled evaluation/target batches.
@@ -44,7 +44,7 @@ def recalibrate_bn_stats(
         momentum: Momentum for running stats update (None uses cumulative moving average).
         reset_stats: If True, resets running stats before accumulating from loader.
         device: Device to place tensors on.
-        
+
     Returns:
         (recalibrated_model, stats_dict)
     """
@@ -59,10 +59,7 @@ def recalibrate_bn_stats(
     cand_bn_layers = candidate_adapter.bn_layers()
 
     # Track original parameters to verify strict immutability of learned weights
-    orig_params = {
-        name: param.detach().clone()
-        for name, param in candidate.named_parameters()
-    }
+    orig_params = {name: param.detach().clone() for name, param in candidate.named_parameters()}
 
     # Record original submodule training states
     orig_modes = {mod: mod.training for mod in candidate.modules()}
@@ -177,7 +174,9 @@ class BnRecalibrationStrategy(RecoveryStrategy):
 
         return Applicability(can_apply=True)
 
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         """Estimate compute units: pure forward passes up to max_batches (BR12)."""
         max_batches = 100
         if context.config and hasattr(context.config, "strategies"):
@@ -201,13 +200,17 @@ class BnRecalibrationStrategy(RecoveryStrategy):
             details={"fwd_samples": fwd_samples, "bwd_samples": 0, "strategy": self.name},
         )
 
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         """Apply BatchNorm recalibration on a deep copy of model using permitted data."""
         t0 = time.monotonic()
 
         # Split isolation check: NEVER touch holdout
         if hasattr(context, "_holdout_loader") or "holdout" in context.extra:
-            raise ValueError("Split discipline violation: holdout data cannot enter BnRecalibrationStrategy.")
+            raise ValueError(
+                "Split discipline violation: holdout data cannot enter BnRecalibrationStrategy."
+            )
 
         adapter = ModelAdapter(model_copy)
         if not adapter.supports_bn():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
+
 from amrs.errors import ConflictError
 
 
@@ -45,7 +46,7 @@ LEGAL_TRANSITIONS: dict[RunStatus, set[RunStatus]] = {
         RunStatus.FAILED,
     },
     RunStatus.SUCCEEDED: set(),  # Terminal: no transitions allowed
-    RunStatus.FAILED: set(),     # Terminal: no transitions allowed
+    RunStatus.FAILED: set(),  # Terminal: no transitions allowed
     RunStatus.CANCELLED: set(),  # Terminal: no transitions allowed
 }
 
@@ -87,4 +88,3 @@ def validate_status_transition(current: str | RunStatus, target: str | RunStatus
         )
 
     return target_enum
-

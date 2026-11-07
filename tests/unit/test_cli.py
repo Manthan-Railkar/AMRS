@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 import pytest
 
 from amrs import __version__
@@ -45,7 +46,9 @@ def test_cli_diagnose_text_and_json(capsys: pytest.CaptureFixture) -> None:
     assert parsed["diagnoses"][0]["label"] == "miscalibration"
 
 
-def test_cli_recover_execution(capsys: pytest.CaptureFixture, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_recover_execution(
+    capsys: pytest.CaptureFixture, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("AMRS_ARTIFACTS_ROOT", str(tmp_path / "artifacts"))
     monkeypatch.setenv("AMRS_DB_PATH", str(tmp_path / "cli_test.db"))
 
@@ -86,11 +89,25 @@ def test_cli_benchmark(capsys: pytest.CaptureFixture) -> None:
 
 def test_cli_scenarios_build(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     out_dir = str(tmp_path / "scenarios")
-    rc = main(["scenarios", "build", "--id", "s1_overfit", "--profile", "tiny", "--seeds", "0", "--out-dir", out_dir, "--format", "json"])
+    rc = main(
+        [
+            "scenarios",
+            "build",
+            "--id",
+            "s1_overfit",
+            "--profile",
+            "tiny",
+            "--seeds",
+            "0",
+            "--out-dir",
+            out_dir,
+            "--format",
+            "json",
+        ]
+    )
     assert rc == 0
     captured = capsys.readouterr()
     parsed = json.loads(captured.out)
     assert len(parsed) == 1
     assert parsed[0]["scenario_id"] == "s1_overfit"
     assert Path(parsed[0]["artifact_path"]).exists()
-

@@ -8,9 +8,9 @@ Guarantees:
 
 from __future__ import annotations
 
-import io
 import json
 from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -35,7 +35,9 @@ def parity_env(tmp_path: Path):
     return client, coordinator, db_file, artifacts_dir
 
 
-def test_recovery_cli_and_api_parity(parity_env, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture) -> None:
+def test_recovery_cli_and_api_parity(
+    parity_env, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
     client, coordinator, db_file, artifacts_dir = parity_env
 
     monkeypatch.setenv("AMRS_DB_PATH", db_file)
@@ -48,6 +50,7 @@ def test_recovery_cli_and_api_parity(parity_env, monkeypatch: pytest.MonkeyPatch
 
     # Poll until API run finishes
     import time
+
     for _ in range(50):
         detail = coordinator.get_run(api_run_id)
         if detail.status in ("succeeded", "failed"):
@@ -71,7 +74,9 @@ def test_recovery_cli_and_api_parity(parity_env, monkeypatch: pytest.MonkeyPatch
     assert len(cli_detail["candidates"]) == len(api_detail.candidates)
 
 
-def test_benchmark_cli_and_api_parity(parity_env, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture) -> None:
+def test_benchmark_cli_and_api_parity(
+    parity_env, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
     client, coordinator, db_file, artifacts_dir = parity_env
 
     monkeypatch.setenv("AMRS_DB_PATH", db_file)
@@ -87,7 +92,19 @@ def test_benchmark_cli_and_api_parity(parity_env, monkeypatch: pytest.MonkeyPatc
     api_detail = coordinator.get_benchmark(api_b_id)
 
     # 2. Benchmark via CLI
-    rc = main(["benchmark", "--scenarios", "s1_overfit", "--seeds", "0", "--methods", "amrs", "--format", "json"])
+    rc = main(
+        [
+            "benchmark",
+            "--scenarios",
+            "s1_overfit",
+            "--seeds",
+            "0",
+            "--methods",
+            "amrs",
+            "--format",
+            "json",
+        ]
+    )
     assert rc == 0
     captured = capsys.readouterr()
     cli_detail = json.loads(captured.out)
@@ -95,4 +112,3 @@ def test_benchmark_cli_and_api_parity(parity_env, monkeypatch: pytest.MonkeyPatc
     assert len(cli_detail["results"]) == len(api_detail.results)
     assert cli_detail["results"][0]["scenario_id"] == api_detail.results[0].scenario_id
     assert cli_detail["results"][0]["method"] == api_detail.results[0].method
-

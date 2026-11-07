@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 from amrs.transformer.allowlist import validate_loading_security
@@ -10,6 +9,7 @@ from amrs.transformer.allowlist import validate_loading_security
 
 class TransformerLoRAConfig(BaseModel):
     """Configuration for PEFT LoRA adapter recovery on transformer classifiers."""
+
     r: int = Field(default=8, ge=1, le=128, description="LoRA attention dimension / rank.")
     lora_alpha: int = Field(default=16, ge=1, le=256, description="LoRA scaling parameter.")
     lora_dropout: float = Field(default=0.05, ge=0.0, lt=1.0, description="LoRA dropout rate.")
@@ -17,7 +17,9 @@ class TransformerLoRAConfig(BaseModel):
         default=None,
         description="Target module names to apply LoRA. If None, architecture default is used.",
     )
-    bias: str = Field(default="none", description="Bias type for LoRA ('none', 'all', 'lora_only').")
+    bias: str = Field(
+        default="none", description="Bias type for LoRA ('none', 'all', 'lora_only')."
+    )
     task_type: str = Field(default="SEQ_CLS", description="PEFT task type.")
 
     # Optimization
@@ -47,4 +49,3 @@ class TransformerLoRAConfig(BaseModel):
             allow_custom_code=False,
         )
         return self
-

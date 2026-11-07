@@ -10,6 +10,7 @@ Objective:
 from __future__ import annotations
 
 from typing import Sequence
+
 import torch
 import torch.nn as nn
 
@@ -19,11 +20,11 @@ def compute_l2sp_penalty(
     anchors: Sequence[torch.Tensor],
 ) -> torch.Tensor:
     """Compute exact unscaled L2-SP penalty: sum((param - anchor)^2) across all tensors.
-    
+
     Args:
         params: Trainable parameter tensors.
         anchors: Fixed reference anchor tensors.
-        
+
     Returns:
         Scalar tensor containing the sum of squared differences.
     """
@@ -40,9 +41,7 @@ def compute_l2sp_penalty(
 
     for p, a in zip(params, anchors):
         if p.shape != a.shape:
-            raise ValueError(
-                f"Parameter shape {p.shape} does not match anchor shape {a.shape}."
-            )
+            raise ValueError(f"Parameter shape {p.shape} does not match anchor shape {a.shape}.")
         anchor_on_device = a.to(p.device)
         diff = p - anchor_on_device
         penalty = penalty + torch.sum(diff * diff)
@@ -59,7 +58,7 @@ class L2SPRegularizer:
         alpha: float = 0.1,
     ) -> None:
         """Initialize regularizer with parameters to be anchored.
-        
+
         Anchors are cloned, detached, and set to requires_grad=False.
         """
         self.alpha = float(alpha)
@@ -71,9 +70,7 @@ class L2SPRegularizer:
         ]
 
         # Store initial anchor snapshots for tamper detection
-        self._anchor_snapshots: list[bytes] = [
-            a.cpu().numpy().tobytes() for a in self.anchors
-        ]
+        self._anchor_snapshots: list[bytes] = [a.cpu().numpy().tobytes() for a in self.anchors]
 
     def penalty(self) -> torch.Tensor:
         """Compute the unscaled penalty: sum((parameter - anchor)^2)."""

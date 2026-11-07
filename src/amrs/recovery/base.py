@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
+
 import torch.nn as nn
 
 from amrs.models.adapter import ModelAdapter
@@ -21,7 +22,7 @@ __all__ = [
 
 class RecoveryContext:
     """Execution and prerequisite context for recovery strategies.
-    
+
     Split isolation invariant: Under no circumstances may holdout data be stored or
     accessed here. Holdout is reserved exclusively for the verification gate.
     """
@@ -131,11 +132,15 @@ class RecoveryStrategy(ABC):
         ...
 
     @abstractmethod
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
+    def estimate_cost(
+        self, context: RecoveryContext, model: ModelAdapter | None = None
+    ) -> CostEstimate:
         """Estimate compute units required to apply this recovery strategy."""
         ...
 
     @abstractmethod
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
+    def apply(
+        self, model_copy: nn.Module, context: RecoveryContext
+    ) -> tuple[nn.Module, StrategyResult]:
         """Apply recovery method to model copy and return adapted model and execution result."""
         ...

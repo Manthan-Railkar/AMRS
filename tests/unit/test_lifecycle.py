@@ -54,16 +54,22 @@ def test_illegal_transitions_raise_conflict() -> None:
         (RunStatus.CANCELLED, RunStatus.RUNNING),
         # Skipped or backward transitions
         (RunStatus.QUEUED, RunStatus.SUCCEEDED),  # Cannot succeed without running
-        (RunStatus.RUNNING, RunStatus.QUEUED),     # Cannot move backward
-        (RunStatus.CANCEL_REQUESTED, RunStatus.SUCCEEDED),  # Cannot succeed once cancellation requested
-        (RunStatus.CANCEL_REQUESTED, RunStatus.RUNNING),    # Cannot resume running
+        (RunStatus.RUNNING, RunStatus.QUEUED),  # Cannot move backward
+        (
+            RunStatus.CANCEL_REQUESTED,
+            RunStatus.SUCCEEDED,
+        ),  # Cannot succeed once cancellation requested
+        (RunStatus.CANCEL_REQUESTED, RunStatus.RUNNING),  # Cannot resume running
     ]
 
     for current, target in illegal_cases:
         with pytest.raises(ConflictError) as exc_info:
             validate_status_transition(current, target)
         assert exc_info.value.code == "CONFLICT"
-        assert f"Illegal state transition from '{current.value}' to '{target.value}'" in exc_info.value.message
+        assert (
+            f"Illegal state transition from '{current.value}' to '{target.value}'"
+            in exc_info.value.message
+        )
 
 
 def test_invalid_status_string_raises() -> None:
@@ -72,4 +78,3 @@ def test_invalid_status_string_raises() -> None:
 
     with pytest.raises(ConflictError):
         validate_status_transition(RunStatus.QUEUED, "unknown_status")
-

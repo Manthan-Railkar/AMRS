@@ -1,8 +1,7 @@
 """Integration test verifying end-to-end SQLite persistence across API restarts."""
 
-import os
 from pathlib import Path
-import pytest
+
 from fastapi.testclient import TestClient
 
 from amrs.api.jobs import JobCoordinator
@@ -20,6 +19,7 @@ def test_api_restart_persistence_with_sqlite_file(tmp_path: Path) -> None:
     app1 = create_app()
     # Override coordinator in app1
     from amrs.api import deps
+
     app1.dependency_overrides[deps.get_coordinator] = lambda: coord1
 
     client1 = TestClient(app1)
@@ -94,4 +94,3 @@ def test_api_restart_persistence_with_sqlite_file(tmp_path: Path) -> None:
     assert data["candidates"][0]["gate_decision"] == "ACCEPT"
 
     db2.close()
-

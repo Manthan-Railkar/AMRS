@@ -1,20 +1,16 @@
 """Unit tests for WeightInterpolationStrategy, boundary alphas, arithmetic, buffer policy, and mismatch checks (ML-8)."""
 
 from collections import OrderedDict
-import copy
-from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from amrs.config import load_config
-from amrs.metrics.classification import accuracy, predict_logits
 from amrs.models.adapter import ModelAdapter
-from amrs.models.registry import build
 from amrs.recovery.base import RecoveryContext
 from amrs.recovery.interpolation import (
-    DEFAULT_BUFFER_POLICY,
     WeightInterpolationStrategy,
     evaluate_interpolation_sweep,
     interpolate_state_dicts,
@@ -25,6 +21,7 @@ from amrs.recovery.interpolation import (
 
 class ModelWithBuffers(nn.Module):
     """Model containing floating parameters, floating buffers, and integer buffers."""
+
     def __init__(self) -> None:
         super().__init__()
         self.fc = nn.Linear(4, 2)
@@ -38,6 +35,7 @@ class ModelWithBuffers(nn.Module):
 
 class IncompatibleShapeModel(nn.Module):
     """Model with mismatching linear layer shape."""
+
     def __init__(self) -> None:
         super().__init__()
         self.fc = nn.Linear(4, 5)
@@ -48,6 +46,7 @@ class IncompatibleShapeModel(nn.Module):
 
 class IncompatibleKeyModel(nn.Module):
     """Model with different layer naming."""
+
     def __init__(self) -> None:
         super().__init__()
         self.classifier = nn.Linear(4, 2)
@@ -75,6 +74,7 @@ def _generate_synthetic_data(
 # ---------------------------------------------------------------------------
 # 1. Boundary Alpha and Exact Arithmetic Tests
 # ---------------------------------------------------------------------------
+
 
 def test_boundary_alpha_zero_reproduces_original_exact():
     """Alpha 0.0 must exactly reproduce original floating weights and buffers."""
@@ -123,20 +123,20 @@ def test_boundary_alpha_one_reproduces_candidate_exact():
 
 def test_intermediate_alpha_matches_exact_hand_calculation():
     """Intermediate alpha arithmetic must match manual hand calculation.
-    
+
     Hand calculation:
         t_orig = [1.0, 4.0, -2.0]
         t_cand = [3.0, -2.0, 6.0]
-        
+
         alpha = 0.25:
             (1 - 0.25) * [1.0, 4.0, -2.0] + 0.25 * [3.0, -2.0, 6.0]
             = [0.75, 3.0, -1.5] + [0.75, -0.5, 1.5]
             = [1.50, 2.50, 0.0]
-            
+
         alpha = 0.50:
             0.5 * [1.0, 4.0, -2.0] + 0.5 * [3.0, -2.0, 6.0]
             = [2.0, 1.0, 2.0]
-            
+
         alpha = 0.75:
             0.25 * [1.0, 4.0, -2.0] + 0.75 * [3.0, -2.0, 6.0]
             = [0.25, 1.0, -0.5] + [2.25, -1.5, 4.5]
@@ -176,6 +176,7 @@ def test_alpha_out_of_bounds_raises_error():
 # ---------------------------------------------------------------------------
 # 2. Buffer Policy Tests (Floating & Non-Floating)
 # ---------------------------------------------------------------------------
+
 
 def test_buffer_policy_non_floating_buffers():
     """Non-floating buffers are copied from candidate when alpha >= 0.5, else original."""
@@ -228,6 +229,7 @@ def test_batchnorm_running_stats_floating_interpolation():
 # 3. Model Compatibility & Mismatch Tests
 # ---------------------------------------------------------------------------
 
+
 def test_compatibility_key_mismatch_rejected():
     """Models with mismatched state_dict keys must be rejected with KEY_MISMATCH."""
     m1 = ModelWithBuffers()
@@ -264,6 +266,7 @@ def test_compatibility_non_finite_tensors_rejected():
 # ---------------------------------------------------------------------------
 # 4. Validation Sweep & Ranking Tests
 # ---------------------------------------------------------------------------
+
 
 def test_validation_sweep_selects_optimal_alpha_deterministically():
     """Sweep across alphas on validation data must select the highest-scoring candidate deterministically."""
@@ -307,13 +310,16 @@ def test_validation_sweep_selects_optimal_alpha_deterministically():
 
     # Verify model weights match the best alpha
     expected_best = interpolate_weights(m_orig, m_cand, alpha=best_alpha_1)
-    for (k1, v1), (k2, v2) in zip(best_model_1.state_dict().items(), expected_best.state_dict().items()):
+    for (k1, v1), (k2, v2) in zip(
+        best_model_1.state_dict().items(), expected_best.state_dict().items()
+    ):
         assert torch.equal(v1, v2)
 
 
 # ---------------------------------------------------------------------------
 # 5. Full WeightInterpolationStrategy Tests
 # ---------------------------------------------------------------------------
+
 
 def test_strategy_apply_with_precomputed_candidate():
     """Strategy application with a provided candidate executes interpolation search and returns result."""
@@ -372,4 +378,3 @@ def test_source_models_are_never_mutated():
 
     assert orig_hashes == post_orig_hashes
     assert cand_hashes == post_cand_hashes
-

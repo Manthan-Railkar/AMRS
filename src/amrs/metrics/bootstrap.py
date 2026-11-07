@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Callable
+
 import numpy as np
 
 
@@ -80,4 +81,3 @@ def paired_bootstrap_delta(
         "ci_high": ci_high,
         "confidence": float(confidence),
     }
-

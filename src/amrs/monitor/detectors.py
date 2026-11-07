@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 from amrs.schemas import MonitorInstabilityConfig, MonitorOverfitConfig
 
 
@@ -24,7 +25,7 @@ class OverfitDetector:
         val_acc: float,
     ) -> tuple[bool, dict[str, Any]]:
         """Update detector with current epoch metrics and evaluate condition.
-        
+
         Returns:
             (condition_met, details_dict)
         """
@@ -73,7 +74,7 @@ class InstabilityDetector:
         loss: float,
     ) -> tuple[bool, dict[str, Any]]:
         """Update detector with current epoch loss and check for spike condition.
-        
+
         Returns:
             (condition_met, details_dict)
         """
