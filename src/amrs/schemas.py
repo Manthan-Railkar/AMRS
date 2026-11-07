@@ -261,11 +261,27 @@ class RunListResponse(BaseModel):
     offset: int
 
 
+# ---------------------------------------------------------------------------
+# Diagnosis Schemas (ML-1 / Section 2.8)
+# ---------------------------------------------------------------------------
+
+DiagnosisLabel = Literal[
+    "overfitting",
+    "miscalibration",
+    "bn_drift",
+    "instability",
+    "head_degradation",
+    "healthy",
+]
+
+
 class DiagnosisEvidence(BaseModel):
     metric_values: dict[str, float] = Field(default_factory=dict)
     threshold_values: dict[str, float] = Field(default_factory=dict)
     source_split: str = "val"
     explanation: str = ""
+    not_evaluable: bool = False
+    not_evaluable_reason: str | None = None
 
 
 class DiagnosisItem(BaseModel):
@@ -273,6 +289,15 @@ class DiagnosisItem(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     rank: int = Field(..., ge=1)
     evidence: DiagnosisEvidence = Field(default_factory=DiagnosisEvidence)
+
+
+class DiagnosisReport(BaseModel):
+    primary_label: str
+    diagnoses: list[DiagnosisItem] = Field(default_factory=list)
+    is_healthy: bool = False
+    not_evaluable: list[str] = Field(default_factory=list)
+    not_evaluable_reasons: dict[str, str] = Field(default_factory=dict)
+    evidence_trail: dict[str, Any] = Field(default_factory=dict)
 
 
 class CandidateSummary(BaseModel):
