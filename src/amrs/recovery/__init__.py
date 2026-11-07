@@ -30,6 +30,13 @@ from amrs.recovery.selective_ft import (
     finetune_selective_l2sp,
     select_trainable_groups,
 )
+from amrs.recovery.interpolation import (
+    WeightInterpolationStrategy,
+    evaluate_interpolation_sweep,
+    interpolate_state_dicts,
+    interpolate_weights,
+    validate_interpolation_compatibility,
+)
 from amrs.recovery.temperature import (
     CalibratedModel,
     CalibrationArtifact,
@@ -60,4 +67,9 @@ __all__ = [
     "SelectiveFinetuneL2spStrategy",
     "finetune_selective_l2sp",
     "select_trainable_groups",
+    "WeightInterpolationStrategy",
+    "interpolate_weights",
+    "interpolate_state_dicts",
+    "evaluate_interpolation_sweep",
+    "validate_interpolation_compatibility",
 ]

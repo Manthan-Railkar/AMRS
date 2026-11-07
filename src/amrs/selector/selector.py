@@ -21,6 +21,7 @@ from amrs.recovery.checkpoints import (
 )
 from amrs.recovery.last_layer import LastLayerFinetuneStrategy
 from amrs.recovery.selective_ft import SelectiveFinetuneL2spStrategy
+from amrs.recovery.interpolation import WeightInterpolationStrategy
 from amrs.recovery.temperature import TemperatureScalingStrategy
 from amrs.schemas import (
     ConfigDefaultsResponse,
@@ -123,60 +124,6 @@ def resolve_primary_metric_for_candidate(
     ):
         return "ece"
     return "accuracy"
-
-
-# ---------------------------------------------------------------------------
-# Built-in Strategy Implementations (ML-2 Specification)
-# ---------------------------------------------------------------------------
-
-
-class WeightInterpolationStrategy(RecoveryStrategy):
-    @property
-    def name(self) -> str:
-        return "weight_interpolation"
-
-    def is_applicable(self, model: ModelAdapter, context: RecoveryContext) -> Applicability:
-        if not _has_identifiable_head(model):
-            return Applicability(
-                can_apply=False,
-                reason="NO_IDENTIFIABLE_HEAD",
-                message="Identifiable head required for fine-tuned candidate interpolation.",
-            )
-        if context.train_loader is None and context.val_loader is None:
-            return Applicability(
-                can_apply=False,
-                reason="MISSING_TRAINING_DATA",
-                message="Training data required to generate fine-tuned candidate for interpolation.",
-            )
-        return Applicability(can_apply=True)
-
-    def estimate_cost(self, context: RecoveryContext, model: ModelAdapter | None = None) -> CostEstimate:
-        adapter = model or context.adapter
-        alphas = [0.25, 0.5, 0.75]
-        if context.config and hasattr(context.config, "strategies"):
-            cfg = getattr(context.config.strategies, "weight_interpolation", None)
-            if cfg:
-                alphas = getattr(cfg, "alphas", [0.25, 0.5, 0.75])
-
-        # Cost accounts for fine-tuning candidate + alpha evaluation sweeps on val
-        ft_strategy = SelectiveFinetuneL2spStrategy()
-        base_cost = ft_strategy.estimate_cost(context, model=adapter).estimated_units
-        n_val = _get_sample_count(context.val_loader, default=500)
-        eval_cost = len(alphas) * n_val
-        units = round(base_cost + eval_cost, 2)
-
-        return CostEstimate(
-            estimated_units=float(units),
-            details={
-                "base_finetune_units": base_cost,
-                "alpha_eval_units": eval_cost,
-                "alphas": alphas,
-                "strategy": self.name,
-            },
-        )
-
-    def apply(self, model_copy: nn.Module, context: RecoveryContext) -> tuple[nn.Module, StrategyResult]:
-        raise NotImplementedError("apply() execution is implemented in recovery modules (ML-8).")
 
 
 # ---------------------------------------------------------------------------
