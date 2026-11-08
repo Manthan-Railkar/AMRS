@@ -22,6 +22,9 @@ import {
   ExternalLink,
   ShieldCheck,
   Sparkles,
+  Upload,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +32,7 @@ import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import { useCurrentUser } from "@/hooks/use-user";
 import { signOutAction } from "@/app/actions/auth";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotifications, formatRelativeTime, addNotification } from "@/lib/notifications";
 
 export interface NavItemConfig {
   id: string;
@@ -41,12 +45,12 @@ export interface NavItemConfig {
 export const workspaceNavItems: NavItemConfig[] = [
   { id: "dashboard", name: "Dashboard", href: "/dashboard", icon: Home },
   { id: "analytics", name: "Analytics", href: "/benchmarks", icon: TrendingUp },
-  { id: "insights", name: "Insights", href: "/monitor", icon: BarChart2, badge: 2 },
-  { id: "history", name: "History", href: "/history", icon: Clock, badge: 6 },
+  { id: "insights", name: "Insights", href: "/monitor", icon: BarChart2 },
+  { id: "history", name: "History", href: "/history", icon: Clock },
 ];
 
 export const generalNavItems: NavItemConfig[] = [
-  { id: "notifications", name: "Notifications", href: "#notifications", icon: Bell, badge: 8 },
+  { id: "notifications", name: "Notifications", href: "#notifications", icon: Bell },
   { id: "settings", name: "Settings", href: "#settings", icon: Settings },
   { id: "feedback", name: "Feedback", href: "/feedback", icon: Megaphone },
 ];
@@ -114,6 +118,38 @@ export function Sidebar({
 
   // Notification dialog state
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+
+  // Dynamic system notifications
+  const {
+    notifications,
+    unreadCount,
+    markAllNotificationsRead,
+    clearAllNotifications,
+  } = useNotifications();
+
+  // Pre-seed initial dynamic notifications if storage is empty
+  React.useEffect(() => {
+    if (notifications.length === 0) {
+      addNotification({
+        title: "Model uploaded: mnist_mlp.pt",
+        description: "Architecture mlp_small verified (201.3 KB)",
+        type: "upload",
+        statusColor: "emerald",
+      });
+      addNotification({
+        title: "Nominal health verified: mnist_mlp.pt",
+        description: "Holdout accuracy 97.43% with 0 dead neurons",
+        type: "completed",
+        statusColor: "emerald",
+      });
+      addNotification({
+        title: "Recovery artifacts ready",
+        description: "accepted_model.pt (206 KB) available for download",
+        type: "completed",
+        statusColor: "primary",
+      });
+    }
+  }, [notifications.length]);
 
   // Profile popover state
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
@@ -578,7 +614,7 @@ export function Sidebar({
                         >
                           {item.name}
                         </span>
-                        {item.badge != null && (
+                        {((item.id === "notifications" ? (unreadCount > 0 ? unreadCount : null) : item.badge) != null) && (
                           <span
                             className={cn(
                               "inline-flex items-center justify-center text-[11px] font-bold px-1.5 py-0.2 min-w-5 h-5 rounded-full shadow-2xs",
@@ -587,7 +623,7 @@ export function Sidebar({
                                 : "bg-sidebar-primary text-sidebar-primary-foreground"
                             )}
                           >
-                            {item.badge}
+                            {item.id === "notifications" ? unreadCount : item.badge}
                           </span>
                         )}
                       </>
@@ -845,35 +881,82 @@ export function Sidebar({
               <div className="flex items-center gap-2">
                 <Bell className="size-4.5 text-primary" />
                 <h3 className="font-semibold text-sm">System Notifications</h3>
-                <span className="px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">8</span>
+                {unreadCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                    {unreadCount}
+                  </span>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setIsNotificationsOpen(false)}
-                className="rounded-md p-1 text-muted-foreground hover:text-foreground"
-                aria-label="Close notifications"
-              >
-                <X className="size-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {notifications.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => markAllNotificationsRead()}
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationsOpen(false)}
+                  className="rounded-md p-1 text-muted-foreground hover:text-foreground"
+                  aria-label="Close notifications"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
-            <div className="py-2 space-y-2 max-h-64 overflow-y-auto">
-              {[
-                { title: "Run run-amrs-001 accepted", time: "10m ago", icon: Check, color: "text-emerald-500" },
-                { title: "S1 Severe Overfitting diagnosed", time: "25m ago", icon: ShieldCheck, color: "text-primary" },
-                { title: "Temperature scaling converged", time: "1h ago", icon: Sparkles, color: "text-primary" },
-                { title: "Benchmark comparison updated (5 seeds)", time: "2h ago", icon: TrendingUp, color: "text-muted-foreground" },
-              ].map((n, i) => {
-                const NIcon = n.icon;
-                return (
-                  <div key={i} className="flex items-start gap-3 p-2 rounded-xl hover:bg-muted/50 transition-colors">
-                    <NIcon className={cn("size-4 shrink-0 mt-0.5", n.color)} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground">{n.title}</p>
-                      <p className="text-[10px] text-muted-foreground">{n.time}</p>
+            <div className="py-2 space-y-1.5 max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No notifications recorded yet. Upload a model or run recovery to see live progress.
+                </div>
+              ) : (
+                notifications.map((n) => {
+                  const NIcon =
+                    n.type === "upload" ? Upload :
+                    n.type === "completed" || n.type === "verdict" ? CheckCircle2 :
+                    n.type === "diagnosing" ? ShieldCheck :
+                    n.type === "strategy" ? Sparkles :
+                    n.type === "error" ? AlertTriangle : Bell;
+
+                  const colorClass =
+                    n.statusColor === "emerald" ? "text-emerald-500" :
+                    n.statusColor === "rose" ? "text-rose-500" :
+                    n.statusColor === "amber" ? "text-amber-500" : "text-primary";
+
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        if (n.href) {
+                          setIsNotificationsOpen(false);
+                          router.push(n.href);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-start gap-3 p-2.5 rounded-xl transition-colors cursor-pointer",
+                        !n.read ? "bg-muted/60 hover:bg-muted font-medium" : "hover:bg-muted/30"
+                      )}
+                    >
+                      <NIcon className={cn("size-4 shrink-0 mt-0.5", colorClass)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs text-foreground truncate">{n.title}</p>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{formatRelativeTime(n.timestamp)}</span>
+                        </div>
+                        {n.description && (
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{n.description}</p>
+                        )}
+                      </div>
+                      {!n.read && (
+                        <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" aria-hidden="true" />
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

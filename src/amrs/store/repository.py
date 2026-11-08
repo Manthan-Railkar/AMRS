@@ -326,21 +326,63 @@ class RunRepository:
         page_params = list(params) + [limit, offset]
         rows = conn.execute(data_query, page_params).fetchall()
 
-        summaries = [
-            RunSummary(
-                id=r["id"],
-                created_at=r["created_at"],
-                status=r["status"],
-                scenario_id=r["scenario_id"],
-                arch=r["arch"],
-                original_sha256=r["original_sha256"],
-                verdict=r["verdict"],
-                accepted_strategy=r["accepted_strategy"],
-                duration_s=r["duration_s"],
-                compute_units_total=r["compute_units_total"],
+        summaries = []
+        for r in rows:
+            run_id = r["id"]
+            diag_rows = conn.execute(
+                "SELECT label, confidence, rank, evidence_json FROM diagnoses WHERE run_id = ? ORDER BY rank ASC;",
+                (run_id,),
+            ).fetchall()
+            diag_list = []
+            for d in diag_rows:
+                ev_dict = _safe_load_json(d["evidence_json"], {})
+                diag_list.append({
+                    "label": d["label"],
+                    "confidence": d["confidence"],
+                    "rank": d["rank"],
+                    "evidence": ev_dict,
+                })
+
+            cand_rows = conn.execute(
+                "SELECT strategy, cost_units, delta_primary, gate_decision, gate_reasons_json FROM candidates WHERE run_id = ? ORDER BY order_idx ASC;",
+                (run_id,),
+            ).fetchall()
+            cand_list = []
+            for c in cand_rows:
+                reasons = _safe_load_json(c["gate_reasons_json"], [])
+                cand_list.append({
+                    "strategy": c["strategy"],
+                    "cost_units": c["cost_units"],
+                    "delta_primary": c["delta_primary"],
+                    "gate_decision": c["gate_decision"],
+                    "gate_reasons": reasons,
+                })
+
+            primary_diag = diag_list[0]["label"] if diag_list else (
+                "healthy" if r["verdict"] == "healthy_no_action" else (
+                    r["scenario_id"].replace("s1_", "").replace("s2_", "").replace("s3_", "").replace("s4_", "").replace("s5_", "").replace("s6_", "")
+                    if r["scenario_id"] else "healthy"
+                )
             )
-            for r in rows
-        ]
+
+            summaries.append(
+                RunSummary(
+                    id=r["id"],
+                    created_at=r["created_at"],
+                    status=r["status"],
+                    scenario_id=r["scenario_id"],
+                    arch=r["arch"],
+                    architecture=r["arch"],
+                    original_sha256=r["original_sha256"],
+                    verdict=r["verdict"],
+                    accepted_strategy=r["accepted_strategy"],
+                    duration_s=r["duration_s"],
+                    compute_units_total=r["compute_units_total"],
+                    primary_diagnosis=primary_diag,
+                    diagnoses=diag_list,
+                    candidates=cand_list,
+                )
+            )
         return summaries, total
 
 

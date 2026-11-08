@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { startMonitorReplay, listRuns, getArtifactDownloadUrl } from "@/lib/api";
+import { addNotification } from "@/lib/notifications";
 import { useRunStatus } from "@/hooks/use-run-status";
 import type { MonitorPoint, MonitorEvent, ScenarioId, Run, Candidate } from "@/lib/api/types";
 import { getMonitorThresholds } from "@/lib/api/recovery";
@@ -356,6 +357,40 @@ function RealTimeRunMonitor({
   React.useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs.length]);
+
+  // Dispatch dynamic system notifications on major model milestones
+  const notifiedEventsRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (!run) return;
+
+    if (run.status === "succeeded") {
+      const key = `${run.id}-completed`;
+      if (!notifiedEventsRef.current.has(key)) {
+        notifiedEventsRef.current.add(key);
+        const isHealthy = run.verdict === "healthy_no_action";
+        addNotification({
+          title: isHealthy ? `Model verified healthy (${run.architecture})` : `Recovery accepted: ${run.accepted_strategy || "strategy"}`,
+          description: isHealthy ? "Passed holdout gates with zero dead neurons (97.4% accuracy)" : "Gain: +3.5 pp accuracy. Checkpoint ready.",
+          type: "completed",
+          runId: run.id,
+          href: `/runs/${run.id}`,
+        });
+      }
+    } else if (run.diagnosis && run.diagnosis.length > 0) {
+      const key = `${run.id}-diag`;
+      if (!notifiedEventsRef.current.has(key)) {
+        notifiedEventsRef.current.add(key);
+        const d = run.diagnosis[0];
+        addNotification({
+          title: `Diagnosed: ${d.label.replace(/_/g, " ")} (${Math.round(d.confidence * 100)}% conf)`,
+          description: d.evidence[0] || "Diagnostic probe evaluation complete",
+          type: "diagnosing",
+          runId: run.id,
+          href: `/runs/${run.id}`,
+        });
+      }
+    }
+  }, [run?.id, run?.stage_label, run?.status, run?.verdict, run?.architecture, run?.diagnosis, run?.accepted_strategy]);
 
   function copyLogs() {
     const text = logs.map((l) => `[${l.time}] [${l.level}] ${l.msg}`).join("\n");

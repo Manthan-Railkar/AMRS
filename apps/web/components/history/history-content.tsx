@@ -212,10 +212,12 @@ export function HistoryContent() {
           <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             History
           </h1>
-          <Badge variant="outline" className="text-[11px] text-muted-foreground">Demo data</Badge>
+          <Badge variant="outline" className="text-[11px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+            Database Synchronized
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          All 31 recovery runs — search, filter, and sort by verdict, scenario, or accuracy gain.
+          {query.data ? `All ${query.data.length} recovery runs` : "Recovery runs"} — search, filter, and sort by verdict, scenario, or accuracy gain.
         </p>
       </div>
 

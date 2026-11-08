@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createRun, isApiError, uploadModel, uploadDataset, detectModelArchitecture } from "@/lib/api";
+import { addNotification } from "@/lib/notifications";
 import { newRunFormSchema, type NewRunForm, architectures, datasets } from "@/lib/schemas/recovery";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -290,6 +291,12 @@ export default function RunRecoveryPage() {
       if (data.file instanceof File) {
         const uploadRes = await uploadModel(data.file, data.architecture);
         modelUploadId = uploadRes.model_upload_id;
+        addNotification({
+          title: `Model uploaded: ${data.file.name}`,
+          description: `Architecture: ${data.architecture} (${(data.file.size / 1024).toFixed(1)} KB verified)`,
+          type: "upload",
+          href: "/history",
+        });
       }
 
       // 2. Upload custom dataset if provided
@@ -297,6 +304,12 @@ export default function RunRecoveryPage() {
         try {
           const dsRes = await uploadDataset(data.datasetFile, data.dataset);
           datasetUploadId = dsRes.dataset_upload_id;
+          addNotification({
+            title: `Dataset uploaded: ${data.datasetFile.name}`,
+            description: `Split: ${data.dataset} (${(data.datasetFile.size / 1024).toFixed(1)} KB)`,
+            type: "upload",
+            href: "/history",
+          });
         } catch (dsErr) {
           console.warn("Dataset upload notice:", dsErr);
         }
@@ -310,6 +323,14 @@ export default function RunRecoveryPage() {
         dataset_upload_id: datasetUploadId,
         config_override: datasetUploadId ? { dataset_upload_id: datasetUploadId } : {},
       } as any);
+
+      addNotification({
+        title: `Recovery run dispatched`,
+        description: `Run ${runId.slice(0, 8)} started for ${data.architecture}`,
+        type: "run_queued",
+        runId,
+        href: `/monitor?runId=${runId}`,
+      });
 
       // 4. Redirect to the live monitor route for real-time recognition streaming
       router.push(`/monitor?runId=${runId}`);

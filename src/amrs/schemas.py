@@ -293,11 +293,21 @@ class RunSummary(BaseModel):
     status: Literal["queued", "running", "succeeded", "failed", "cancel_requested", "cancelled"]
     scenario_id: str | None = None
     arch: str
+    architecture: str | None = None
     original_sha256: str
     verdict: Literal["accepted", "rolled_back", "healthy_no_action", "error"] | None = None
     accepted_strategy: str | None = None
     duration_s: float | None = None
     compute_units_total: float | None = None
+    primary_diagnosis: str | None = None
+    diagnoses: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
+
+    @model_validator(mode="after")
+    def populate_run_summary_aliases(self) -> Self:
+        if self.architecture is None and self.arch:
+            self.architecture = self.arch
+        return self
 
 
 class RunListResponse(BaseModel):
