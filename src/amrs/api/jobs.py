@@ -466,6 +466,50 @@ class JobCoordinator:
                             batch_size=64,
                             shuffle=False,
                         )
+                elif ds_path and ds_path.suffix == ".csv":
+                    import csv
+
+                    with open(ds_path, "r", encoding="utf-8", errors="replace") as f_csv:
+                        rdr = csv.reader(f_csv)
+                        next(rdr, None)
+                        csv_rows = list(rdr)
+                    features_list = []
+                    labels_list = []
+                    if csv_rows:
+                        num_c = len(csv_rows[0])
+                        for r_item in csv_rows:
+                            if len(r_item) == num_c and all(v.strip() for v in r_item):
+                                try:
+                                    feat_vals = [float(v) for v in r_item[:-1]]
+                                    lbl_val = int(float(r_item[-1]))
+                                    features_list.append(feat_vals)
+                                    labels_list.append(lbl_val)
+                                except ValueError:
+                                    continue
+                    if features_list and labels_list:
+                        x_t = torch.tensor(features_list, dtype=torch.float32)
+                        y_t = torch.tensor(labels_list, dtype=torch.long)
+                        ds = TensorDataset(x_t, y_t)
+                        n_total = len(ds)
+                        n_val = min(max(50, int(0.2 * n_total)), 200)
+                        n_holdout = min(max(50, int(0.2 * n_total)), 200)
+                        n_train = max(50, n_total - n_val - n_holdout)
+                        train_loader = DataLoader(
+                            Subset(ds, range(0, n_train)), batch_size=64, shuffle=False
+                        )
+                        val_loader = DataLoader(
+                            Subset(ds, range(n_train, n_train + n_val)),
+                            batch_size=64,
+                            shuffle=False,
+                        )
+                        holdout_loader = DataLoader(
+                            Subset(
+                                ds,
+                                range(n_train + n_val, min(n_total, n_train + n_val + n_holdout)),
+                            ),
+                            batch_size=64,
+                            shuffle=False,
+                        )
                 else:
                     # Automatically select evaluation data matching input dimensions
                     mnist_dir = Path("data/mnist")
