@@ -385,6 +385,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   );
 
   // Synchronize with external controlled prop (e.g. navbar hamburger)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (controlledIsOpen === undefined) return;
     if (controlledIsOpen !== openRef.current) {
@@ -400,6 +401,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       animateText(controlledIsOpen);
     }
   }, [controlledIsOpen, playOpen, playClose, animateIcon, animateColor, animateText]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Lock scroll when open
   useEffect(() => {

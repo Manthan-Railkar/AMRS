@@ -20,7 +20,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { getRun, cancelRun } from "@/lib/api";
+import { getRun, cancelRun, getArtifactDownloadUrl } from "@/lib/api";
 import type { Run, Candidate } from "@/lib/api/types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -120,12 +120,24 @@ function DiagnosisCard({ run }: { run: Run }) {
 
   const diag = run.diagnosis[0];
   const confidencePct = Math.round(diag.confidence * 100);
+  const isHealthy = diag.label === "healthy" || run.verdict === "healthy_no_action";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Diagnosis</CardTitle>
-        <CardDescription>Primary failure mode detected on the uploaded model</CardDescription>
+        <div className="flex items-center justify-between">
+          <CardTitle>Diagnosis & Health Status</CardTitle>
+          {isHealthy && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 px-2.5 py-0.5 text-xs font-semibold border border-emerald-300 dark:border-emerald-800">
+              <CheckCircle2 className="size-3.5" aria-hidden /> Model Healthy
+            </span>
+          )}
+        </div>
+        <CardDescription>
+          {isHealthy
+            ? "Diagnostic probes verified that the model is nominal with no intervention required"
+            : "Primary failure mode detected on the uploaded model"}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -135,7 +147,7 @@ function DiagnosisCard({ run }: { run: Run }) {
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full bg-primary transition-all"
+              className={cn("h-full transition-all", isHealthy ? "bg-emerald-500" : "bg-primary")}
               style={{ width: `${confidencePct}%` }}
               role="progressbar"
               aria-valuenow={confidencePct}
@@ -148,7 +160,7 @@ function DiagnosisCard({ run }: { run: Run }) {
         <ul className="space-y-1.5" aria-label="Evidence">
           {diag.evidence.map((e, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+              <span className={cn("mt-1 h-1.5 w-1.5 shrink-0 rounded-full", isHealthy ? "bg-emerald-500" : "bg-primary")} aria-hidden />
               {e}
             </li>
           ))}
@@ -367,7 +379,7 @@ function ArtifactsList({ run }: { run: Run }) {
       <CardHeader>
         <CardTitle>Artifacts</CardTitle>
         <CardDescription>
-          Generated files from this recovery run — download integration coming soon
+          Validated model checkpoints and evaluation reports available for secure download
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -382,22 +394,18 @@ function ArtifactsList({ run }: { run: Run }) {
                 <span className="truncate text-sm font-medium">{artifact.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(artifact.size_bytes)}</span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                isDisabled
-                aria-label={`Download ${artifact.name} (not yet available)`}
-                className="shrink-0 gap-1.5 opacity-50"
+              <a
+                href={getArtifactDownloadUrl(run.id, artifact.name)}
+                download={artifact.name}
+                className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 py-1 shrink-0 gap-1.5"
+                aria-label={`Download ${artifact.name}`}
               >
                 <Download className="size-3.5" aria-hidden />
                 Download
-              </Button>
+              </a>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Download buttons are disabled in this demo — file serving will be wired to the backend in a future release.
-        </p>
       </CardContent>
     </Card>
   );
@@ -577,6 +585,25 @@ export function RunDetailContent({ runId }: { runId: string }) {
       {/* ── Candidates table ──────────────────────────────────────────────── */}
       {isFinished && run.candidates.length > 0 && (
         <CandidatesTable candidates={run.candidates} />
+      )}
+      {isFinished && run.candidates.length === 0 && run.verdict === "healthy_no_action" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recovery Execution</CardTitle>
+            <CardDescription>Automated recovery pipeline status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-foreground">
+              <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div>
+                <p className="font-semibold text-emerald-700 dark:text-emerald-300">No Weight Modifications Required</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  The model satisfies all test accuracy, calibration (ECE), and loss thresholds. Automated intervention was safely bypassed, and the verified model was packaged directly as an accepted artifact.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* ── Before/after chart ────────────────────────────────────────────── */}

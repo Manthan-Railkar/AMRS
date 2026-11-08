@@ -26,23 +26,20 @@ export type Dataset = (typeof datasets)[number];
 // ─── New Run form ────────────────────────────────────────────────────────────
 
 export const newRunFormSchema = z.object({
-  scenarioId: z.enum(SCENARIO_IDS, {
-    message: "Please choose a scenario",
-  }),
+  scenarioId: z.enum(SCENARIO_IDS).optional(),
   file: z
     .any()
     .refine((f) => f instanceof File, { message: "A model file is required" })
     .refine(
       (f) =>
-        f instanceof File && (f.name.endsWith(".pt") || f.name.endsWith(".pth")),
-      { message: "File must be a .pt or .pth checkpoint" }
+        f instanceof File && (f.name.endsWith(".pt") || f.name.endsWith(".pth") || f.name.endsWith(".bin")),
+      { message: "File must be a .pt, .pth, or .bin checkpoint" }
     ),
   architecture: z.enum(architectures, {
     message: "Please select an architecture",
   }),
-  dataset: z.enum(datasets, {
-    message: "Please select a dataset",
-  }),
+  dataset: z.string().min(1, "Please select or provide a dataset"),
+  datasetFile: z.any().optional(),
 });
 
 export type NewRunForm = z.infer<typeof newRunFormSchema>;

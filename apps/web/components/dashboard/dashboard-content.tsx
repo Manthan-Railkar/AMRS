@@ -12,8 +12,11 @@ import { StrategySuccessChart } from "@/components/charts/strategy-success-chart
 import { ComputeComparisonChart } from "@/components/charts/compute-comparison-chart";
 import { ErrorState } from "@/components/status/error-state";
 import { getDashboardStats, getRecentModels } from "@/lib/api/dashboard";
+import { useCurrentUser } from "@/hooks/use-user";
 
 export function DashboardContent() {
+  const { data: currentUser } = useCurrentUser();
+
   const statsQuery = useQuery({
     queryKey: ["dashboard", "stats"],
     queryFn: getDashboardStats,
@@ -30,10 +33,12 @@ export function DashboardContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Dashboard
+            {currentUser?.fullName ? `Welcome, ${currentUser.fullName}` : "Dashboard"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Overview of uploaded models, recovery outcomes, and system performance.
+            {currentUser?.email
+              ? `Signed in as ${currentUser.email}. System overview and recovery outcomes.`
+              : "Overview of uploaded models, recovery outcomes, and system performance."}
           </p>
         </div>
         <LinkButton

@@ -1,5 +1,6 @@
 # AMRS gitignore
 artifacts/
+data/
 *.pt
 __pycache__/
 .venv/
@@ -36,6 +37,8 @@ out/
 *.pem
 /uploads/*
 !/uploads/.gitkeep
+/datasets/*
+!/datasets/.gitkeep
 
 # debug
 npm-debug.log*

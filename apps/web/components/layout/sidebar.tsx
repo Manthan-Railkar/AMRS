@@ -26,6 +26,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { useCurrentUser } from "@/hooks/use-user";
+import { signOutAction } from "@/app/actions/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface NavItemConfig {
   id: string;
@@ -74,6 +77,36 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const isReducedMotion = useReducedMotion();
+  const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
+
+  // Helper to extract clean initials from full name or email
+  const userInitials = React.useMemo(() => {
+    if (currentUser?.fullName) {
+      const parts = currentUser.fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      if (parts.length === 1 && parts[0].length > 0) {
+        return parts[0].slice(0, 2).toUpperCase();
+      }
+    }
+    if (currentUser?.email) {
+      return currentUser.email.slice(0, 2).toUpperCase();
+    }
+    return "MR";
+  }, [currentUser]);
+
+  const displayName = currentUser?.fullName || "Manthan Railkar";
+  const displayEmail = currentUser?.email || "ml-lead@amrs.local";
+
+  const handleSignOut = async () => {
+    setIsProfileOpen(false);
+    await signOutAction();
+    queryClient.setQueryData(["currentUser"], null);
+    router.push("/get-started");
+    router.refresh();
+  };
 
   // Quick search modal state
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -632,7 +665,7 @@ export function Sidebar({
               >
                 <div className="relative shrink-0">
                   <div className="size-9 rounded-full bg-linear-to-tr from-sidebar-primary to-sidebar-primary/60 text-sidebar-primary-foreground flex items-center justify-center font-bold text-xs shadow-xs">
-                    MR
+                    {userInitials}
                   </div>
                   <span
                     className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-sidebar"
@@ -641,10 +674,10 @@ export function Sidebar({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-sidebar-foreground truncate leading-tight">
-                    Manthan Railkar
+                    {displayName}
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                    ml-lead@amrs.local
+                    {displayEmail}
                   </p>
                 </div>
                 <ChevronsUpDown className="size-3.5 text-muted-foreground group-hover:text-sidebar-foreground shrink-0" aria-hidden="true" />
@@ -657,8 +690,8 @@ export function Sidebar({
                   role="menu"
                 >
                   <div className="px-2 py-1.5 border-b border-border/60 mb-1">
-                    <p className="text-xs font-semibold">Manthan Railkar</p>
-                    <p className="text-[11px] text-muted-foreground">Lead Machine Learning Engineer</p>
+                    <p className="text-xs font-semibold truncate">{displayName}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{displayEmail}</p>
                     <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                       <span className="size-1.5 rounded-full bg-emerald-500" /> Active in Workspace
                     </span>
@@ -688,10 +721,10 @@ export function Sidebar({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="w-full text-left text-xs px-2 py-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                      onClick={handleSignOut}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors flex items-center justify-between"
                     >
-                      Sign Out
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 </div>
@@ -707,13 +740,13 @@ export function Sidebar({
                   aria-label="User Profile"
                 >
                   <div className="size-8 rounded-full bg-linear-to-tr from-sidebar-primary to-sidebar-primary/60 text-sidebar-primary-foreground flex items-center justify-center font-bold text-xs shadow-xs">
-                    MR
+                    {userInitials}
                   </div>
                   <span className="absolute bottom-0 right-0 size-2 rounded-full bg-emerald-500 ring-1.5 ring-sidebar" />
                 </button>
                 <Tooltip placement="right">
-                  <div className="text-xs font-semibold">Manthan Railkar</div>
-                  <div className="text-[10px] text-muted-foreground">ml-lead@amrs.local</div>
+                  <div className="text-xs font-semibold">{displayName}</div>
+                  <div className="text-[10px] text-muted-foreground">{displayEmail}</div>
                   <div className="text-[10px] text-emerald-500 font-medium mt-0.5">● Online</div>
                 </Tooltip>
               </TooltipTrigger>

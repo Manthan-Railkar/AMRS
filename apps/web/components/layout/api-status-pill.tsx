@@ -17,6 +17,11 @@ const statusConfig: Record<
     dotClass: "bg-verdict-accepted",
     ariaLabel: "API Status: Online",
   },
+  healthy: {
+    label: "Online",
+    dotClass: "bg-verdict-accepted",
+    ariaLabel: "API Status: Online",
+  },
   degraded: {
     label: "Degraded",
     dotClass: "bg-verdict-rolled-back",
@@ -32,11 +37,10 @@ const statusConfig: Record<
 export function ApiStatusPill({ className }: ApiStatusPillProps) {
   const { data, isError } = useApiHealth();
 
-  const status: HealthStatus = isError
-    ? "offline"
-    : (data?.status ?? "online");
+  const rawStatus = isError ? "offline" : (data?.status ?? "online");
+  const status: HealthStatus = rawStatus === "healthy" ? "online" : rawStatus;
 
-  const current = statusConfig[status] ?? statusConfig.offline;
+  const current = statusConfig[status] ?? statusConfig.online;
 
   return (
     <div

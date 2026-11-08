@@ -83,6 +83,22 @@ export function RunsOverTimeChart({
     0
   );
 
+  if (data.length === 0 || total === 0) {
+    return (
+      <Card className={cn("flex flex-col", className)}>
+        <CardHeader>
+          <CardTitle>Runs Over Time</CardTitle>
+          <CardDescription>
+            Weekly recovery run outcomes
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex min-h-[220px] flex-col items-center justify-center p-8 text-center text-muted-foreground text-sm">
+          No recovery runs recorded yet. Start a recovery run to view timeline trends.
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("flex flex-col", className)}>
       <CardHeader>

@@ -38,7 +38,7 @@ export const MONITOR_EVENT_TYPES = [
   "action",
   "cooldown",
 ] as const;
-export const HEALTH_STATUSES = ["online", "degraded", "offline"] as const;
+export const HEALTH_STATUSES = ["online", "degraded", "offline", "healthy"] as const;
 
 export const scenarioIdSchema = z.enum(SCENARIO_IDS);
 export const ScenarioIdSchema = scenarioIdSchema;
@@ -115,6 +115,7 @@ export const runSchema = z.object({
   candidates: z.array(candidateSchema),
   original_metrics: metricsSchema,
   accepted_metrics: metricsSchema.nullable(),
+  accepted_strategy: z.string().nullable().optional(),
   compute_units: z.number(),
   artifacts: z.array(runArtifactSchema),
   error: z.string().nullable(),

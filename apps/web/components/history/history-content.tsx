@@ -304,14 +304,22 @@ export function HistoryContent() {
         />
       ) : sliced.length === 0 ? (
         <EmptyState
-          title="No runs match your filters"
-          description="Try adjusting or clearing your search and filter criteria."
+          title={hasFilters ? "No runs match your filters" : "No recovery runs yet"}
+          description={
+            hasFilters
+              ? "Try adjusting or clearing your search and filter criteria."
+              : "Upload a model checkpoint and dataset to initiate your first automated recovery run."
+          }
           action={
             hasFilters ? (
               <Button variant="outline" size="sm" onPress={clearFilters} className="gap-1.5">
                 <X className="size-3.5" aria-hidden /> Clear filters
               </Button>
-            ) : undefined
+            ) : (
+              <Link href="/runs/new" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+                Start new recovery
+              </Link>
+            )
           }
         />
       ) : (

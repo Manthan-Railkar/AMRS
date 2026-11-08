@@ -123,6 +123,33 @@ def build_and_load(
     else:
         state_dict = load_state_dict_safe(weights_source)
 
+    # Strip module. prefix if present (e.g. from torch.nn.DataParallel)
+    if any(k.startswith("module.") for k in state_dict.keys()):
+        state_dict = OrderedDict((k.removeprefix("module."), v) for k, v in state_dict.items())
+
+    # For mlp_small, allow flexible dynamic architecture adaptation to checkpoint weights
+    if arch == "mlp_small":
+        has_conv = any("conv" in k.lower() for k in state_dict.keys())
+        has_bn = any(
+            "bn" in k.lower() or "running_mean" in k.lower() or "running_var" in k.lower()
+            for k in state_dict.keys()
+        )
+        all_linear_shapes = all(
+            len(v.shape) in (1, 2) for v in state_dict.values()
+        )
+        weight_keys = [
+            k for k in state_dict.keys()
+            if k.endswith(".weight") and len(state_dict[k].shape) == 2
+        ]
+
+        if not has_conv and not has_bn and all_linear_shapes and len(weight_keys) >= 1:
+            from amrs.models.registry import DynamicMLP
+
+            dynamic_model = DynamicMLP(state_dict)
+            dynamic_model.load_state_dict(state_dict, strict=True)
+            dynamic_model.eval()
+            return dynamic_model
+
     model = build(arch, num_classes=num_classes, in_shape=in_shape)
     model_state = model.state_dict()
 
@@ -141,8 +168,17 @@ def build_and_load(
             )
 
     if missing_keys or unexpected_keys or shape_mismatches:
+        summary_reasons: list[str] = []
+        if shape_mismatches:
+            summary_reasons.append(f"Shape mismatches: {', '.join(shape_mismatches[:3])}")
+        if missing_keys:
+            summary_reasons.append(f"Missing keys: {', '.join(missing_keys[:3])}")
+        if unexpected_keys:
+            summary_reasons.append(f"Unexpected keys: {', '.join(unexpected_keys[:3])}")
+        detail_msg = f": {'; '.join(summary_reasons)}" if summary_reasons else ""
+
         raise ModelArchMismatchError(
-            message=f"Model architecture '{arch}' does not match checkpoint tensors.",
+            message=f"Model architecture '{arch}' does not match checkpoint tensors{detail_msg}.",
             details={
                 "arch": arch,
                 "missing_keys": missing_keys[:20],
@@ -215,3 +251,83 @@ def load_from_module(
         )
 
     return model
+
+
+def detect_architecture(
+    weights_source: str
+    | Path
+    | dict[str, torch.Tensor]
+    | OrderedDict[str, torch.Tensor]
+    | io.BytesIO
+    | bytes,
+    filename: str | None = None,
+) -> tuple[str, float, dict[str, Any]]:
+    """Automatically inspect a state_dict or weights file and identify its architecture.
+
+    Returns:
+        (detected_arch_name, confidence, details_dict)
+    """
+    if isinstance(weights_source, (dict, OrderedDict)):
+        state_dict = OrderedDict(weights_source)
+    else:
+        state_dict = load_state_dict_safe(weights_source)
+
+    keys = list(state_dict.keys())
+    details: dict[str, Any] = {
+        "num_tensors": len(keys),
+        "keys": keys[:10],
+    }
+
+    # Determine suggested dataset from input tensor shapes or filename
+    suggested_dataset: str | None = None
+    fn_lower = (filename or "").lower()
+
+    if "fc1.weight" in state_dict:
+        in_dim = state_dict["fc1.weight"].shape[1]
+        if in_dim == 784 or "mnist" in fn_lower:
+            suggested_dataset = "MNIST sample"
+        elif in_dim == 3072 or "cifar" in fn_lower:
+            suggested_dataset = "CIFAR-10 sample"
+    elif "mnist" in fn_lower:
+        suggested_dataset = "MNIST sample"
+    elif "cifar" in fn_lower:
+        suggested_dataset = "CIFAR-10 sample"
+
+    # 1. Check for ResNet-18 (residual blocks: layer1, layer2, layer3, layer4)
+    has_resnet_layers = any(
+        k.startswith("layer1.") or k.startswith("layer2.") or k.startswith("layer3.")
+        for k in keys
+    )
+    if has_resnet_layers or "resnet" in fn_lower:
+        details["reason"] = "Residual block hierarchy detected (layer1..layer4)"
+        details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
+        return "resnet18_cifar", 0.99, details
+
+    # 2. Check for SmallCNN (3 sequential conv + batchnorm blocks)
+    has_conv = any("conv" in k.lower() for k in keys)
+    has_bn = any(
+        "bn" in k.lower() or "batch_norm" in k.lower() or "running_mean" in k.lower()
+        for k in keys
+    )
+    has_blocks = any("block1" in k or "block2" in k or "block3" in k for k in keys)
+    if has_blocks or (has_conv and has_bn) or "cnn" in fn_lower:
+        details["reason"] = "Convolutional and BatchNorm block signatures detected"
+        details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
+        return "small_cnn", 0.98, details
+
+    # 3. Check for MLPSmall (linear layers only: fc1, fc2, fc, no convolutions, 1D/2D weights only)
+    has_fc_structure = any(
+        k.startswith("fc1.") or k.startswith("fc2.") or "fc." in k or k.startswith("fc3.")
+        for k in keys
+    )
+    all_linear = all(len(v.shape) in (1, 2) for v in state_dict.values())
+    if (has_fc_structure or all_linear or "mlp" in fn_lower) and not has_conv and not has_bn:
+        details["reason"] = "Dense / fully connected linear layer hierarchy detected"
+        details["suggested_dataset"] = suggested_dataset or "MNIST sample"
+        return "mlp_small", 0.99, details
+
+    # 4. Default fallback to resnet18_cifar if ambiguous
+    details["reason"] = "Default allowlisted architecture"
+    details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
+    return "resnet18_cifar", 0.70, details
+

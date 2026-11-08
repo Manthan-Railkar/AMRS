@@ -25,9 +25,10 @@ from amrs.errors import (
     PayloadTooLargeError,
     ValidationError,
 )
-from amrs.models.loader import build_and_load, load_state_dict_safe
+from amrs.models.loader import build_and_load, detect_architecture, load_state_dict_safe
 from amrs.models.registry import is_registered, list_registered
-from amrs.schemas import ModelUploadResponse
+from amrs.schemas import ModelDetectResponse, ModelUploadResponse
+from amrs.store.supabase import supabase_sync
 from amrs.utils.fs import assert_not_symlink, is_safe_filename, sanitize_filename
 
 router = APIRouter(prefix="/models", tags=["Models"])
@@ -44,6 +45,47 @@ def get_uploads_root() -> Path:
 
 
 @router.post(
+    "/detect-arch",
+    response_model=ModelDetectResponse,
+    summary="Auto-detect model architecture from checkpoint",
+    description="Inspect state_dict tensors and metadata to infer architecture and dataset automatically.",
+)
+async def detect_model_architecture(
+    file: UploadFile = File(...),
+) -> ModelDetectResponse:
+    # 1. Validate client filename for path traversal and dangerous characters
+    client_filename = file.filename or "model.pt"
+    if not is_safe_filename(client_filename):
+        raise ValidationError(
+            message="Malicious or invalid filename detected. Directory traversal characters are forbidden.",
+            details={"filename": client_filename},
+        )
+
+    ext = os.path.splitext(client_filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise ValidationError(
+            message=f"File extension '{ext}' is not supported. Allowed: {sorted(ALLOWED_EXTENSIONS)}",
+            details={"filename": client_filename, "allowed_extensions": sorted(ALLOWED_EXTENSIONS)},
+        )
+
+    content = await file.read()
+    if len(content) > DEFAULT_MAX_UPLOAD_BYTES:
+        raise PayloadTooLargeError(
+            message=f"File exceeds limit of {DEFAULT_MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+            details={"size_bytes": len(content)},
+        )
+
+    detected_arch, confidence, details = detect_architecture(content, filename=client_filename)
+    return ModelDetectResponse(
+        detected_arch=detected_arch,
+        confidence=confidence,
+        suggested_dataset=details.get("suggested_dataset"),
+        num_tensors=details.get("num_tensors", 0),
+        details=details,
+    )
+
+
+@router.post(
     "/upload",
     status_code=status.HTTP_201_CREATED,
     response_model=ModelUploadResponse,
@@ -52,9 +94,9 @@ def get_uploads_root() -> Path:
 )
 async def upload_model(
     file: UploadFile = File(...),
-    arch: str = Form(..., description="Architecture name from model registry"),
+    arch: str | None = Form(None, description="Architecture name from model registry (optional; auto-detected if omitted)"),
 ) -> ModelUploadResponse:
-    # 1. Enforce AMRS_ALLOW_UPLOAD environment variable (disabled by default)
+    # 1. Enforce AMRS_ALLOW_UPLOAD environment variable (disabled by default per BE-4)
     allow_upload = os.getenv("AMRS_ALLOW_UPLOAD", "0").lower() in ("1", "true", "yes")
     if not allow_upload:
         raise ForbiddenError(
@@ -64,8 +106,8 @@ async def upload_model(
             },
         )
 
-    # 2. Validate architecture against registry
-    if not is_registered(arch):
+    # 2. Validate architecture against registry if explicitly provided
+    if arch is not None and arch != "auto" and not is_registered(arch):
         raise ValidationError(
             message=f"Architecture '{arch}' is not in the supported model registry.",
             details={"arch": arch, "supported_architectures": list_registered()},
@@ -122,7 +164,12 @@ async def upload_model(
         # Step 7a: Must load cleanly with weights_only=True and contain only Tensors
         _ = load_state_dict_safe(target_path)
 
-        # Step 7b: Must match target architecture keys and shapes
+        # Step 7b: Auto-detect architecture if not explicitly provided or "auto"
+        if arch is None or arch == "auto":
+            detected_arch, _, _ = detect_architecture(target_path, filename=client_filename)
+            arch = detected_arch
+
+        # Step 7c: Must match target architecture keys and shapes
         _ = build_and_load(arch, target_path)
 
         # 8. Record metadata immutably
@@ -135,6 +182,18 @@ async def upload_model(
             "filename": safe_name,
         }
         (upload_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+        # 9. Sync to Supabase Storage and database asynchronously
+        try:
+            import threading
+            checkpoint_data = target_path.read_bytes()
+            threading.Thread(
+                target=supabase_sync.sync_model,
+                args=(upload_id, safe_name, arch, checkpoint_data, sha256_hash),
+                daemon=True,
+            ).start()
+        except Exception:
+            pass
 
     except Exception:
         # If any validation step fails, delete temporary upload files

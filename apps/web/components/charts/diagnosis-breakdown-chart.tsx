@@ -103,6 +103,22 @@ export function DiagnosisBreakdownChart({
     .sort((a, b) => b.count - a.count)
     .map((d) => ({ ...d, label: LABEL_MAP[d.label] ?? d.label }));
 
+  if (chartData.length === 0 || chartData.every((d) => d.count === 0)) {
+    return (
+      <Card className={cn("flex flex-col", className)}>
+        <CardHeader>
+          <CardTitle>Diagnosis Breakdown</CardTitle>
+          <CardDescription>
+            Primary failure mode detected across recovery runs
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex min-h-[220px] flex-col items-center justify-center p-8 text-center text-muted-foreground text-sm">
+          No failure diagnoses recorded yet.
+        </CardContent>
+      </Card>
+    );
+  }
+
   const topDiagnosis = chartData[0];
 
   return (

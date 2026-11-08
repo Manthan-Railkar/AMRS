@@ -16,6 +16,7 @@ from amrs.errors import (
 )
 from amrs.models.loader import (
     build_and_load,
+    detect_architecture,
     load_from_module,
     load_state_dict_safe,
 )
@@ -152,3 +153,62 @@ def make_test_model():
     assert isinstance(model, nn.Linear)
     assert model.in_features == 8
     assert model.out_features == 2
+
+
+def test_detect_architecture_mlp_small() -> None:
+    model = build("mlp_small")
+    buf = io.BytesIO()
+    torch.save(model.state_dict(), buf)
+    buf.seek(0)
+
+    arch, conf, details = detect_architecture(buf, filename="mnist_model.pt")
+    assert arch == "mlp_small"
+    assert conf >= 0.95
+    assert details["suggested_dataset"] == "MNIST sample"
+
+
+def test_detect_architecture_resnet18() -> None:
+    model = build("resnet18_cifar")
+    buf = io.BytesIO()
+    torch.save(model.state_dict(), buf)
+    buf.seek(0)
+
+    arch, conf, details = detect_architecture(buf, filename="weights.pt")
+    assert arch == "resnet18_cifar"
+    assert conf >= 0.95
+    assert details["suggested_dataset"] == "CIFAR-10 sample"
+
+
+def test_detect_architecture_small_cnn() -> None:
+    model = build("small_cnn")
+    buf = io.BytesIO()
+    torch.save(model.state_dict(), buf)
+    buf.seek(0)
+
+    arch, conf, details = detect_architecture(buf, filename="cnn_weights.pth")
+    assert arch == "small_cnn"
+    assert conf >= 0.95
+
+
+def test_build_and_load_dynamic_mlp_auto_adapts_to_user_weights() -> None:
+    # User checkpoint: 2-layer MLP (784 -> 64 -> 10)
+    user_checkpoint = {
+        "fc1.weight": torch.randn(64, 784),
+        "fc1.bias": torch.randn(64),
+        "fc2.weight": torch.randn(10, 64),
+        "fc2.bias": torch.randn(10),
+    }
+    buf = io.BytesIO()
+    torch.save(user_checkpoint, buf)
+    buf.seek(0)
+
+    # Should automatically adapt to the user's exact weights and biases
+    model = build_and_load("mlp_small", buf)
+    assert isinstance(model, nn.Module)
+    
+    # Verify forward pass
+    x = torch.randn(4, 784)
+    out = model(x)
+    assert out.shape == (4, 10)
+
+

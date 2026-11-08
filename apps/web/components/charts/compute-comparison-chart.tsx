@@ -79,6 +79,22 @@ export function ComputeComparisonChart({
     );
   }
 
+  if (data.length === 0 || data.every((d) => d.amrsCompute === 0 && d.fullRetrainCompute === 0)) {
+    return (
+      <Card className={cn("flex flex-col", className)}>
+        <CardHeader>
+          <CardTitle>Compute Comparison</CardTitle>
+          <CardDescription>
+            AMRS compute units vs. full retraining compute units
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex min-h-[220px] flex-col items-center justify-center p-8 text-center text-muted-foreground text-sm">
+          No compute comparison data recorded yet.
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("flex flex-col", className)}>
       <CardHeader>

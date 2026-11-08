@@ -2,11 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
+import { useQueryClient } from "@tanstack/react-query";
 import Carousel from "./Carousel";
-import { createClient } from "@/lib/supabase/client";
+import {
+  signUpAction,
+  signInAction,
+  getGoogleOAuthUrlAction,
+} from "@/app/actions/auth";
 
 interface AuthCardProps {
   initialMode?: "signup" | "login";
@@ -17,7 +23,7 @@ interface AuthCardProps {
 export default function AuthCard({ initialMode = "signup", onClose, isModal = false }: AuthCardProps) {
   const root = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const [mode, setMode] = useState<"signup" | "login">(initialMode);
   const [showPassword, setShowPassword] = useState(false);
@@ -64,64 +70,38 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
 
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+        const res = await signUpAction({
+          firstName,
+          lastName,
+          email,
           password,
-          options: {
-            data: {
-              first_name: firstName.trim(),
-              last_name: lastName.trim(),
-              full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-            },
-            emailRedirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/auth/callback`,
-          },
         });
 
-        if (error) {
-          setErrorMsg(error.message);
+        if (!res.success) {
+          setErrorMsg(res.error || "Failed to create account.");
         } else {
-          // Sync account data directly to the database public.profiles table
-          if (data.user) {
-            try {
-              await supabase.from("profiles").upsert({
-                id: data.user.id,
-                email: email.trim(),
-                first_name: firstName.trim(),
-                last_name: lastName.trim(),
-                full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-                updated_at: new Date().toISOString(),
-              });
-            } catch (dbErr) {
-              console.warn("Direct profile sync notice:", dbErr);
-            }
-          }
-
-          if (data.session) {
-            setSuccessMsg("Account created and saved to database! Redirecting...");
-            setTimeout(() => {
-              router.push("/dashboard");
-              router.refresh();
-            }, 1200);
-          } else {
-            setSuccessMsg(
-              "Account registered in database! Please check your email inbox to confirm your account."
-            );
-          }
-        }
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
-        if (error) {
-          setErrorMsg(error.message);
-        } else if (data.session) {
-          setSuccessMsg("Logged in successfully! Redirecting...");
+          setSuccessMsg("Account created and saved to database! Redirecting to dashboard...");
+          await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
           setTimeout(() => {
             router.push("/dashboard");
             router.refresh();
-          }, 1000);
+          }, 800);
+        }
+      } else {
+        const res = await signInAction({
+          email,
+          password,
+        });
+
+        if (!res.success) {
+          setErrorMsg(res.error || "Failed to log in.");
+        } else {
+          setSuccessMsg("Logged in successfully! Redirecting to dashboard...");
+          await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+          setTimeout(() => {
+            router.push("/dashboard");
+            router.refresh();
+          }, 800);
         }
       }
     } catch (err: unknown) {
@@ -138,20 +118,14 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/auth/callback`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const res = await getGoogleOAuthUrlAction(`${origin}/auth/callback`);
 
-      if (error) {
-        setErrorMsg(error.message);
+      if (res.error) {
+        setErrorMsg(res.error);
         setLoading(false);
+      } else if (res.url) {
+        window.location.href = res.url;
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to initiate Google sign in.";
@@ -204,7 +178,7 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
         </div>
 
         {/* Top-Right: Back to website pill */}
-        <a
+        <Link
           href="/"
           className="absolute right-[16px] sm:right-[26px] top-[18px] sm:top-[26px] z-20 flex h-[32px] sm:h-[34px] items-center gap-1.5 sm:gap-2 rounded-full bg-white/[0.14] px-3 sm:px-[16px] text-[12px] sm:text-[14px] font-medium text-white backdrop-blur-md border border-white/10 transition-colors hover:bg-white/25 shadow-sm"
         >
@@ -221,7 +195,7 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
           >
             <path d="M2 7h10M8 3l4 4-4 4" />
           </svg>
-        </a>
+        </Link>
       </section>
 
       {/* Right panel: Authentication form */}

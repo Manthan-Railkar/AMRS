@@ -348,10 +348,10 @@ export function FeedbackContent() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="p-3.5 sm:p-4 rounded-xl bg-card/60 border border-border/80 shadow-2xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Total Requests</p>
-            <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+            <span className="block text-xs font-medium text-muted-foreground">Total Requests</span>
+            <div className="text-xl sm:text-2xl font-bold text-foreground mt-1">
               {statsQuery.data ? statsQuery.data.totalCount : <Skeleton className="h-7 w-12" />}
-            </p>
+            </div>
           </div>
           <span className="p-2 rounded-lg bg-primary/10 text-primary">
             <Layers className="size-4" aria-hidden="true" />
@@ -360,10 +360,10 @@ export function FeedbackContent() {
 
         <div className="p-3.5 sm:p-4 rounded-xl bg-card/60 border border-border/80 shadow-2xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">In Progress</p>
-            <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+            <span className="block text-xs font-medium text-muted-foreground">In Progress</span>
+            <div className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
               {statsQuery.data ? statsQuery.data.inProgressCount : <Skeleton className="h-7 w-12" />}
-            </p>
+            </div>
           </div>
           <span className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
             <Zap className="size-4" aria-hidden="true" />
@@ -372,10 +372,10 @@ export function FeedbackContent() {
 
         <div className="p-3.5 sm:p-4 rounded-xl bg-card/60 border border-border/80 shadow-2xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Resolved</p>
-            <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+            <span className="block text-xs font-medium text-muted-foreground">Resolved</span>
+            <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
               {statsQuery.data ? statsQuery.data.completedCount : <Skeleton className="h-7 w-12" />}
-            </p>
+            </div>
           </div>
           <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
             <CheckCheck className="size-4" aria-hidden="true" />
@@ -384,10 +384,10 @@ export function FeedbackContent() {
 
         <div className="p-3.5 sm:p-4 rounded-xl bg-card/60 border border-border/80 shadow-2xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Satisfaction</p>
-            <p className="text-xl sm:text-2xl font-bold text-primary mt-1">
+            <span className="block text-xs font-medium text-muted-foreground">Satisfaction</span>
+            <div className="text-xl sm:text-2xl font-bold text-primary mt-1">
               {statsQuery.data ? `${statsQuery.data.avgRating} / 5` : <Skeleton className="h-7 w-14" />}
-            </p>
+            </div>
           </div>
           <span className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
             <HeartHandshake className="size-4" aria-hidden="true" />

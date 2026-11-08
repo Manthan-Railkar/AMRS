@@ -239,6 +239,24 @@ class ModelUploadResponse(BaseModel):
     size_bytes: int
 
 
+class ModelDetectResponse(BaseModel):
+    detected_arch: str
+    confidence: float
+    suggested_dataset: str | None = None
+    num_tensors: int
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class DatasetUploadResponse(BaseModel):
+    dataset_upload_id: str
+    filename: str
+    format: str
+    num_samples: int
+    num_classes: int
+    size_bytes: int
+    sha256: str
+
+
 # ---------------------------------------------------------------------------
 # Run Lifecycle & Detail Schemas
 # ---------------------------------------------------------------------------
@@ -247,12 +265,16 @@ class ModelUploadResponse(BaseModel):
 class RunCreateRequest(BaseModel):
     scenario_id: str | None = Field(None, description="Preset scenario ID (e.g. s1_overfit)")
     model_upload_id: str | None = Field(None, description="ID of previously uploaded model weights")
+    dataset_upload_id: str | None = Field(None, description="ID of previously uploaded dataset")
     arch: str | None = Field(None, description="Architecture name from model registry")
+    architecture: str | None = Field(None, description="Alias for arch from frontend client")
     config_overrides: dict[str, Any] | None = Field(None, description="YAML config overrides")
     seed: int | None = Field(None, description="Deterministic seed")
 
     @model_validator(mode="after")
     def validate_intake_source(self) -> RunCreateRequest:
+        if not self.arch and self.architecture:
+            self.arch = self.architecture
         if not self.scenario_id and not self.model_upload_id:
             raise ValueError("Either 'scenario_id' or 'model_upload_id' must be provided.")
         if self.model_upload_id and not self.arch:
@@ -423,6 +445,7 @@ class RunDetailResponse(BaseModel):
     compute_units_total: float | None = None
     diagnoses: list[DiagnosisItem] = Field(default_factory=list)
     candidates: list[CandidateSummary] = Field(default_factory=list)
+    artifacts: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RunCancelResponse(BaseModel):

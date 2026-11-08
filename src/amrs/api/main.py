@@ -17,6 +17,7 @@ from amrs import __version__
 from amrs.api.routes import (
     benchmarks,
     config,
+    datasets,
     health,
     models,
     monitor,
@@ -24,6 +25,22 @@ from amrs.api.routes import (
     scenarios,
 )
 from amrs.errors import AmrsError
+
+# Load .env.local / .env if present
+for _env_file in (".env.local", ".env"):
+    _env_path = os.path.join(os.getcwd(), _env_file)
+    if os.path.exists(_env_path):
+        try:
+            with open(_env_path, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        _k, _v = _k.strip(), _v.strip()
+                        if _k and _k not in os.environ:
+                            os.environ[_k] = _v
+        except Exception:
+            pass
 
 logger = logging.getLogger("amrs.api")
 
@@ -217,6 +234,7 @@ def create_app() -> FastAPI:
     v1_router.include_router(scenarios.router)
     v1_router.include_router(runs.router)
     v1_router.include_router(models.router)
+    v1_router.include_router(datasets.router)
     v1_router.include_router(monitor.router)
     v1_router.include_router(benchmarks.router)
 

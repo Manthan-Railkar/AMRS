@@ -9,7 +9,7 @@ Supported architectures:
 from __future__ import annotations
 
 import math
-from typing import Callable
+from typing import Any, Callable, OrderedDict
 
 import torch
 import torch.nn as nn
@@ -65,6 +65,62 @@ class MLPSmall(nn.Module):
         x = self.relu1(self.fc1(x))
         x = self.relu2(self.fc2(x))
         return self.fc(x)
+
+
+class DynamicMLP(nn.Module):
+    """Dynamically configured multi-layer perceptron adapting to checkpoint structure."""
+
+    def __init__(self, state_dict: OrderedDict[str, torch.Tensor]) -> None:
+        super().__init__()
+        self._initializing = True
+        self.flatten = nn.Flatten()
+        self.layer_paths: list[str] = []
+        weight_keys = [
+            k for k in state_dict.keys()
+            if k.endswith(".weight") and len(state_dict[k].shape) == 2
+        ]
+        for wk in weight_keys:
+            path = wk.removesuffix(".weight")
+            w = state_dict[wk]
+            has_b = f"{path}.bias" in state_dict
+            linear = nn.Linear(w.shape[1], w.shape[0], bias=has_b)
+            parts = path.split(".")
+            curr = self
+            for part in parts[:-1]:
+                if not hasattr(curr, part):
+                    curr.add_module(part, nn.Sequential())
+                curr = getattr(curr, part)
+            curr.add_module(parts[-1], linear)
+            self.layer_paths.append(path)
+        self._initializing = False
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "fc" and not self.__dict__.get("_initializing", True):
+            if "_modules" in self.__dict__ and "fc" in self._modules:
+                return self._modules["fc"]
+            if "layer_paths" in self.__dict__ and self.layer_paths:
+                parts = self.layer_paths[-1].split(".")
+                curr: Any = self
+                for p in parts:
+                    curr = (
+                        curr._modules[p]
+                        if hasattr(curr, "_modules") and p in curr._modules
+                        else getattr(curr, p)
+                    )
+                return curr
+        return super().__getattr__(name)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.flatten(x)
+        for i, path in enumerate(self.layer_paths):
+            parts = path.split(".")
+            curr: Any = self
+            for p in parts:
+                curr = getattr(curr, p)
+            x = curr(x)
+            if i < len(self.layer_paths) - 1:
+                x = torch.relu(x)
+        return x
 
 
 class SmallCNN(nn.Module):

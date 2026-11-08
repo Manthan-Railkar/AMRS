@@ -94,6 +94,22 @@ export function StrategySuccessChart({
       accepted: s.accepted,
     }));
 
+  if (chartData.length === 0 || chartData.every((s) => s.attempts === 0)) {
+    return (
+      <Card className={cn("flex flex-col", className)}>
+        <CardHeader>
+          <CardTitle>Strategy Success Rate</CardTitle>
+          <CardDescription>
+            Gate acceptance rate by recovery strategy
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex min-h-[220px] flex-col items-center justify-center p-8 text-center text-muted-foreground text-sm">
+          No recovery strategy trials recorded yet.
+        </CardContent>
+      </Card>
+    );
+  }
+
   const best = chartData[0];
 
   return (
