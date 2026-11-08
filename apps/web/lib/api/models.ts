@@ -55,29 +55,35 @@ export async function detectModelArchitecture(
 
 export async function uploadModel(
   file: File,
-  arch: string
+  arch: string,
+  userId?: string
 ): Promise<ModelUploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("arch", arch);
+  if (userId) formData.append("user_id", userId);
 
   return apiFetch<ModelUploadResponse>("/models/upload", {
     method: "POST",
     body: formData,
+    headers: userId ? { "X-User-ID": userId } : {},
   });
 }
 
 export async function uploadDataset(
   file: File,
-  datasetName?: string
+  datasetName?: string,
+  userId?: string
 ): Promise<DatasetUploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
   if (datasetName) formData.append("dataset_name", datasetName);
+  if (userId) formData.append("user_id", userId);
 
   return apiFetch<DatasetUploadResponse>("/datasets/upload", {
     method: "POST",
     body: formData,
+    headers: userId ? { "X-User-ID": userId } : {},
   });
 }
 

@@ -136,18 +136,24 @@ class SupabaseSync:
     # ---------------------------------------------------------------------
 
     def sync_model(
-        self, model_id: str, name: str, arch: str, checkpoint_bytes: bytes, sha256: str
+        self,
+        model_id: str,
+        name: str,
+        arch: str,
+        checkpoint_bytes: bytes,
+        sha256: str,
+        user_id: str | None = None,
     ) -> None:
         """Upload model checkpoint to Supabase Storage and record in model_uploads table."""
         storage_path = f"{model_id}/model.pt"
         pub_url = self.upload_storage_file("models", storage_path, checkpoint_bytes)
-        user_id = self.get_first_user_id()
+        effective_user_id = user_id or self.get_first_user_id()
 
         self.postgrest_insert(
             "model_uploads",
             {
                 "id": model_id,
-                "user_id": user_id,
+                "user_id": effective_user_id,
                 "name": name,
                 "architecture": arch,
                 "checkpoint_path": pub_url or storage_path,
@@ -167,17 +173,18 @@ class SupabaseSync:
         num_samples: int,
         num_classes: int,
         sha256: str,
+        user_id: str | None = None,
     ) -> None:
         """Upload dataset file to Supabase Storage and record in dataset_uploads table."""
         storage_path = f"{dataset_id}/data.{format_str}"
         pub_url = self.upload_storage_file("datasets", storage_path, file_bytes)
-        user_id = self.get_first_user_id()
+        effective_user_id = user_id or self.get_first_user_id()
 
         self.postgrest_insert(
             "dataset_uploads",
             {
                 "id": dataset_id,
-                "user_id": user_id,
+                "user_id": effective_user_id,
                 "name": name,
                 "file_path": pub_url or storage_path,
                 "format": format_str,
@@ -190,15 +197,21 @@ class SupabaseSync:
         )
 
     def sync_run_start(
-        self, run_id: str, model_id: str | None, dataset_id: str | None, arch: str, seed: int
+        self,
+        run_id: str,
+        model_id: str | None,
+        dataset_id: str | None,
+        arch: str,
+        seed: int,
+        user_id: str | None = None,
     ) -> None:
         """Record newly initiated recovery run in recovery_runs table."""
-        user_id = self.get_first_user_id()
+        effective_user_id = user_id or self.get_first_user_id()
         self.postgrest_insert(
             "recovery_runs",
             {
                 "id": run_id,
-                "user_id": user_id,
+                "user_id": effective_user_id,
                 "model_id": model_id,
                 "dataset_id": dataset_id,
                 "status": "running",

@@ -80,12 +80,18 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
         if (!res.success) {
           setErrorMsg(res.error || "Failed to create account.");
         } else {
+          if (res.user?.id) {
+            localStorage.setItem("amrs_active_user_id", res.user.id);
+            localStorage.setItem("amrs_active_user_email", res.user.email);
+            document.cookie = `amrs_user_id=${res.user.id}; path=/; max-age=2592000; SameSite=Lax`;
+          }
           setSuccessMsg("Account created and saved to database! Redirecting to dashboard...");
-          await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+          queryClient.clear();
+          await queryClient.invalidateQueries();
           setTimeout(() => {
             router.push("/dashboard");
             router.refresh();
-          }, 800);
+          }, 600);
         }
       } else {
         const res = await signInAction({
@@ -96,12 +102,18 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
         if (!res.success) {
           setErrorMsg(res.error || "Failed to log in.");
         } else {
+          if (res.user?.id) {
+            localStorage.setItem("amrs_active_user_id", res.user.id);
+            localStorage.setItem("amrs_active_user_email", res.user.email);
+            document.cookie = `amrs_user_id=${res.user.id}; path=/; max-age=2592000; SameSite=Lax`;
+          }
           setSuccessMsg("Logged in successfully! Redirecting to dashboard...");
-          await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+          queryClient.clear();
+          await queryClient.invalidateQueries();
           setTimeout(() => {
             router.push("/dashboard");
             router.refresh();
-          }, 800);
+          }, 600);
         }
       }
     } catch (err: unknown) {

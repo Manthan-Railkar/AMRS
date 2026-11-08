@@ -171,7 +171,7 @@ class JobCoordinator:
                 self._active_run_id = None
         return False
 
-    def create_run(self, req: RunCreateRequest) -> str:
+    def create_run(self, req: RunCreateRequest, user_id: str | None = None) -> str:
         """Enqueue a recovery run and dispatch execution to the background worker thread.
 
         Enforces single-worker concurrency guard (409 CONFLICT) and returns immediately.
@@ -188,6 +188,7 @@ class JobCoordinator:
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         arch = req.arch or "resnet18_cifar"
         seed = req.seed if req.seed is not None else 1234
+        effective_user_id = user_id or req.user_id
 
         # Ensure isolated per-run storage exists
         run_dir = self.get_run_artifact_dir(run_id)
@@ -233,6 +234,7 @@ class JobCoordinator:
             compute_units_total=None,
             diagnoses=[],
             candidates=[],
+            user_id=effective_user_id,
         )
 
         # Persist to DB outside memory lock
@@ -245,6 +247,7 @@ class JobCoordinator:
                 dataset_id=getattr(req, "dataset_upload_id", None),
                 arch=arch,
                 seed=seed,
+                user_id=effective_user_id,
             )
         except Exception:
             pass
@@ -790,12 +793,14 @@ class JobCoordinator:
         self,
         verdict: str | None = None,
         scenario_id: str | None = None,
+        user_id: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[RunSummary], int]:
         return self.run_repo.list_runs(
             verdict=verdict,
             scenario_id=scenario_id,
+            user_id=user_id,
             limit=limit,
             offset=offset,
         )

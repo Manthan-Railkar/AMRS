@@ -90,6 +90,7 @@ export interface ListHistoryFilters {
   verdict?: string;
   scenario_id?: string;
   architecture?: string;
+  user_id?: string;
 }
 
 /**
@@ -101,6 +102,7 @@ export async function listHistoryRuns(
   try {
     const res = await listRunsApi({
       verdict: filters?.verdict !== "all" ? filters?.verdict : undefined,
+      user_id: filters?.user_id,
       limit: 100,
     });
     if (res && Array.isArray(res.runs) && res.runs.length > 0) {

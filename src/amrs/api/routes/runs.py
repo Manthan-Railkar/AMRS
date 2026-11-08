@@ -1,6 +1,6 @@
 """Recovery run lifecycle and artifact endpoints."""
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Header, Query, Response, status
 
 from amrs.api.deps import get_coordinator
 from amrs.api.jobs import JobCoordinator
@@ -24,9 +24,11 @@ router = APIRouter(prefix="/runs", tags=["Runs"])
 )
 async def create_run(
     req: RunCreateRequest,
+    x_user_id: str | None = Header(None, alias="X-User-ID"),
     coordinator: JobCoordinator = Depends(get_coordinator),
 ) -> RunCreateResponse:
-    run_id = coordinator.create_run(req)
+    effective_user_id = req.user_id or x_user_id
+    run_id = coordinator.create_run(req, user_id=effective_user_id)
     return RunCreateResponse(run_id=run_id, status="queued")
 
 
@@ -39,13 +41,17 @@ async def create_run(
 async def list_runs(
     verdict: str | None = Query(None, description="Filter by terminal verdict"),
     scenario_id: str | None = Query(None, description="Filter by scenario ID"),
+    user_id: str | None = Query(None, description="Filter runs by authenticated user ID"),
+    x_user_id: str | None = Header(None, alias="X-User-ID"),
     limit: int = Query(50, ge=1, le=100, description="Items per page"),
     offset: int = Query(0, ge=0, description="Page offset"),
     coordinator: JobCoordinator = Depends(get_coordinator),
 ) -> RunListResponse:
+    effective_user_id = user_id or x_user_id
     runs, total = coordinator.list_runs(
         verdict=verdict,
         scenario_id=scenario_id,
+        user_id=effective_user_id,
         limit=limit,
         offset=offset,
     )

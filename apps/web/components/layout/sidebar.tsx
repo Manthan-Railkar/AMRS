@@ -98,16 +98,21 @@ export function Sidebar({
     if (currentUser?.email) {
       return currentUser.email.slice(0, 2).toUpperCase();
     }
-    return "MR";
+    return "AM";
   }, [currentUser]);
 
-  const displayName = currentUser?.fullName || "Manthan Railkar";
-  const displayEmail = currentUser?.email || "ml-lead@amrs.local";
+  const displayName = currentUser?.fullName || (currentUser?.email ? currentUser.email.split("@")[0] : "Guest User");
+  const displayEmail = currentUser?.email || "guest@amrs.local";
 
   const handleSignOut = async () => {
     setIsProfileOpen(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("amrs_active_user_id");
+      localStorage.removeItem("amrs_active_user_email");
+      document.cookie = "amrs_user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
     await signOutAction();
-    queryClient.setQueryData(["currentUser"], null);
+    queryClient.clear();
     router.push("/get-started");
     router.refresh();
   };
@@ -119,37 +124,13 @@ export function Sidebar({
   // Notification dialog state
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
 
-  // Dynamic system notifications
+  // Dynamic system notifications scoped to current profile
   const {
     notifications,
     unreadCount,
     markAllNotificationsRead,
     clearAllNotifications,
-  } = useNotifications();
-
-  // Pre-seed initial dynamic notifications if storage is empty
-  React.useEffect(() => {
-    if (notifications.length === 0) {
-      addNotification({
-        title: "Model uploaded: mnist_mlp.pt",
-        description: "Architecture mlp_small verified (201.3 KB)",
-        type: "upload",
-        statusColor: "emerald",
-      });
-      addNotification({
-        title: "Nominal health verified: mnist_mlp.pt",
-        description: "Holdout accuracy 97.43% with 0 dead neurons",
-        type: "completed",
-        statusColor: "emerald",
-      });
-      addNotification({
-        title: "Recovery artifacts ready",
-        description: "accepted_model.pt (206 KB) available for download",
-        type: "completed",
-        statusColor: "primary",
-      });
-    }
-  }, [notifications.length]);
+  } = useNotifications(currentUser?.id);
 
   // Profile popover state
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);

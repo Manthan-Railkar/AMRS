@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS runs (
     accepted_strategy TEXT,
     error_message TEXT,
     duration_s REAL,
-    compute_units_total REAL
+    compute_units_total REAL,
+    user_id TEXT
 );
 
 -- Diagnoses table

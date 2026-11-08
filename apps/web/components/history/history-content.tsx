@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { useCurrentUser } from "@/hooks/use-user";
 import { listHistoryRuns } from "@/lib/api/recovery";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -156,14 +157,17 @@ export function HistoryContent() {
     }
   }
 
+  const { data: currentUser } = useCurrentUser();
+
   const query = useQuery({
-    queryKey: ["historyRuns", search, verdict, scenario_id, architecture],
+    queryKey: ["historyRuns", currentUser?.id, search, verdict, scenario_id, architecture],
     queryFn: () =>
       listHistoryRuns({
         search: search || undefined,
         verdict: verdict !== "all" ? verdict : undefined,
         scenario_id: scenario_id !== "all" ? scenario_id : undefined,
         architecture: architecture !== "all" ? architecture : undefined,
+        user_id: currentUser?.id,
       }),
   });
 

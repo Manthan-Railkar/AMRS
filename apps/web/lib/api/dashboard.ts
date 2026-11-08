@@ -26,9 +26,9 @@ export const EMPTY_DASHBOARD_STATS: DashboardStats = {
  * Returns aggregate KPI stats and chart data for the dashboard.
  * Queries the real backend. If no runs exist, returns genuine zero values.
  */
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(userId?: string): Promise<DashboardStats> {
   try {
-    const runsRes = await listRunsApi({ limit: 100 });
+    const runsRes = await listRunsApi({ limit: 100, user_id: userId });
     if (runsRes && Array.isArray(runsRes.runs) && runsRes.runs.length > 0) {
       const runs = runsRes.runs;
       const total = runs.length;
@@ -143,9 +143,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
  * Returns recently uploaded models or runs.
  * If no runs exist in the database, returns an empty array.
  */
-export async function getRecentModels(): Promise<UploadedModel[]> {
+export async function getRecentModels(userId?: string): Promise<UploadedModel[]> {
   try {
-    const runsRes = await listRunsApi({ limit: 10 });
+    const runsRes = await listRunsApi({ limit: 10, user_id: userId });
     if (runsRes && Array.isArray(runsRes.runs) && runsRes.runs.length > 0) {
       return runsRes.runs.slice(0, 8).map((r) => {
         const scenarioMatch = (r.scenario_id ? (r.scenario_id.toUpperCase().slice(0, 2) as ScenarioId) : "S1");

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, File, Form, Header, UploadFile, status
 
 from amrs.errors import (
     PayloadTooLargeError,
@@ -121,7 +121,10 @@ def inspect_dataset_contents(path: Path, ext: str) -> tuple[int, int]:
 async def upload_dataset(
     file: UploadFile = File(...),
     dataset_name: str | None = Form(None, description="Optional custom name for dataset"),
+    user_id: str | None = Form(None, description="Authenticated user ID"),
+    x_user_id: str | None = Header(None, alias="X-User-ID"),
 ) -> DatasetUploadResponse:
+    effective_user_id = user_id or x_user_id
     client_filename = file.filename or "dataset.npz"
     if not is_safe_filename(client_filename):
         raise ValidationError(
@@ -175,6 +178,7 @@ async def upload_dataset(
             "size_bytes": total_bytes,
             "num_samples": num_samples,
             "num_classes": num_classes,
+            "user_id": effective_user_id,
         }
         (upload_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
@@ -193,6 +197,7 @@ async def upload_dataset(
                     num_samples,
                     num_classes,
                     sha256_hash,
+                    effective_user_id,
                 ),
                 daemon=True,
             ).start()

@@ -270,6 +270,7 @@ class RunCreateRequest(BaseModel):
     architecture: str | None = Field(None, description="Alias for arch from frontend client")
     config_overrides: dict[str, Any] | None = Field(None, description="YAML config overrides")
     seed: int | None = Field(None, description="Deterministic seed")
+    user_id: str | None = Field(None, description="ID of authenticated user initiating run")
 
     @model_validator(mode="after")
     def validate_intake_source(self) -> RunCreateRequest:
@@ -302,6 +303,7 @@ class RunSummary(BaseModel):
     primary_diagnosis: str | None = None
     diagnoses: list[dict[str, Any]] = []
     candidates: list[dict[str, Any]] = []
+    user_id: str | None = None
 
     @model_validator(mode="after")
     def populate_run_summary_aliases(self) -> Self:
@@ -456,6 +458,7 @@ class RunDetailResponse(BaseModel):
     diagnoses: list[DiagnosisItem] = Field(default_factory=list)
     candidates: list[CandidateSummary] = Field(default_factory=list)
     artifacts: list[dict[str, Any]] = Field(default_factory=list)
+    user_id: str | None = None
 
 
 class RunCancelResponse(BaseModel):

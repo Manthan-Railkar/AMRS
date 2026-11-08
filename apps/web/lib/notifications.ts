@@ -21,9 +21,8 @@ export interface SystemNotification {
   href?: string;
   read: boolean;
   statusColor?: string; // e.g. "emerald", "primary", "amber", "rose"
+  userId?: string;
 }
-
-const STORAGE_KEY = "amrs_system_notifications_v1";
 
 let listeners: Array<() => void> = [];
 
@@ -33,10 +32,20 @@ function emitChange() {
   }
 }
 
-function getStoredNotifications(): SystemNotification[] {
+export function getNotificationStorageKey(userId?: string | null): string {
+  if (userId) return `amrs_notifications_${userId}`;
+  if (typeof window !== "undefined") {
+    const active = localStorage.getItem("amrs_active_user_id");
+    if (active) return `amrs_notifications_${active}`;
+  }
+  return "amrs_notifications_guest";
+}
+
+function getStoredNotifications(userId?: string | null): SystemNotification[] {
   if (typeof window === "undefined") return [];
+  const key = getNotificationStorageKey(userId);
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -45,10 +54,11 @@ function getStoredNotifications(): SystemNotification[] {
   }
 }
 
-function saveNotifications(items: SystemNotification[]): void {
+function saveNotifications(items: SystemNotification[], userId?: string | null): void {
   if (typeof window === "undefined") return;
+  const key = getNotificationStorageKey(userId);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, 50)));
+    localStorage.setItem(key, JSON.stringify(items.slice(0, 50)));
   } catch {
     // Ignore storage quota
   }
@@ -71,10 +81,17 @@ export function formatRelativeTime(timestamp: number): string {
 }
 
 /**
- * Add a new dynamic notification
+ * Add a new dynamic notification scoped to the current or specified user
  */
-export function addNotification(item: Omit<SystemNotification, "id" | "timestamp" | "read"> & { id?: string; timestamp?: number }): SystemNotification {
-  const current = getStoredNotifications();
+export function addNotification(
+  item: Omit<SystemNotification, "id" | "timestamp" | "read"> & {
+    id?: string;
+    timestamp?: number;
+    userId?: string | null;
+  }
+): SystemNotification {
+  const targetUserId = item.userId;
+  const current = getStoredNotifications(targetUserId);
   const newItem: SystemNotification = {
     id: item.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     title: item.title,
@@ -84,11 +101,16 @@ export function addNotification(item: Omit<SystemNotification, "id" | "timestamp
     runId: item.runId,
     href: item.href,
     read: false,
-    statusColor: item.statusColor || (
-      item.type === "completed" || item.type === "upload" ? "emerald" :
-      item.type === "error" ? "rose" :
-      item.type === "strategy" ? "amber" : "primary"
-    ),
+    statusColor:
+      item.statusColor ||
+      (item.type === "completed" || item.type === "upload"
+        ? "emerald"
+        : item.type === "error"
+          ? "rose"
+          : item.type === "strategy"
+            ? "amber"
+            : "primary"),
+    userId: targetUserId || undefined,
   };
 
   // Avoid identical duplicate within 5 seconds
@@ -98,45 +120,46 @@ export function addNotification(item: Omit<SystemNotification, "id" | "timestamp
 
   if (!isDuplicate) {
     const updated = [newItem, ...current];
-    saveNotifications(updated);
+    saveNotifications(updated, targetUserId);
   }
 
   return newItem;
 }
 
 /**
- * Mark all notifications as read
+ * Mark all notifications as read for current/specified user
  */
-export function markAllNotificationsRead(): void {
-  const current = getStoredNotifications();
+export function markAllNotificationsRead(userId?: string | null): void {
+  const current = getStoredNotifications(userId);
   const updated = current.map((n) => ({ ...n, read: true }));
-  saveNotifications(updated);
+  saveNotifications(updated, userId);
 }
 
 /**
- * Clear all notifications
+ * Clear all notifications for current/specified user
  */
-export function clearAllNotifications(): void {
-  saveNotifications([]);
+export function clearAllNotifications(userId?: string | null): void {
+  saveNotifications([], userId);
 }
 
 /**
- * React hook to access dynamic notifications and unread count
+ * React hook to access dynamic notifications and unread count scoped to the active profile
  */
-export function useNotifications() {
+export function useNotifications(userId?: string | null) {
   const [notifications, setNotifications] = React.useState<SystemNotification[]>([]);
 
   React.useEffect(() => {
-    setNotifications(getStoredNotifications());
+    setNotifications(getStoredNotifications(userId));
 
+    const key = getNotificationStorageKey(userId);
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        setNotifications(getStoredNotifications());
+      if (e.key === key) {
+        setNotifications(getStoredNotifications(userId));
       }
     };
 
     const onLocalChange = () => {
-      setNotifications(getStoredNotifications());
+      setNotifications(getStoredNotifications(userId));
     };
 
     listeners.push(onLocalChange);
@@ -146,7 +169,7 @@ export function useNotifications() {
       listeners = listeners.filter((l) => l !== onLocalChange);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [userId]);
 
   const unreadCount = React.useMemo(
     () => notifications.filter((n) => !n.read).length,
@@ -156,9 +179,9 @@ export function useNotifications() {
   return {
     notifications,
     unreadCount,
-    addNotification,
-    markAllNotificationsRead,
-    clearAllNotifications,
+    addNotification: (item: Parameters<typeof addNotification>[0]) =>
+      addNotification({ ...item, userId: item.userId ?? userId ?? undefined }),
+    markAllNotificationsRead: () => markAllNotificationsRead(userId),
+    clearAllNotifications: () => clearAllNotifications(userId),
   };
 }
-

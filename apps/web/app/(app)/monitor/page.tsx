@@ -374,6 +374,7 @@ function RealTimeRunMonitor({
           type: "completed",
           runId: run.id,
           href: `/runs/${run.id}`,
+          userId: (run as any)?.user_id,
         });
       }
     } else if (run.diagnosis && run.diagnosis.length > 0) {
@@ -387,6 +388,7 @@ function RealTimeRunMonitor({
           type: "diagnosing",
           runId: run.id,
           href: `/runs/${run.id}`,
+          userId: (run as any)?.user_id,
         });
       }
     }

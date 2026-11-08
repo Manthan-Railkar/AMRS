@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
+import { useCurrentUser } from "@/hooks/use-user";
 import { createRun, isApiError, uploadModel, uploadDataset, detectModelArchitecture } from "@/lib/api";
 import { addNotification } from "@/lib/notifications";
 import { newRunFormSchema, type NewRunForm, architectures, datasets } from "@/lib/schemas/recovery";
@@ -202,6 +203,7 @@ function DatasetDropzone({
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RunRecoveryPage() {
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
   const [conflictRunId, setConflictRunId] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [submitErrorDetails, setSubmitErrorDetails] = React.useState<Record<string, unknown> | null>(null);
@@ -289,26 +291,28 @@ export default function RunRecoveryPage() {
 
       // 1. Upload model checkpoint
       if (data.file instanceof File) {
-        const uploadRes = await uploadModel(data.file, data.architecture);
+        const uploadRes = await uploadModel(data.file, data.architecture, currentUser?.id);
         modelUploadId = uploadRes.model_upload_id;
         addNotification({
           title: `Model uploaded: ${data.file.name}`,
           description: `Architecture: ${data.architecture} (${(data.file.size / 1024).toFixed(1)} KB verified)`,
           type: "upload",
           href: "/history",
+          userId: currentUser?.id,
         });
       }
 
       // 2. Upload custom dataset if provided
       if (data.datasetFile instanceof File) {
         try {
-          const dsRes = await uploadDataset(data.datasetFile, data.dataset);
+          const dsRes = await uploadDataset(data.datasetFile, data.dataset, currentUser?.id);
           datasetUploadId = dsRes.dataset_upload_id;
           addNotification({
             title: `Dataset uploaded: ${data.datasetFile.name}`,
             description: `Split: ${data.dataset} (${(data.datasetFile.size / 1024).toFixed(1)} KB)`,
             type: "upload",
             href: "/history",
+            userId: currentUser?.id,
           });
         } catch (dsErr) {
           console.warn("Dataset upload notice:", dsErr);
@@ -322,6 +326,7 @@ export default function RunRecoveryPage() {
         model_upload_id: modelUploadId,
         dataset_upload_id: datasetUploadId,
         config_override: datasetUploadId ? { dataset_upload_id: datasetUploadId } : {},
+        user_id: currentUser?.id,
       } as any);
 
       addNotification({
@@ -330,6 +335,7 @@ export default function RunRecoveryPage() {
         type: "run_queued",
         runId,
         href: `/monitor?runId=${runId}`,
+        userId: currentUser?.id,
       });
 
       // 4. Redirect to the live monitor route for real-time recognition streaming

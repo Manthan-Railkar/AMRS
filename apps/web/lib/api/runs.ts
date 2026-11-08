@@ -20,6 +20,7 @@ export interface CreateRunInput {
   dataset_upload_id?: string;
   config_override?: Record<string, unknown>;
   seed?: number;
+  user_id?: string;
 }
 
 export interface CreateRunResponse {
@@ -30,6 +31,7 @@ export interface CreateRunResponse {
 export interface ListRunsFilters {
   scenario_id?: string;
   verdict?: string;
+  user_id?: string;
   limit?: number;
   offset?: number;
 }
@@ -213,6 +215,7 @@ export async function createRunApi(input: CreateRunInput): Promise<CreateRunResp
     dataset_upload_id: datasetId,
     config_overrides: input.config_override ?? {},
     seed: input.seed ?? 1234,
+    ...(input.user_id ? { user_id: input.user_id } : {}),
   };
 
   // Map known scenario IDs to exact backend scenario IDs
@@ -235,6 +238,7 @@ export async function listRunsApi(filters: ListRunsFilters = {}): Promise<ListRu
   const params = new URLSearchParams();
   if (filters.scenario_id) params.set("scenario_id", filters.scenario_id);
   if (filters.verdict) params.set("verdict", filters.verdict);
+  if (filters.user_id) params.set("user_id", filters.user_id);
   if (filters.limit) params.set("limit", String(filters.limit));
   if (filters.offset) params.set("offset", String(filters.offset));
 

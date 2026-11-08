@@ -18,13 +18,13 @@ export function DashboardContent() {
   const { data: currentUser } = useCurrentUser();
 
   const statsQuery = useQuery({
-    queryKey: ["dashboard", "stats"],
-    queryFn: getDashboardStats,
+    queryKey: ["dashboard", "stats", currentUser?.id],
+    queryFn: () => getDashboardStats(currentUser?.id),
   });
 
   const modelsQuery = useQuery({
-    queryKey: ["dashboard", "recentModels"],
-    queryFn: getRecentModels,
+    queryKey: ["dashboard", "recentModels", currentUser?.id],
+    queryFn: () => getRecentModels(currentUser?.id),
   });
 
   return (

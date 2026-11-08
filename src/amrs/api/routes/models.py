@@ -18,7 +18,7 @@ import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, File, Form, Header, UploadFile, status
 
 from amrs.errors import (
     ForbiddenError,
@@ -98,7 +98,10 @@ async def upload_model(
         None,
         description="Architecture name from model registry (optional; auto-detected if omitted)",
     ),
+    user_id: str | None = Form(None, description="Authenticated user ID"),
+    x_user_id: str | None = Header(None, alias="X-User-ID"),
 ) -> ModelUploadResponse:
+    effective_user_id = user_id or x_user_id
     # 1. Enforce AMRS_ALLOW_UPLOAD environment variable (disabled by default per BE-4)
     allow_upload = os.getenv("AMRS_ALLOW_UPLOAD", "0").lower() in ("1", "true", "yes")
     if not allow_upload:
@@ -183,6 +186,7 @@ async def upload_model(
             "sha256": sha256_hash,
             "size_bytes": total_bytes,
             "filename": safe_name,
+            "user_id": effective_user_id,
         }
         (upload_dir / "meta.json").write_text(json.dumps(meta, indent=2))
 
@@ -193,7 +197,7 @@ async def upload_model(
             checkpoint_data = target_path.read_bytes()
             threading.Thread(
                 target=supabase_sync.sync_model,
-                args=(upload_id, safe_name, arch, checkpoint_data, sha256_hash),
+                args=(upload_id, safe_name, arch, checkpoint_data, sha256_hash, effective_user_id),
                 daemon=True,
             ).start()
         except Exception:

@@ -45,6 +45,19 @@ class RunRepository:
 
     def __init__(self, db: Database) -> None:
         self.db = db
+        self._ensure_user_column()
+
+    def _ensure_user_column(self) -> None:
+        try:
+            with self.db.transaction() as conn:
+                cols = [r["name"] for r in conn.execute("PRAGMA table_info(runs);").fetchall()]
+                if "user_id" not in cols:
+                    conn.execute("ALTER TABLE runs ADD COLUMN user_id TEXT;")
+                    conn.execute(
+                        "UPDATE runs SET user_id = 'e4b082b8-e87b-4686-9566-c05c9f2dc4e3' WHERE user_id IS NULL;"
+                    )
+        except Exception:
+            pass
 
     def create_run(self, run: RunDetailResponse) -> None:
         """Insert a newly enqueued or initialized run record."""
@@ -54,8 +67,9 @@ class RunRepository:
                 INSERT INTO runs (
                     id, created_at, status, progress_stage, progress_pct,
                     scenario_id, arch, original_sha256, config_json, seed, verdict,
-                    accepted_strategy, error_message, duration_s, compute_units_total
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    accepted_strategy, error_message, duration_s, compute_units_total,
+                    user_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
                 (
                     run.id,
@@ -73,6 +87,7 @@ class RunRepository:
                     run.error_message,
                     run.duration_s,
                     run.compute_units_total,
+                    run.user_id,
                 ),
             )
             for diag in run.diagnoses:
@@ -283,6 +298,7 @@ class RunRepository:
             compute_units_total=row["compute_units_total"],
             diagnoses=diagnoses,
             candidates=candidates,
+            user_id=row["user_id"] if "user_id" in row.keys() else None,
         )
 
     def list_runs(
@@ -290,6 +306,7 @@ class RunRepository:
         verdict: str | None = None,
         scenario_id: str | None = None,
         status: str | None = None,
+        user_id: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[RunSummary], int]:
@@ -307,6 +324,9 @@ class RunRepository:
         if status:
             clauses.append("status = ?")
             params.append(status)
+        if user_id:
+            clauses.append("user_id = ?")
+            params.append(user_id)
 
         where_clause = f"WHERE {' AND '.join(clauses)}" if clauses else ""
 
@@ -317,7 +337,7 @@ class RunRepository:
         # Page query
         data_query = f"""
             SELECT id, created_at, status, scenario_id, arch, original_sha256,
-                   verdict, accepted_strategy, duration_s, compute_units_total
+                   verdict, accepted_strategy, duration_s, compute_units_total, user_id
             FROM runs
             {where_clause}
             ORDER BY created_at DESC
@@ -398,6 +418,7 @@ class RunRepository:
                     primary_diagnosis=primary_diag,
                     diagnoses=diag_list,
                     candidates=cand_list,
+                    user_id=r["user_id"] if "user_id" in r.keys() else None,
                 )
             )
         return summaries, total

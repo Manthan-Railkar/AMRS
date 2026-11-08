@@ -31,6 +31,19 @@ export async function apiFetch<T>(
     ...(headers as Record<string, string>),
   };
 
+  // Profile isolation: automatically attach active user ID if authenticated
+  if (typeof window !== "undefined" && !mergedHeaders["X-User-ID"]) {
+    const activeUserId =
+      localStorage.getItem("amrs_active_user_id") ||
+      document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("amrs_user_id="))
+        ?.split("=")[1];
+    if (activeUserId) {
+      mergedHeaders["X-User-ID"] = activeUserId;
+    }
+  }
+
   try {
     const res = await fetch(normalizedPath, {
       ...rest,
