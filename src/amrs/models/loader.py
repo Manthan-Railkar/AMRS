@@ -134,12 +134,9 @@ def build_and_load(
             "bn" in k.lower() or "running_mean" in k.lower() or "running_var" in k.lower()
             for k in state_dict.keys()
         )
-        all_linear_shapes = all(
-            len(v.shape) in (1, 2) for v in state_dict.values()
-        )
+        all_linear_shapes = all(len(v.shape) in (1, 2) for v in state_dict.values())
         weight_keys = [
-            k for k in state_dict.keys()
-            if k.endswith(".weight") and len(state_dict[k].shape) == 2
+            k for k in state_dict.keys() if k.endswith(".weight") and len(state_dict[k].shape) == 2
         ]
 
         if not has_conv and not has_bn and all_linear_shapes and len(weight_keys) >= 1:
@@ -295,8 +292,7 @@ def detect_architecture(
 
     # 1. Check for ResNet-18 (residual blocks: layer1, layer2, layer3, layer4)
     has_resnet_layers = any(
-        k.startswith("layer1.") or k.startswith("layer2.") or k.startswith("layer3.")
-        for k in keys
+        k.startswith("layer1.") or k.startswith("layer2.") or k.startswith("layer3.") for k in keys
     )
     if has_resnet_layers or "resnet" in fn_lower:
         details["reason"] = "Residual block hierarchy detected (layer1..layer4)"
@@ -306,8 +302,7 @@ def detect_architecture(
     # 2. Check for SmallCNN (3 sequential conv + batchnorm blocks)
     has_conv = any("conv" in k.lower() for k in keys)
     has_bn = any(
-        "bn" in k.lower() or "batch_norm" in k.lower() or "running_mean" in k.lower()
-        for k in keys
+        "bn" in k.lower() or "batch_norm" in k.lower() or "running_mean" in k.lower() for k in keys
     )
     has_blocks = any("block1" in k or "block2" in k or "block3" in k for k in keys)
     if has_blocks or (has_conv and has_bn) or "cnn" in fn_lower:
@@ -330,4 +325,3 @@ def detect_architecture(
     details["reason"] = "Default allowlisted architecture"
     details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
     return "resnet18_cifar", 0.70, details
-

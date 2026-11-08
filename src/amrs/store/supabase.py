@@ -12,12 +12,9 @@ Leverages:
 
 from __future__ import annotations
 
-import json
 import logging
-import mimetypes
 import os
 import sys
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -73,7 +70,13 @@ class SupabaseSync:
         # Fallback to standard deterministic UUID
         return "e4b082b8-0000-0000-0000-000000000000"
 
-    def upload_storage_file(self, bucket: str, path_in_bucket: str, file_bytes: bytes, content_type: str = "application/octet-stream") -> str | None:
+    def upload_storage_file(
+        self,
+        bucket: str,
+        path_in_bucket: str,
+        file_bytes: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> str | None:
         """Upload a file to Supabase Storage bucket and return its public URL."""
         if not self.enabled:
             return None
@@ -89,7 +92,9 @@ class SupabaseSync:
                 if put_res.status_code in (200, 201):
                     return f"{self.url}/storage/v1/object/public/{bucket}/{path_in_bucket}"
         except Exception as exc:
-            logger.warning("Supabase storage upload failed for %s/%s: %s", bucket, path_in_bucket, exc)
+            logger.warning(
+                "Supabase storage upload failed for %s/%s: %s", bucket, path_in_bucket, exc
+            )
         return None
 
     def postgrest_insert(self, table: str, record: dict[str, Any]) -> bool:
@@ -130,7 +135,9 @@ class SupabaseSync:
     # Domain entities sync
     # ---------------------------------------------------------------------
 
-    def sync_model(self, model_id: str, name: str, arch: str, checkpoint_bytes: bytes, sha256: str) -> None:
+    def sync_model(
+        self, model_id: str, name: str, arch: str, checkpoint_bytes: bytes, sha256: str
+    ) -> None:
         """Upload model checkpoint to Supabase Storage and record in model_uploads table."""
         storage_path = f"{model_id}/model.pt"
         pub_url = self.upload_storage_file("models", storage_path, checkpoint_bytes)
@@ -151,7 +158,16 @@ class SupabaseSync:
             },
         )
 
-    def sync_dataset(self, dataset_id: str, name: str, format_str: str, file_bytes: bytes, num_samples: int, num_classes: int, sha256: str) -> None:
+    def sync_dataset(
+        self,
+        dataset_id: str,
+        name: str,
+        format_str: str,
+        file_bytes: bytes,
+        num_samples: int,
+        num_classes: int,
+        sha256: str,
+    ) -> None:
         """Upload dataset file to Supabase Storage and record in dataset_uploads table."""
         storage_path = f"{dataset_id}/data.{format_str}"
         pub_url = self.upload_storage_file("datasets", storage_path, file_bytes)
@@ -173,7 +189,9 @@ class SupabaseSync:
             },
         )
 
-    def sync_run_start(self, run_id: str, model_id: str | None, dataset_id: str | None, arch: str, seed: int) -> None:
+    def sync_run_start(
+        self, run_id: str, model_id: str | None, dataset_id: str | None, arch: str, seed: int
+    ) -> None:
         """Record newly initiated recovery run in recovery_runs table."""
         user_id = self.get_first_user_id()
         self.postgrest_insert(

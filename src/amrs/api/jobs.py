@@ -357,7 +357,9 @@ class JobCoordinator:
                 thresh_vals = {"max_ece": 0.05}
             elif req.scenario_id == "s3_bn_drift":
                 diag_label = "bn_drift"
-                explanation = "BatchNorm running statistics diverge from target evaluation distribution."
+                explanation = (
+                    "BatchNorm running statistics diverge from target evaluation distribution."
+                )
                 metric_vals = {"bn_divergence": 0.342, "val_acc": 0.698}
                 thresh_vals = {"max_bn_drift": 0.12}
             elif req.scenario_id == "s4_instability":
@@ -367,26 +369,34 @@ class JobCoordinator:
                 thresh_vals = {"max_grad_var": 1.50}
             elif req.scenario_id == "s5_degraded_head":
                 diag_label = "head_degradation"
-                explanation = "Classification head collapsed; backbone feature representations remain intact."
+                explanation = (
+                    "Classification head collapsed; backbone feature representations remain intact."
+                )
                 metric_vals = {"head_entropy": 2.21, "feature_acc": 0.895}
                 thresh_vals = {"min_feature_acc": 0.80}
             elif req.scenario_id == "s6_healthy":
                 diag_label = "healthy"
                 explanation = "Nominal model trajectory: validation accuracy tracks training without anomalous gap."
-                metric_vals = {"train_acc": 0.912, "val_acc": 0.898, "generalization_gap": 0.014, "ece": 0.032}
+                metric_vals = {
+                    "train_acc": 0.912,
+                    "val_acc": 0.898,
+                    "generalization_gap": 0.014,
+                    "ece": 0.032,
+                }
                 thresh_vals = {"gap_min": 0.10}
             elif req.model_upload_id:
                 # Execute real ML domain recovery orchestrator
                 uploads_root = Path(os.getenv("AMRS_UPLOADS_ROOT", "uploads")).resolve()
                 model_file = uploads_root / req.model_upload_id / "model.pt"
 
-                from amrs.models.loader import build_and_load
-                from amrs.pipeline.orchestrator import RecoveryBundle, RecoveryOrchestrator
+                import numpy as np
+                import torch
                 import torchvision
                 import torchvision.transforms as transforms
                 from torch.utils.data import DataLoader, Subset, TensorDataset
-                import numpy as np
-                import torch
+
+                from amrs.models.loader import build_and_load
+                from amrs.pipeline.orchestrator import RecoveryBundle, RecoveryOrchestrator
 
                 loaded_model = build_and_load(arch, model_file)
 
@@ -415,9 +425,19 @@ class JobCoordinator:
                     n_val = min(max(50, int(0.2 * n_total)), 200)
                     n_holdout = min(max(50, int(0.2 * n_total)), 200)
                     n_train = max(50, n_total - n_val - n_holdout)
-                    train_loader = DataLoader(Subset(ds, range(0, n_train)), batch_size=64, shuffle=False)
-                    val_loader = DataLoader(Subset(ds, range(n_train, n_train + n_val)), batch_size=64, shuffle=False)
-                    holdout_loader = DataLoader(Subset(ds, range(n_train + n_val, min(n_total, n_train + n_val + n_holdout))), batch_size=64, shuffle=False)
+                    train_loader = DataLoader(
+                        Subset(ds, range(0, n_train)), batch_size=64, shuffle=False
+                    )
+                    val_loader = DataLoader(
+                        Subset(ds, range(n_train, n_train + n_val)), batch_size=64, shuffle=False
+                    )
+                    holdout_loader = DataLoader(
+                        Subset(
+                            ds, range(n_train + n_val, min(n_total, n_train + n_val + n_holdout))
+                        ),
+                        batch_size=64,
+                        shuffle=False,
+                    )
                 elif ds_path and ds_path.suffix in (".pt", ".pth"):
                     loaded_ds = torch.load(ds_path, map_location="cpu", weights_only=True)
                     if isinstance(loaded_ds, (tuple, list)):
@@ -427,19 +447,42 @@ class JobCoordinator:
                         n_val = min(max(50, int(0.2 * n_total)), 200)
                         n_holdout = min(max(50, int(0.2 * n_total)), 200)
                         n_train = max(50, n_total - n_val - n_holdout)
-                        train_loader = DataLoader(Subset(ds, range(0, n_train)), batch_size=64, shuffle=False)
-                        val_loader = DataLoader(Subset(ds, range(n_train, n_train + n_val)), batch_size=64, shuffle=False)
-                        holdout_loader = DataLoader(Subset(ds, range(n_train + n_val, min(n_total, n_train + n_val + n_holdout))), batch_size=64, shuffle=False)
+                        train_loader = DataLoader(
+                            Subset(ds, range(0, n_train)), batch_size=64, shuffle=False
+                        )
+                        val_loader = DataLoader(
+                            Subset(ds, range(n_train, n_train + n_val)),
+                            batch_size=64,
+                            shuffle=False,
+                        )
+                        holdout_loader = DataLoader(
+                            Subset(
+                                ds,
+                                range(n_train + n_val, min(n_total, n_train + n_val + n_holdout)),
+                            ),
+                            batch_size=64,
+                            shuffle=False,
+                        )
                 else:
                     # Automatically select evaluation data matching input dimensions
                     mnist_dir = Path("data/mnist")
-                    if arch == "mlp_small" and ((mnist_dir / "MNIST").exists() or (mnist_dir / "MNIST/raw").exists()):
+                    if arch == "mlp_small" and (
+                        (mnist_dir / "MNIST").exists() or (mnist_dir / "MNIST/raw").exists()
+                    ):
                         try:
                             transform = transforms.Compose([transforms.ToTensor()])
-                            mnist_ds = torchvision.datasets.MNIST(root="data/mnist", train=False, download=False, transform=transform)
-                            train_loader = DataLoader(Subset(mnist_ds, range(0, 2000)), batch_size=128, shuffle=False)
-                            val_loader = DataLoader(Subset(mnist_ds, range(2000, 3000)), batch_size=128, shuffle=False)
-                            holdout_loader = DataLoader(Subset(mnist_ds, range(3000, 4000)), batch_size=128, shuffle=False)
+                            mnist_ds = torchvision.datasets.MNIST(
+                                root="data/mnist", train=False, download=False, transform=transform
+                            )
+                            train_loader = DataLoader(
+                                Subset(mnist_ds, range(0, 2000)), batch_size=128, shuffle=False
+                            )
+                            val_loader = DataLoader(
+                                Subset(mnist_ds, range(2000, 3000)), batch_size=128, shuffle=False
+                            )
+                            holdout_loader = DataLoader(
+                                Subset(mnist_ds, range(3000, 4000)), batch_size=128, shuffle=False
+                            )
                         except Exception as e:
                             logger.warning("Could not load local MNIST: %s", e)
                             train_loader = None
@@ -454,7 +497,9 @@ class JobCoordinator:
                         synth_ds = TensorDataset(x_synth, y_synth)
                         train_loader = DataLoader(Subset(synth_ds, range(0, 100)), batch_size=32)
                         val_loader = DataLoader(Subset(synth_ds, range(100, 200)), batch_size=32)
-                        holdout_loader = DataLoader(Subset(synth_ds, range(200, 300)), batch_size=32)
+                        holdout_loader = DataLoader(
+                            Subset(synth_ds, range(200, 300)), batch_size=32
+                        )
 
                 def _progress_cb(stage: str, pct: float, msg: str):
                     self.run_repo.update_run_status(
@@ -515,7 +560,9 @@ class JobCoordinator:
                             "delta_primary": 0.0,
                         }
                     ]
-                    diag_first = orch_result.diagnoses[0].label if orch_result.diagnoses else "healthy"
+                    diag_first = (
+                        orch_result.diagnoses[0].label if orch_result.diagnoses else "healthy"
+                    )
                     supabase_sync.sync_run_outcome(
                         run_id=run_id,
                         verdict=verdict,
@@ -532,7 +579,9 @@ class JobCoordinator:
                     )
                     model_art = run_dir / "accepted_model.pt"
                     if model_art.exists():
-                        supabase_sync.sync_artifact(run_id, "accepted_model.pt", "checkpoint", model_art.read_bytes())
+                        supabase_sync.sync_artifact(
+                            run_id, "accepted_model.pt", "checkpoint", model_art.read_bytes()
+                        )
                 except Exception as sync_err:
                     logger.debug("Supabase outcome sync note: %s", sync_err)
                 return
@@ -666,13 +715,19 @@ class JobCoordinator:
                     # Upload artifacts
                     model_artifact = run_dir / "accepted_model.pt"
                     if model_artifact.exists():
-                        supabase_sync.sync_artifact(run_id, "accepted_model.pt", "checkpoint", model_artifact.read_bytes())
+                        supabase_sync.sync_artifact(
+                            run_id, "accepted_model.pt", "checkpoint", model_artifact.read_bytes()
+                        )
                     report_json = run_dir / "report.json"
                     if report_json.exists():
-                        supabase_sync.sync_artifact(run_id, "report.json", "report", report_json.read_bytes())
+                        supabase_sync.sync_artifact(
+                            run_id, "report.json", "report", report_json.read_bytes()
+                        )
                     report_md = run_dir / "report.md"
                     if report_md.exists():
-                        supabase_sync.sync_artifact(run_id, "report.md", "report", report_md.read_bytes())
+                        supabase_sync.sync_artifact(
+                            run_id, "report.md", "report", report_md.read_bytes()
+                        )
                 except Exception as sync_err:
                     logger.debug("Supabase completion sync notice: %s", sync_err)
 
@@ -758,10 +813,12 @@ class JobCoordinator:
             for name in ["accepted_model.pt", "report.json", "report.md"]:
                 p = run_dir / name
                 if p.exists() and p.is_file():
-                    artifacts_list.append({
-                        "name": name,
-                        "size_bytes": p.stat().st_size,
-                    })
+                    artifacts_list.append(
+                        {
+                            "name": name,
+                            "size_bytes": p.stat().st_size,
+                        }
+                    )
         run.artifacts = artifacts_list
         return run
 

@@ -336,12 +336,14 @@ class RunRepository:
             diag_list = []
             for d in diag_rows:
                 ev_dict = _safe_load_json(d["evidence_json"], {})
-                diag_list.append({
-                    "label": d["label"],
-                    "confidence": d["confidence"],
-                    "rank": d["rank"],
-                    "evidence": ev_dict,
-                })
+                diag_list.append(
+                    {
+                        "label": d["label"],
+                        "confidence": d["confidence"],
+                        "rank": d["rank"],
+                        "evidence": ev_dict,
+                    }
+                )
 
             cand_rows = conn.execute(
                 "SELECT strategy, cost_units, delta_primary, gate_decision, gate_reasons_json FROM candidates WHERE run_id = ? ORDER BY order_idx ASC;",
@@ -350,18 +352,33 @@ class RunRepository:
             cand_list = []
             for c in cand_rows:
                 reasons = _safe_load_json(c["gate_reasons_json"], [])
-                cand_list.append({
-                    "strategy": c["strategy"],
-                    "cost_units": c["cost_units"],
-                    "delta_primary": c["delta_primary"],
-                    "gate_decision": c["gate_decision"],
-                    "gate_reasons": reasons,
-                })
+                cand_list.append(
+                    {
+                        "strategy": c["strategy"],
+                        "cost_units": c["cost_units"],
+                        "delta_primary": c["delta_primary"],
+                        "gate_decision": c["gate_decision"],
+                        "gate_reasons": reasons,
+                    }
+                )
 
-            primary_diag = diag_list[0]["label"] if diag_list else (
-                "healthy" if r["verdict"] == "healthy_no_action" else (
-                    r["scenario_id"].replace("s1_", "").replace("s2_", "").replace("s3_", "").replace("s4_", "").replace("s5_", "").replace("s6_", "")
-                    if r["scenario_id"] else "healthy"
+            primary_diag = (
+                diag_list[0]["label"]
+                if diag_list
+                else (
+                    "healthy"
+                    if r["verdict"] == "healthy_no_action"
+                    else (
+                        r["scenario_id"]
+                        .replace("s1_", "")
+                        .replace("s2_", "")
+                        .replace("s3_", "")
+                        .replace("s4_", "")
+                        .replace("s5_", "")
+                        .replace("s6_", "")
+                        if r["scenario_id"]
+                        else "healthy"
+                    )
                 )
             )
 

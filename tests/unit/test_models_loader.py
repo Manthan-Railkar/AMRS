@@ -205,10 +205,8 @@ def test_build_and_load_dynamic_mlp_auto_adapts_to_user_weights() -> None:
     # Should automatically adapt to the user's exact weights and biases
     model = build_and_load("mlp_small", buf)
     assert isinstance(model, nn.Module)
-    
+
     # Verify forward pass
     x = torch.randn(4, 784)
     out = model(x)
     assert out.shape == (4, 10)
-
-

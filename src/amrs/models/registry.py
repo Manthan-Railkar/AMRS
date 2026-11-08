@@ -76,8 +76,7 @@ class DynamicMLP(nn.Module):
         self.flatten = nn.Flatten()
         self.layer_paths: list[str] = []
         weight_keys = [
-            k for k in state_dict.keys()
-            if k.endswith(".weight") and len(state_dict[k].shape) == 2
+            k for k in state_dict.keys() if k.endswith(".weight") and len(state_dict[k].shape) == 2
         ]
         for wk in weight_keys:
             path = wk.removesuffix(".weight")

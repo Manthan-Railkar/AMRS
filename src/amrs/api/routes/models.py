@@ -94,7 +94,10 @@ async def detect_model_architecture(
 )
 async def upload_model(
     file: UploadFile = File(...),
-    arch: str | None = Form(None, description="Architecture name from model registry (optional; auto-detected if omitted)"),
+    arch: str | None = Form(
+        None,
+        description="Architecture name from model registry (optional; auto-detected if omitted)",
+    ),
 ) -> ModelUploadResponse:
     # 1. Enforce AMRS_ALLOW_UPLOAD environment variable (disabled by default per BE-4)
     allow_upload = os.getenv("AMRS_ALLOW_UPLOAD", "0").lower() in ("1", "true", "yes")
@@ -186,6 +189,7 @@ async def upload_model(
         # 9. Sync to Supabase Storage and database asynchronously
         try:
             import threading
+
             checkpoint_data = target_path.read_bytes()
             threading.Thread(
                 target=supabase_sync.sync_model,

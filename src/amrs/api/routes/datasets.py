@@ -16,9 +16,9 @@ import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, UploadFile, status
 import numpy as np
 import torch
+from fastapi import APIRouter, File, Form, UploadFile, status
 
 from amrs.errors import (
     PayloadTooLargeError,
@@ -91,7 +91,7 @@ def inspect_dataset_contents(path: Path, ext: str) -> tuple[int, int]:
         elif ext == ".csv":
             with open(path, "r", encoding="utf-8", errors="replace") as f:
                 reader = csv.reader(f)
-                header = next(reader, None)
+                next(reader, None)
                 rows = list(reader)
                 num_samples = len(rows)
                 if rows and len(rows[0]) > 0:
@@ -133,7 +133,10 @@ async def upload_dataset(
     if ext not in ALLOWED_DATASET_EXTENSIONS:
         raise ValidationError(
             message=f"File extension '{ext}' is not supported. Allowed: {sorted(ALLOWED_DATASET_EXTENSIONS)}",
-            details={"filename": client_filename, "allowed_extensions": sorted(ALLOWED_DATASET_EXTENSIONS)},
+            details={
+                "filename": client_filename,
+                "allowed_extensions": sorted(ALLOWED_DATASET_EXTENSIONS),
+            },
         )
 
     safe_name = sanitize_filename(client_filename)
@@ -178,10 +181,19 @@ async def upload_dataset(
         # Sync dataset to Supabase Storage and database asynchronously
         try:
             import threading
+
             ds_bytes = target_path.read_bytes()
             threading.Thread(
                 target=supabase_sync.sync_dataset,
-                args=(upload_id, safe_name, ext.lstrip("."), ds_bytes, num_samples, num_classes, sha256_hash),
+                args=(
+                    upload_id,
+                    safe_name,
+                    ext.lstrip("."),
+                    ds_bytes,
+                    num_samples,
+                    num_classes,
+                    sha256_hash,
+                ),
                 daemon=True,
             ).start()
         except Exception:
