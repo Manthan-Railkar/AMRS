@@ -210,3 +210,72 @@ def test_build_and_load_dynamic_mlp_auto_adapts_to_user_weights() -> None:
     x = torch.randn(4, 784)
     out = model(x)
     assert out.shape == (4, 10)
+
+
+def test_build_and_load_dynamic_cnn_auto_adapts_to_user_weights() -> None:
+    # Custom CNN checkpoint with features and classifier structure
+    user_checkpoint = {
+        "features.0.weight": torch.randn(32, 3, 3, 3),
+        "features.0.bias": torch.randn(32),
+        "features.1.weight": torch.randn(32),
+        "features.1.bias": torch.randn(32),
+        "features.1.running_mean": torch.zeros(32),
+        "features.1.running_var": torch.ones(32),
+        "features.1.num_batches_tracked": torch.tensor(10),
+        "features.4.weight": torch.randn(64, 32, 3, 3),
+        "features.4.bias": torch.randn(64),
+        "features.5.weight": torch.randn(64),
+        "features.5.bias": torch.randn(64),
+        "features.5.running_mean": torch.zeros(64),
+        "features.5.running_var": torch.ones(64),
+        "features.5.num_batches_tracked": torch.tensor(10),
+        "classifier.2.weight": torch.randn(256, 4096),
+        "classifier.2.bias": torch.randn(256),
+        "classifier.5.weight": torch.randn(10, 256),
+        "classifier.5.bias": torch.randn(10),
+    }
+    buf = io.BytesIO()
+    torch.save(user_checkpoint, buf)
+    buf.seek(0)
+
+    # Auto-detection should classify as small_cnn
+    arch, conf, details = detect_architecture(buf, filename="custom_cnn.pt")
+    assert arch == "small_cnn"
+    assert conf >= 0.95
+
+    # Should dynamically build matching DynamicCNN and strictly load
+    buf.seek(0)
+    model = build_and_load("small_cnn", buf)
+    assert isinstance(model, nn.Module)
+    assert hasattr(model, "fc")
+    assert model.fc is not None
+
+    # Test forward pass with standard 32x32 images
+    x = torch.randn(2, 3, 32, 32)
+    out = model(x)
+    assert out.shape == (2, 10)
+
+    # Test forward pass with differing spatial dimensions (e.g. 28x28)
+    x_diff = torch.randn(2, 3, 28, 28)
+    out_diff = model(x_diff)
+    assert out_diff.shape == (2, 10)
+
+
+def test_build_and_load_dynamic_resnet_adapts_to_various_depths() -> None:
+    import torchvision.models as tv_models
+
+    resnet34 = tv_models.resnet34(weights=None)
+    buf = io.BytesIO()
+    torch.save(resnet34.state_dict(), buf)
+    buf.seek(0)
+
+    arch, conf, _ = detect_architecture(buf, filename="resnet34.pt")
+    assert arch == "resnet18_cifar"
+    assert conf >= 0.95
+
+    buf.seek(0)
+    model = build_and_load("resnet18_cifar", buf)
+    assert isinstance(model, nn.Module)
+    x = torch.randn(2, 3, 32, 32)
+    out = model(x)
+    assert out.shape == (2, 1000)

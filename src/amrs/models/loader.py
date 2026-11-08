@@ -18,7 +18,14 @@ from amrs.errors import (
     UnsafeOrInvalidCheckpointError,
     ValidationError,
 )
-from amrs.models.registry import build, is_registered, list_registered
+from amrs.models.registry import (
+    DynamicCNN,
+    DynamicMLP,
+    build,
+    build_dynamic_resnet,
+    is_registered,
+    list_registered,
+)
 
 
 def load_state_dict_safe(
@@ -129,7 +136,9 @@ def build_and_load(
 
     # For mlp_small, allow flexible dynamic architecture adaptation to checkpoint weights
     if arch == "mlp_small":
-        has_conv = any("conv" in k.lower() for k in state_dict.keys())
+        has_conv = any("conv" in k.lower() for k in state_dict.keys()) or any(
+            len(v.shape) == 4 for v in state_dict.values()
+        )
         has_bn = any(
             "bn" in k.lower() or "running_mean" in k.lower() or "running_var" in k.lower()
             for k in state_dict.keys()
@@ -140,12 +149,79 @@ def build_and_load(
         ]
 
         if not has_conv and not has_bn and all_linear_shapes and len(weight_keys) >= 1:
-            from amrs.models.registry import DynamicMLP
-
             dynamic_model = DynamicMLP(state_dict)
             dynamic_model.load_state_dict(state_dict, strict=True)
             dynamic_model.eval()
             return dynamic_model
+
+    # For small_cnn, allow flexible dynamic adaptation to checkpoint weights
+    if arch == "small_cnn":
+        # First try standard SmallCNN if keys match strictly
+        try:
+            model = build("small_cnn", num_classes=num_classes, in_shape=in_shape)
+            model.load_state_dict(state_dict, strict=True)
+            model.eval()
+            return model
+        except Exception:
+            pass
+
+        # Try DynamicCNN for features/classifier or sequential CNN models
+        try:
+            dyn_cnn = DynamicCNN(state_dict)
+            dyn_cnn.load_state_dict(state_dict, strict=True)
+            dyn_cnn.eval()
+            return dyn_cnn
+        except Exception:
+            pass
+
+        # If checkpoint has residual layers, gracefully adapt via build_dynamic_resnet
+        has_resnet_layers = any(
+            k.startswith("layer1.") or k.startswith("layer2.") for k in state_dict.keys()
+        )
+        if has_resnet_layers:
+            try:
+                dyn_res = build_dynamic_resnet(state_dict)
+                dyn_res.load_state_dict(state_dict, strict=True)
+                dyn_res.eval()
+                return dyn_res
+            except Exception:
+                pass
+
+    # For resnet18_cifar, allow flexible dynamic adaptation to checkpoint weights
+    if arch == "resnet18_cifar":
+        # First try standard resnet18_cifar if keys match strictly
+        try:
+            model = build("resnet18_cifar", num_classes=num_classes, in_shape=in_shape)
+            model.load_state_dict(state_dict, strict=True)
+            model.eval()
+            return model
+        except Exception:
+            pass
+
+        # Try dynamic ResNet if residual layers are present
+        has_resnet_layers = any(
+            k.startswith("layer1.") or k.startswith("layer2.") for k in state_dict.keys()
+        )
+        if has_resnet_layers:
+            try:
+                dyn_res = build_dynamic_resnet(state_dict)
+                dyn_res.load_state_dict(state_dict, strict=True)
+                dyn_res.eval()
+                return dyn_res
+            except Exception:
+                pass
+
+        # Gracefully adapt if user uploaded a CNN under resnet18_cifar
+        has_features = any(k.startswith("features.") for k in state_dict.keys())
+        has_conv_weights = any(len(v.shape) == 4 for v in state_dict.values())
+        if has_features or has_conv_weights:
+            try:
+                dyn_cnn = DynamicCNN(state_dict)
+                dyn_cnn.load_state_dict(state_dict, strict=True)
+                dyn_cnn.eval()
+                return dyn_cnn
+            except Exception:
+                pass
 
     model = build(arch, num_classes=num_classes, in_shape=in_shape)
     model_state = model.state_dict()
@@ -279,7 +355,14 @@ def detect_architecture(
     suggested_dataset: str | None = None
     fn_lower = (filename or "").lower()
 
-    if "fc1.weight" in state_dict:
+    first_conv_weight = next((v for v in state_dict.values() if len(v.shape) == 4), None)
+    if first_conv_weight is not None:
+        in_ch = first_conv_weight.shape[1]
+        if in_ch == 1 or "mnist" in fn_lower:
+            suggested_dataset = "MNIST sample"
+        elif in_ch == 3 or "cifar" in fn_lower:
+            suggested_dataset = "CIFAR-10 sample"
+    elif "fc1.weight" in state_dict:
         in_dim = state_dict["fc1.weight"].shape[1]
         if in_dim == 784 or "mnist" in fn_lower:
             suggested_dataset = "MNIST sample"
@@ -290,38 +373,47 @@ def detect_architecture(
     elif "cifar" in fn_lower:
         suggested_dataset = "CIFAR-10 sample"
 
-    # 1. Check for ResNet-18 (residual blocks: layer1, layer2, layer3, layer4)
     has_resnet_layers = any(
         k.startswith("layer1.") or k.startswith("layer2.") or k.startswith("layer3.") for k in keys
     )
-    if has_resnet_layers or "resnet" in fn_lower:
+    has_conv = any("conv" in k.lower() for k in keys) or any(
+        len(v.shape) == 4 for v in state_dict.values()
+    )
+    has_bn = any(
+        "bn" in k.lower() or "batch_norm" in k.lower() or "running_mean" in k.lower() for k in keys
+    )
+    has_features = any(k.startswith("features.") for k in keys)
+    has_blocks = any("block1" in k or "block2" in k or "block3" in k for k in keys)
+    all_linear = all(len(v.shape) in (1, 2) for v in state_dict.values())
+
+    # 1. Check for ResNet (residual blocks: layer1, layer2, layer3, layer4)
+    if has_resnet_layers or ("resnet" in fn_lower and not has_features):
         details["reason"] = "Residual block hierarchy detected (layer1..layer4)"
         details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
         return "resnet18_cifar", 0.99, details
 
-    # 2. Check for SmallCNN (3 sequential conv + batchnorm blocks)
-    has_conv = any("conv" in k.lower() for k in keys)
-    has_bn = any(
-        "bn" in k.lower() or "batch_norm" in k.lower() or "running_mean" in k.lower() for k in keys
-    )
-    has_blocks = any("block1" in k or "block2" in k or "block3" in k for k in keys)
-    if has_blocks or (has_conv and has_bn) or "cnn" in fn_lower:
-        details["reason"] = "Convolutional and BatchNorm block signatures detected"
+    # 2. Check for SmallCNN / Convolutional networks
+    if has_features or has_blocks or (has_conv and (has_bn or not all_linear)) or "cnn" in fn_lower:
+        details["reason"] = "Convolutional and feature extraction block signatures detected"
         details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
-        return "small_cnn", 0.98, details
+        return "small_cnn", 0.99, details
 
     # 3. Check for MLPSmall (linear layers only: fc1, fc2, fc, no convolutions, 1D/2D weights only)
     has_fc_structure = any(
         k.startswith("fc1.") or k.startswith("fc2.") or "fc." in k or k.startswith("fc3.")
         for k in keys
     )
-    all_linear = all(len(v.shape) in (1, 2) for v in state_dict.values())
     if (has_fc_structure or all_linear or "mlp" in fn_lower) and not has_conv and not has_bn:
         details["reason"] = "Dense / fully connected linear layer hierarchy detected"
         details["suggested_dataset"] = suggested_dataset or "MNIST sample"
         return "mlp_small", 0.99, details
 
-    # 4. Default fallback to resnet18_cifar if ambiguous
+    # 4. Fallback: if convolutions present, small_cnn, else resnet18_cifar
+    if has_conv:
+        details["reason"] = "Convolutional layers detected"
+        details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
+        return "small_cnn", 0.85, details
+
     details["reason"] = "Default allowlisted architecture"
     details["suggested_dataset"] = suggested_dataset or "CIFAR-10 sample"
     return "resnet18_cifar", 0.70, details
