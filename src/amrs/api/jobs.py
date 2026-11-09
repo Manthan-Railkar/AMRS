@@ -626,7 +626,11 @@ class JobCoordinator:
                     model_art = run_dir / "accepted_model.pt"
                     if model_art.exists():
                         supabase_sync.sync_artifact(
-                            run_id, "accepted_model.pt", "checkpoint", model_art.read_bytes(), user_id=job_user_id
+                            run_id,
+                            "accepted_model.pt",
+                            "checkpoint",
+                            model_art.read_bytes(),
+                            user_id=job_user_id,
                         )
                 except Exception as sync_err:
                     logger.debug("Supabase outcome sync note: %s", sync_err)
@@ -762,12 +766,20 @@ class JobCoordinator:
                 model_artifact = run_dir / "accepted_model.pt"
                 if model_artifact.exists():
                     supabase_sync.sync_artifact(
-                        run_id, "accepted_model.pt", "checkpoint", model_artifact.read_bytes(), user_id=job_user_id
+                        run_id,
+                        "accepted_model.pt",
+                        "checkpoint",
+                        model_artifact.read_bytes(),
+                        user_id=job_user_id,
                     )
                 report_json = run_dir / "report.json"
                 if report_json.exists():
                     supabase_sync.sync_artifact(
-                        run_id, "report.json", "report", report_json.read_bytes(), user_id=job_user_id
+                        run_id,
+                        "report.json",
+                        "report",
+                        report_json.read_bytes(),
+                        user_id=job_user_id,
                     )
                 report_md = run_dir / "report.md"
                 if report_md.exists():
@@ -857,9 +869,16 @@ class JobCoordinator:
                     if self.run_repo.get_run(str(run_id)) is not None:
                         continue
                     # Construct RunDetailResponse from Supabase history view
-                    created_at = h.get("created_at") or datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    created_at = (
+                        h.get("created_at")
+                        or datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    )
                     raw_verdict = h.get("verdict")
-                    verdict = raw_verdict if raw_verdict in ("accepted", "rolled_back", "healthy_no_action", "error") else None
+                    verdict = (
+                        raw_verdict
+                        if raw_verdict in ("accepted", "rolled_back", "healthy_no_action", "error")
+                        else None
+                    )
                     arch = h.get("architecture") or "resnet18_cifar"
                     orig_acc = float(h.get("original_accuracy") or 0.0)
                     rec_acc = float(h.get("recovered_accuracy") or orig_acc)

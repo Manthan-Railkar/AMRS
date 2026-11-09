@@ -365,11 +365,15 @@ class SupabaseSync:
         if not clean_run_id:
             return
 
-        effective_user_id = _to_uuid_str(user_id) or self.get_run_user_id(clean_run_id) or self.get_first_user_id()
+        effective_user_id = (
+            _to_uuid_str(user_id) or self.get_run_user_id(clean_run_id) or self.get_first_user_id()
+        )
         now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         # Update run status
-        status_val = "succeeded" if verdict in ("accepted", "healthy_no_action", "rolled_back") else "failed"
+        status_val = (
+            "succeeded" if verdict in ("accepted", "healthy_no_action", "rolled_back") else "failed"
+        )
         self.postgrest_update(
             "recovery_runs",
             f"id=eq.{clean_run_id}",
@@ -385,7 +389,11 @@ class SupabaseSync:
         delta_ece = round(rec_ece - orig_ece, 4)
 
         # Map verdict to allowed CHECK constraint
-        valid_verdict = verdict if verdict in ("accepted", "rolled_back", "healthy_no_action", "error") else "rolled_back"
+        valid_verdict = (
+            verdict
+            if verdict in ("accepted", "rolled_back", "healthy_no_action", "error")
+            else "rolled_back"
+        )
 
         self.postgrest_insert(
             "recovery_results",
@@ -422,10 +430,16 @@ class SupabaseSync:
             return
         storage_path = f"{clean_run_id}/{name}"
         pub_url = self.upload_storage_file("artifacts", storage_path, file_bytes)
-        effective_user_id = _to_uuid_str(user_id) or self.get_run_user_id(clean_run_id) or self.get_first_user_id()
+        effective_user_id = (
+            _to_uuid_str(user_id) or self.get_run_user_id(clean_run_id) or self.get_first_user_id()
+        )
 
         # Map artifact_type to CHECK constraint: checkpoint, report, log, chart, metrics, other
-        valid_type = artifact_type if artifact_type in ("checkpoint", "report", "log", "chart", "metrics") else "other"
+        valid_type = (
+            artifact_type
+            if artifact_type in ("checkpoint", "report", "log", "chart", "metrics")
+            else "other"
+        )
 
         self.postgrest_insert(
             "run_artifacts",
