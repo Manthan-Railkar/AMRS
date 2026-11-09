@@ -222,7 +222,7 @@ export default function RunRecoveryPage() {
     setValue,
     formState: { errors, isSubmitting, isValid },
   } = useForm<NewRunForm>({
-    resolver: zodResolver(newRunFormSchema),
+    resolver: zodResolver(newRunFormSchema as any),
     mode: "onChange",
     defaultValues: {
       file: undefined,
