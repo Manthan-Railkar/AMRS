@@ -10,19 +10,14 @@ export default function Footer() {
             <div className="footer__social" aria-label="Social media">
               <span className="footer__social-title">Social</span>
               <div>
-                <a href="#" aria-label="Facebook">
+                <a
+                  href="https://github.com/Manthan-Railkar/AMRS"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub"
+                >
                   <svg aria-hidden="true">
-                    <use href="#i-facebook" />
-                  </svg>
-                </a>
-                <a href="#" aria-label="Twitter">
-                  <svg aria-hidden="true">
-                    <use href="#i-twitter" />
-                  </svg>
-                </a>
-                <a href="#" aria-label="LinkedIn">
-                  <svg aria-hidden="true">
-                    <use href="#i-linkedin" />
+                    <use href="#i-github" />
                   </svg>
                 </a>
               </div>
