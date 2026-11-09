@@ -1,7 +1,9 @@
 {
-  "name": "amrs",
+  "name": "amrs-root",
   "version": "0.1.0",
+  "description": "Adaptive Model Recovery System (AMRS) Monorepo",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "apps/*"
   ],
