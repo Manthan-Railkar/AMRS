@@ -94,7 +94,7 @@ export function Performance() {
           Performance that stands out
         </h2>
         <p className="lead" data-reveal suppressHydrationWarning style={{ '--d': '80ms' } as React.CSSProperties}>
-          We benchmark Kraft against leading design tools across speed, quality, and consistency. The results speak for themselves.
+          We benchmark AMRS against standard recovery baselines across speed, accuracy, and retention. The results speak for themselves.
         </p>
 
         <div ref={groupRef} className={`charts ${isInView ? 'is-in' : ''}`} data-chart-group>
@@ -115,7 +115,7 @@ export function Performance() {
                   return (
                     <li
                       key={bar.label}
-                      className={`bar ${bar.isKraft ? 'is-kraft' : ''}`}
+                      className={`bar ${bar.isKraft || bar.isAmrs ? 'is-kraft is-amrs' : ''}`}
                       data-key={key}
                       data-value={bar.value}
                       style={{ '--bd': `${i * 110}ms` } as React.CSSProperties}

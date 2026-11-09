@@ -904,14 +904,17 @@ svg use { pointer-events: none; }
 .charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 56px; }
 .chart h3 { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
 .chart ul { margin-top: 20px; display: grid; gap: 8px; }
-.bar { display: grid; grid-template-columns: 96px 1fr 34px; align-items: center; gap: 0 8px; height: 20px; font-size: 12px; color: var(--muted); }
-.bar__label { white-space: nowrap; }
+.bar { display: grid; grid-template-columns: 100px 1fr 34px; align-items: center; gap: 0 8px; height: 20px; font-size: 12px; color: var(--muted); }
+.bar__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar__track { display: block; height: 20px; border-radius: 3px; background: #f5f5f5; overflow: hidden; margin-right: 2px; }
 .bar__fill { display: block; height: 100%; width: 0; border-radius: 3px; background: #ececec; transition: width 1.4s var(--ease) var(--bd, 0ms); }
 .bar__val { text-align: right; font-variant-numeric: tabular-nums; font-size: 9.5px; color: var(--muted-2); }
-.bar.is-kraft { color: var(--text); font-weight: 700; }
-.bar.is-kraft .bar__fill { background: linear-gradient(90deg, #30369e 0%, #4b57c9 55%, #6979d5 100%); }
-.bar.is-kraft .bar__val { color: var(--text); font-weight: 700; }
+.bar.is-kraft,
+.bar.is-amrs { color: var(--text); font-weight: 700; }
+.bar.is-kraft .bar__fill,
+.bar.is-amrs .bar__fill { background: linear-gradient(90deg, #30369e 0%, #4b57c9 55%, #6979d5 100%); }
+.bar.is-kraft .bar__val,
+.bar.is-amrs .bar__val { color: var(--text); font-weight: 700; }
 .charts.is-in .bar__fill { width: calc(var(--p, 0) * 100%); }
 
 /* =========================================================

@@ -1,6 +1,7 @@
 export interface BarItem {
   label: string;
   value: number;
+  isAmrs?: boolean;
   isKraft?: boolean;
 }
 
@@ -14,31 +15,30 @@ export const performanceData: ChartCategory[] = [
   {
     title: 'Speed',
     bars: [
-      { label: 'Kraft', value: 94.2, isKraft: true },
-      { label: 'Figma AI', value: 71.8 },
-      { label: 'Canva Magic', value: 68.4 },
-      { label: 'Framer AI', value: 58.7 },
+      { label: 'AMRS', value: 94.2, isAmrs: true, isKraft: true },
+      { label: 'Early Stop', value: 71.8 },
+      { label: 'Fine-Tuning', value: 58.4 },
+      { label: 'Full Retrain', value: 24.6 },
     ],
   },
   {
-    title: 'Quality',
+    title: 'Accuracy',
     delay: '90ms',
     bars: [
-      { label: 'Kraft', value: 96.8, isKraft: true },
-      { label: 'Figma AI', value: 89.2 },
-      { label: 'Canva Magic', value: 82.1 },
-      { label: 'Framer AI', value: 79.4 },
+      { label: 'AMRS', value: 96.8, isAmrs: true, isKraft: true },
+      { label: 'Full Retrain', value: 89.2 },
+      { label: 'Fine-Tuning', value: 82.1 },
+      { label: 'Early Stop', value: 76.4 },
     ],
   },
   {
-    title: 'Consistency',
+    title: 'Retention',
     delay: '180ms',
     bars: [
-      { label: 'Kraft', value: 98.1, isKraft: true },
-      { label: 'Figma AI', value: 81.3 },
-      { label: 'Framer AI', value: 76.9 },
-      { label: 'Canva Magic', value: 72.4 },
+      { label: 'AMRS', value: 98.1, isAmrs: true, isKraft: true },
+      { label: 'Early Stop', value: 81.3 },
+      { label: 'Fine-Tuning', value: 76.9 },
+      { label: 'Full Retrain', value: 71.2 },
     ],
   },
 ];
-
