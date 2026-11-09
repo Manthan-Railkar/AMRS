@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { useQueryClient } from "@tanstack/react-query";
-import Carousel from "./Carousel";
 import {
   signUpAction,
   signInAction,
@@ -173,9 +172,18 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
         </button>
       )}
 
-      {/* Left panel: Carousel with AMRS product visual slides, AMRS logo, and interactive controls */}
-      <section className="relative h-[360px] w-full shrink-0 overflow-hidden rounded-[20px] lg:h-full lg:w-[49%]">
-        <Carousel />
+      {/* Left panel: Promo Video with AMRS brand logo and navigation */}
+      <section className="relative h-[360px] w-full shrink-0 overflow-hidden rounded-[20px] bg-[#0c0818] lg:h-full lg:w-[49%]">
+        <video
+          src="/assets/promo.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/* Subtle gradient vignette to maintain contrast for top brand logo and navigation */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/30 pointer-events-none z-10" />
 
         {/* Top-Left: AMRS Brand Logo */}
         <div className="absolute left-[28px] sm:left-[32px] top-[26px] sm:top-[30px] z-20 flex items-center">
