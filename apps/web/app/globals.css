@@ -234,9 +234,11 @@ svg use { pointer-events: none; }
     background-color .5s ease,
     box-shadow .4s ease;
 }
-.js [data-reveal].is-in { opacity: 1; filter: blur(0); transform: none; }
+.js [data-reveal].is-in,
+.js [data-reveal][data-in="true"] { opacity: 1; filter: blur(0); transform: none; }
 .js [data-heading] { color: var(--ink); }
-.js [data-heading].is-in { color: var(--text); }
+.js [data-heading].is-in,
+.js [data-heading][data-in="true"] { color: var(--text); }
 
 /* load-in for hero pieces */
 @keyframes rise {

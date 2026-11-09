@@ -32,7 +32,7 @@ export default function Cta() {
   return (
     <section className="cta" id="waitlist" aria-labelledby="cta-title">
       <div className="wrap">
-        <div className="cta__card" data-reveal>
+        <div className="cta__card" data-reveal suppressHydrationWarning>
           <h2 id="cta-title">Get early access</h2>
           <p>
             Every week, we ship new AI-powered design features. Join and be first in line to shape what we build next.

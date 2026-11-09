@@ -90,10 +90,10 @@ export function Performance() {
   return (
     <section className="perf" aria-labelledby="perf-title">
       <div className="wrap">
-        <h2 className="h2" id="perf-title" data-reveal data-heading>
+        <h2 className="h2" id="perf-title" data-reveal data-heading suppressHydrationWarning>
           Performance that stands out
         </h2>
-        <p className="lead" data-reveal style={{ '--d': '80ms' } as React.CSSProperties}>
+        <p className="lead" data-reveal suppressHydrationWarning style={{ '--d': '80ms' } as React.CSSProperties}>
           We benchmark Kraft against leading design tools across speed, quality, and consistency. The results speak for themselves.
         </p>
 
@@ -103,6 +103,7 @@ export function Performance() {
               key={category.title}
               className="chart"
               data-reveal
+              suppressHydrationWarning
               style={category.delay ? ({ '--d': category.delay } as React.CSSProperties) : undefined}
             >
               <h3>{category.title}</h3>

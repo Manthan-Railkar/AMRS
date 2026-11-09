@@ -27,26 +27,10 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.add('js');
 
-    // Reveal on scroll
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((en) => {
-          if (!en.isIntersecting) return;
-          en.target.classList.add('is-in');
-          io.unobserve(en.target);
-        });
-      },
-      { threshold: 0.18, rootMargin: '0px 0px -6% 0px' }
-    );
-
-    document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
-
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
       ScrollTrigger.refresh();
-      return () => {
-        io.disconnect();
-      };
+      return;
     }
 
     const lenis = new Lenis({
@@ -88,7 +72,6 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
 
     return () => {
       clearTimeout(refreshTimer);
-      io.disconnect();
       document.removeEventListener('click', handleAnchorClick);
       gsap.ticker.remove(updateTicker);
       lenis.destroy();

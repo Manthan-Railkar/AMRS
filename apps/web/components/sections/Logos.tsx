@@ -11,10 +11,10 @@ export function Logos() {
     <section className="logos" id="technologies" aria-labelledby="logos-title">
       <div className="wrap wrap--logos">
         <div className="logos__header">
-          <h2 className="h2 logos__title" id="logos-title" data-reveal data-heading>
+          <h2 className="h2 logos__title" id="logos-title" data-reveal data-heading suppressHydrationWarning>
             Built on the Technologies Powering Modern Machine Learning.
           </h2>
-          <p className="logos__lead lead" data-reveal>
+          <p className="logos__lead lead" data-reveal suppressHydrationWarning>
             An extensible recovery framework built for reproducible machine learning experimentation.
           </p>
         </div>
@@ -24,6 +24,7 @@ export function Logos() {
       <div
         className="logos__strip-wrap"
         data-reveal
+        suppressHydrationWarning
         role="region"
         aria-label="Technologies powered by modern machine learning"
       >

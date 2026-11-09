@@ -94,6 +94,7 @@ export default function Faq() {
                 className="faq__item"
                 data-open={isOpen ? 'true' : 'false'}
                 data-reveal
+                suppressHydrationWarning
               >
                 <button
                   type="button"

@@ -116,12 +116,12 @@ export function Testimonials() {
       tabIndex={0}
     >
       <div className="wrap">
-        <h2 className="h2" id="t-title" data-reveal data-heading>
+        <h2 className="h2" id="t-title" data-reveal data-heading suppressHydrationWarning>
           See How AMRS Approaches Real Model Failures.
         </h2>
       </div>
 
-      <div className="t-wrap" data-reveal>
+      <div className="t-wrap" data-reveal suppressHydrationWarning>
         <div
           ref={trackRef}
           className={`t-track ${isDragging ? 'is-dragging' : ''}`}
@@ -204,7 +204,7 @@ export function Testimonials() {
         </div>
       </div>
 
-      <div className="wrap t-controls" data-reveal>
+      <div className="wrap t-controls" data-reveal suppressHydrationWarning>
         <div className="t-dots" role="tablist" aria-label="Choose experiment">
           {testimonialsData.map((_, i) => (
             <button

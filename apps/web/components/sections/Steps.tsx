@@ -100,13 +100,13 @@ export function Steps() {
   return (
     <section className="steps" id="features" aria-labelledby="steps-title">
       <div className="wrap">
-        <h2 className="h2" id="steps-title" data-reveal data-heading>
+        <h2 className="h2" id="steps-title" data-reveal data-heading suppressHydrationWarning>
           From Model Failure to Verified Recovery in Four Steps.
         </h2>
       </div>
       <div ref={trackRef} className="steps__track" data-drag data-stagger>
         {stepsData.map((step) => (
-          <article key={step.id} className="step" data-reveal>
+          <article key={step.id} className="step" data-reveal suppressHydrationWarning>
             <h3>{step.title}</h3>
             <p>{step.description}</p>
             <Image

@@ -9,6 +9,7 @@ import Performance from '@/components/sections/Performance';
 import Testimonials from '@/components/sections/Testimonials';
 import Faq from '@/components/sections/Faq';
 import Footer from '@/components/sections/Footer';
+import ScrollReveal from '@/components/ScrollReveal';
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
         <Faq />
       </main>
       <Footer />
+      <ScrollReveal />
     </>
   );
 }

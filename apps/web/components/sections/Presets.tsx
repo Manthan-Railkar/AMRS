@@ -9,17 +9,17 @@ export function Presets() {
     <section className="presets" id="templates" aria-labelledby="presets-title">
       <div className="wrap">
         <div className="presets__head">
-          <h2 className="h2" id="presets-title" data-reveal data-heading>
+          <h2 className="h2" id="presets-title" data-reveal data-heading suppressHydrationWarning>
             A Recovery Strategy for Every Model Failure.
           </h2>
-          <p className="presets__lead lead" data-reveal>
+          <p className="presets__lead lead" data-reveal suppressHydrationWarning>
             AMRS uses a collection of recovery techniques to address different model degradation patterns. Strategies are selected based on diagnosis results, prerequisites and estimated computational cost.
           </p>
         </div>
 
         <div className="preset-grid" data-stagger>
           {presetsData.map((preset) => (
-            <a key={preset.id} className="preset group" href={preset.href} data-reveal>
+            <a key={preset.id} className="preset group" href={preset.href} data-reveal suppressHydrationWarning>
               <Image
                 src={preset.image}
                 alt={preset.title}
@@ -35,7 +35,7 @@ export function Presets() {
           ))}
         </div>
 
-        <div className="preset-foot" data-reveal>
+        <div className="preset-foot" data-reveal suppressHydrationWarning>
           <p>
             AMRS uses a collection of recovery techniques to address different model degradation patterns. Strategies are selected based on diagnosis results, prerequisites and estimated computational cost.
           </p>

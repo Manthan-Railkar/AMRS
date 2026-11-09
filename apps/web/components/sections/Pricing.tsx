@@ -5,7 +5,7 @@ export default function Pricing() {
   return (
     <section className="pricing" id="pricing" aria-labelledby="pricing-title">
       <div className="wrap">
-        <h2 className="h2" id="pricing-title" data-reveal data-heading>
+        <h2 className="h2" id="pricing-title" data-reveal data-heading suppressHydrationWarning>
           Simple, transparent pricing
         </h2>
 
@@ -15,6 +15,7 @@ export default function Pricing() {
               key={plan.id}
               className={`plan${plan.id === 'pro' ? ' plan--pro' : ''}`}
               data-reveal
+              suppressHydrationWarning
             >
               <header>
                 <div className="plan__top">
@@ -55,7 +56,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        <p className="pricing__note" data-reveal>
+        <p className="pricing__note" data-reveal suppressHydrationWarning>
           Start free and scale as you grow. No hidden fees, no surprises.
         </p>
       </div>
