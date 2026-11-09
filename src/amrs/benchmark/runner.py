@@ -409,7 +409,7 @@ class BenchmarkRunner:
         # Retrieve accepted model or fallback to original
         cand_model: nn.Module
         accepted_path = recovery_bundle.artifacts_dir / "accepted_model.pt"
-        if accepted_path.exists() and run_record.verdict == "ACCEPT":
+        if accepted_path.exists() and run_record.verdict in ("accepted", "ACCEPT"):
             cand_model = build(
                 spec.arch, num_classes=spec.num_classes, in_shape=spec.input_shape
             ).to(trial.device)
@@ -452,7 +452,7 @@ class BenchmarkRunner:
             agreement=agreement_val,
             compute_units=compute_units,
             wall_s=wall_s,
-            accepted=bool(run_record.verdict == "ACCEPT"),
+            accepted=bool(run_record.verdict in ("accepted", "ACCEPT")),
             notes=notes,
             status="completed",
         )
