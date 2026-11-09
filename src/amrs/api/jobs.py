@@ -208,6 +208,7 @@ class JobCoordinator:
             if not upload_model_path.exists() or not upload_model_path.is_file():
                 # Attempt hydration from Supabase Cloud Storage if not cached on local disk
                 from amrs.store.supabase import supabase_sync
+
                 downloaded = supabase_sync.download_model(req.model_upload_id, upload_model_path)
                 if not downloaded or not upload_model_path.exists():
                     raise NotFoundError(
@@ -406,6 +407,7 @@ class JobCoordinator:
                 model_file = uploads_root / req.model_upload_id / "model.pt"
                 if not model_file.exists():
                     from amrs.store.supabase import supabase_sync
+
                     supabase_sync.download_model(req.model_upload_id, model_file)
 
                 import numpy as np
@@ -434,6 +436,7 @@ class JobCoordinator:
                             break
                     if ds_path is None:
                         from amrs.store.supabase import supabase_sync
+
                         ds_path = supabase_sync.download_dataset(
                             req.dataset_upload_id, datasets_root / req.dataset_upload_id
                         )

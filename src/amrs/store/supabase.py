@@ -224,7 +224,11 @@ class SupabaseSync:
         """Retrieve dataset file from Supabase Storage and cache locally."""
         clean_id = _to_uuid_str(dataset_id) or dataset_id
         for ext in [".npz", ".pt", ".pth", ".csv"]:
-            for candidate_key in [f"{clean_id}/dataset{ext}", f"{clean_id}/data{ext}", f"{dataset_id}/data{ext}"]:
+            for candidate_key in [
+                f"{clean_id}/dataset{ext}",
+                f"{clean_id}/data{ext}",
+                f"{dataset_id}/data{ext}",
+            ]:
                 data = self.download_storage_file("datasets", candidate_key)
                 if data:
                     dest_dir.mkdir(parents=True, exist_ok=True)
