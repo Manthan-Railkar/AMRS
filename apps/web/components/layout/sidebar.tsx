@@ -466,6 +466,7 @@ export function Sidebar({
                         ? "text-sidebar-primary font-semibold"
                         : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
                     )}
+                    style={!isCollapsed ? { paddingLeft: "2.25rem", paddingRight: "0.75rem" } : undefined}
                   >
                     {/* Curved branch arm reaching from trunk to the item */}
                     {!isCollapsed && (
@@ -534,8 +535,8 @@ export function Sidebar({
           {/* Section: General */}
           <div>
             {!isCollapsed && (
-              <div className="px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                General
+              <div className="flex items-center justify-between px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                <span>General</span>
               </div>
             )}
 
@@ -551,7 +552,11 @@ export function Sidebar({
               {generalNavItems.map((item) => {
                 const Icon = item.icon;
                 const isLink = item.href.startsWith("/");
-                const isActive = isLink ? isRouteActive(item.href) : false;
+                const isActive = isLink
+                  ? isRouteActive(item.href)
+                  : item.id === "notifications"
+                  ? isNotificationsOpen
+                  : false;
 
                 const handleClick = (e: React.MouseEvent) => {
                   if (item.id === "notifications") {
@@ -563,9 +568,29 @@ export function Sidebar({
                   }
                 };
 
+                const badgeCount =
+                  item.id === "notifications"
+                    ? unreadCount > 0
+                      ? unreadCount
+                      : null
+                    : item.badge;
+
+                const itemClassNames = cn(
+                  "group relative z-10 w-full flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-sidebar-ring text-left",
+                  !isCollapsed ? "pl-9 pr-3" : "justify-center px-0 size-10 mx-auto",
+                  isActive
+                    ? "text-sidebar-primary font-semibold"
+                    : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+                );
+
+                const itemStyle = !isCollapsed
+                  ? { paddingLeft: "2.25rem", paddingRight: "0.75rem" }
+                  : undefined;
+
                 const linkInner = (
                   <>
-                    {/* Curved branch arm */}
+                    {/* Curved branch arm reaching from trunk to the item */}
                     {!isCollapsed && (
                       <span
                         aria-hidden="true"
@@ -587,39 +612,23 @@ export function Sidebar({
                     />
                     {!isCollapsed && (
                       <>
-                        <span
-                          className={cn(
-                            "truncate flex-1 text-left",
-                            isActive ? "font-semibold text-sidebar-primary" : ""
-                          )}
-                        >
-                          {item.name}
-                        </span>
-                        {((item.id === "notifications" ? (unreadCount > 0 ? unreadCount : null) : item.badge) != null) && (
+                        <span className="truncate flex-1 text-left">{item.name}</span>
+                        {badgeCount != null && (
                           <span
                             className={cn(
                               "inline-flex items-center justify-center text-[11px] font-bold px-1.5 py-0.2 min-w-5 h-5 rounded-full shadow-2xs",
                               isActive
                                 ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                : "bg-sidebar-primary text-sidebar-primary-foreground"
+                                : "bg-sidebar-primary/85 text-sidebar-primary-foreground"
                             )}
                           >
-                            {item.id === "notifications" ? unreadCount : item.badge}
+                            {badgeCount}
                           </span>
                         )}
                       </>
                     )}
                     {isCollapsed && <span className="sr-only">{item.name}</span>}
                   </>
-                );
-
-                const itemClassNames = cn(
-                  "group relative z-10 w-full flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors outline-none",
-                  "focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                  !isCollapsed ? "pl-9 pr-3" : "justify-center px-0 size-10 mx-auto",
-                  isActive
-                    ? "text-sidebar-primary font-semibold"
-                    : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
                 );
 
                 const linkContent = isLink ? (
@@ -632,14 +641,20 @@ export function Sidebar({
                     onClick={() => handleNavClick(item.href)}
                     aria-current={isActive ? "page" : undefined}
                     className={itemClassNames}
+                    style={itemStyle}
                   >
                     {linkInner}
                   </Link>
                 ) : (
                   <button
                     type="button"
+                    ref={(el) => {
+                      if (el) itemRefs.current.set(item.href, el);
+                      else itemRefs.current.delete(item.href);
+                    }}
                     onClick={handleClick}
                     className={itemClassNames}
+                    style={itemStyle}
                   >
                     {linkInner}
                   </button>
@@ -652,9 +667,9 @@ export function Sidebar({
                       <Tooltip placement="right">
                         <div className="flex items-center gap-2">
                           <span>{item.name}</span>
-                          {item.badge != null && (
+                          {badgeCount != null && (
                             <span className="px-1.5 py-0.2 rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold">
-                              {item.badge}
+                              {badgeCount}
                             </span>
                           )}
                         </div>
