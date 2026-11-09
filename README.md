@@ -153,15 +153,30 @@ cd AMRS
 npm install
 ```
 
-### Development Server
+### Running the Project
 
-Start the local development server with Turbopack:
-
-```bash
-npm run dev
+#### Option 1: One-Click Launch (Easiest for Windows)
+Simply double-click `run.bat` in the root folder, or run in PowerShell:
+```powershell
+.\run.ps1
 ```
+This automatically starts both the Python FastAPI backend and Next.js frontend in separate dedicated windows.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+#### Option 2: Terminal Commands
+
+1. **Terminal 1 — Python Backend (Port 8000)**:
+   ```bash
+   python -m uvicorn amrs.api.main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+   *(or `npm run backend`)*
+
+2. **Terminal 2 — Web Frontend (Port 3000)**:
+   ```bash
+   npm run dev
+   ```
+
+3. Open **[http://localhost:3000](http://localhost:3000)** in your browser!
+   - API Docs & Swagger: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### Linting & Build
 
