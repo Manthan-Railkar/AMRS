@@ -11,7 +11,6 @@ const menuItems = [
   { label: 'Benchmarks', ariaLabel: 'Performance metrics and evaluation', link: '#performance' },
   { label: 'Experiments', ariaLabel: 'Reproducible failure recovery experiments', link: '#experiments' },
   { label: 'FAQ', ariaLabel: 'Everything you need to know about AMRS', link: '#faq' },
-  { label: 'Diagnose', ariaLabel: 'Interactive model failure diagnosis', link: '#prompt-form' },
   { label: 'Get Started', ariaLabel: 'Sign up or log in to AMRS', link: '/get-started' },
 ];
 
@@ -62,9 +61,8 @@ export function Nav() {
   return (
     <>
       <div
-        className={`nav-wrapper fixed top-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none ${
-          scrolled ? 'is-scrolled pt-2.5 sm:pt-3' : 'pt-4 sm:pt-5'
-        }`}
+        className={`nav-wrapper fixed top-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none ${scrolled ? 'is-scrolled pt-2.5 sm:pt-3' : 'pt-4 sm:pt-5'
+          }`}
         style={{
           position: 'fixed',
           top: 0,
@@ -78,11 +76,10 @@ export function Nav() {
         }}
       >
         <header
-          className={`nav mx-auto flex items-center justify-between rounded-full border text-white transition-all duration-300 pointer-events-auto ${
-            scrolled
-              ? 'bg-[#0a0814]/85 border-white/15 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)] backdrop-blur-xl'
-              : 'bg-transparent border-transparent shadow-none backdrop-blur-none'
-          }`}
+          className={`nav mx-auto flex items-center justify-between rounded-full border text-white transition-all duration-300 pointer-events-auto ${scrolled
+            ? 'bg-[#0a0814]/85 border-white/15 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)] backdrop-blur-xl'
+            : 'bg-transparent border-transparent shadow-none backdrop-blur-none'
+            }`}
           id="top"
           style={{
             pointerEvents: 'auto',
@@ -144,13 +141,6 @@ export function Nav() {
             }}
           >
             <a
-              href="/dashboard"
-              className="text-white/70 hover:text-white transition-colors duration-200"
-              style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
-            >
-              Dashboard
-            </a>
-            <a
               href="#features"
               className="text-white/70 hover:text-white transition-colors duration-200"
               style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
@@ -162,25 +152,25 @@ export function Nav() {
               className="text-white/70 hover:text-white transition-colors duration-200"
               style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
             >
-              Templates
+              Techniques
             </a>
             <a
               href="#experiments"
               className="text-white/70 hover:text-white transition-colors duration-200"
               style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
             >
-              Experiments
+              Test Cases
             </a>
             <a
               href="#resources"
               className="text-white/70 hover:text-white transition-colors duration-200"
               style={{ color: 'rgba(255, 255, 255, 0.72)', textDecoration: 'none', transition: 'color 0.2s' }}
             >
-              Resources
+              FAQs
             </a>
           </nav>
 
-          {/* Right: Contact & Action Button */}
+          {/* Right: Action Button */}
           <div
             className="nav__right flex items-center gap-3 sm:gap-4 shrink-0"
             style={{
@@ -190,20 +180,6 @@ export function Nav() {
               flexShrink: 0,
             }}
           >
-            <a
-              href="#prompt"
-              className="nav__action-link hidden sm:inline-block text-[12px] font-semibold uppercase tracking-[0.1em] text-white/75 hover:text-white transition-colors duration-200"
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: 'rgba(255, 255, 255, 0.75)',
-                textDecoration: 'none',
-              }}
-            >
-              Diagnose
-            </a>
             <a
               href="/get-started"
               className="nav__cta-btn inline-flex items-center gap-1.5 bg-white text-[#0b0914] hover:bg-neutral-100 hover:scale-[1.03] active:scale-[0.98] font-bold text-[12px] uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full transition-all duration-200 shadow-[0_2px_12px_rgba(255,255,255,0.2)]"
