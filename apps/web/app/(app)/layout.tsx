@@ -22,7 +22,7 @@ export default function AppLayout({
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = React.useState(false);
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground flex flex-col font-sans">
+    <div data-app-shell="true" className="relative min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Skip to Content Link */}
       <a
         href="#main-content"

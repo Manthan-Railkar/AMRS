@@ -57,18 +57,24 @@ export function DiagnosisBreakdownChart({
   const [tooltipBorder, setTooltipBorder] = React.useState("oklch(0.91 0.02 295)");
 
   React.useLayoutEffect(() => {
-    const style = getComputedStyle(document.documentElement);
-    const resolved: Record<string, string> = {};
-    for (const [label, varName] of Object.entries(COLOR_VARS)) {
-      resolved[label] = style.getPropertyValue(varName).trim() || "oklch(0.5 0.1 240)";
-    }
-    const bg = style.getPropertyValue("--card").trim();
-    const bd = style.getPropertyValue("--border").trim();
-    React.startTransition(() => {
-      setColors(resolved);
-      if (bg) setTooltipBg(bg);
-      if (bd) setTooltipBorder(bd);
-    });
+    const update = () => {
+      const style = getComputedStyle(document.documentElement);
+      const resolved: Record<string, string> = {};
+      for (const [label, varName] of Object.entries(COLOR_VARS)) {
+        resolved[label] = style.getPropertyValue(varName).trim() || "oklch(0.5 0.1 240)";
+      }
+      const bg = style.getPropertyValue("--card").trim();
+      const bd = style.getPropertyValue("--border").trim();
+      React.startTransition(() => {
+        setColors(resolved);
+        if (bg) setTooltipBg(bg);
+        if (bd) setTooltipBorder(bd);
+      });
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
+    return () => observer.disconnect();
   }, []);
 
   const isReducedMotion =

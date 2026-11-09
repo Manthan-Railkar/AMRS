@@ -66,8 +66,14 @@ import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 function useCssVar(name: string, fallback: string) {
   const [v, setV] = React.useState(fallback);
   React.useLayoutEffect(() => {
-    const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    if (val) React.startTransition(() => setV(val));
+    const update = () => {
+      const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      if (val) React.startTransition(() => setV(val));
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
+    return () => observer.disconnect();
   }, [name]);
   return v;
 }

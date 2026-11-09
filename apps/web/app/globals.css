@@ -83,8 +83,11 @@
    ========================================================= */
 
 /* ---------- Tokens ---------- */
-:root {
+:root,
+[data-theme="light"],
+html:not(.dark) {
   --font: var(--font-inter), "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
 
   --bg: #fdfdfd;
   --surface: #f9f9f9;
@@ -1140,6 +1143,9 @@ svg use { pointer-events: none; }
   display: grid; place-items: center; color: #8b82a8; background: rgba(255,255,255,.4); backdrop-filter: blur(8px);
   transition: background .3s, color .3s, transform .4s var(--ease);
 }
+body:has([data-app-shell]) .theme-toggle {
+  display: none !important;
+}
 .theme-toggle svg { width: 14px; height: 14px; grid-area: 1 / 1; transition: opacity .3s, transform .5s var(--ease); }
 .theme-toggle:hover { background: rgba(255,255,255,.8); color: #3a2f5a; transform: rotate(-12deg) scale(1.08); }
 .theme-toggle__sun { opacity: 0; transform: rotate(-60deg) scale(.6); }
@@ -1162,8 +1168,10 @@ svg use { pointer-events: none; }
 /* =========================================================
    DARK THEME  (toggle is visible in the original; palette is an adaptation)
    ========================================================= */
+html.dark,
 .dark,
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0b0b0e; --surface: #141418; --surface-2: #1a1a20; --text: #f2f2f6; --muted: #9b9ba8; --muted-2: #8b8b99;
   --ink: #c9b8ee; --link-ink: #e4e0f3; --line: #202028; --lav: #2a2652; --lav-2: #231f45; --hero-muted: #9c90d6;
 

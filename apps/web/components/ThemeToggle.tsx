@@ -1,32 +1,38 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
-
-function getThemeSnapshot(): 'light' | 'dark' {
-  if (typeof document === 'undefined') return 'light';
-  return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
-}
-
-function subscribe(callback: () => void) {
-  if (typeof document === 'undefined') return () => {};
-  const observer = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      if (m.attributeName === 'data-theme') {
-        callback();
-      }
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  return () => observer.disconnect();
-}
+import * as React from 'react';
+import { useTheme } from 'next-themes';
 
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, getThemeSnapshot, () => 'light');
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted
+    ? resolvedTheme === 'dark' || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+    : false;
 
   const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', nextTheme);
+    const isCurrentlyDark =
+      (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) ||
+      (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark') ||
+      isDark;
+    const nextTheme = isCurrentlyDark ? 'light' : 'dark';
+
+    setTheme(nextTheme);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
     try {
+      localStorage.setItem('theme', nextTheme);
       localStorage.setItem('kraft-theme', nextTheme);
     } catch {}
   };
@@ -36,7 +42,7 @@ export function ThemeToggle() {
       className="theme-toggle"
       type="button"
       onClick={toggleTheme}
-      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
     >
       <svg className="theme-toggle__moon" aria-hidden="true">
         <use href="#i-moon" />

@@ -37,17 +37,38 @@ export function ThemeToggle() {
 
   const isDark = resolvedTheme === "dark"
 
+  const toggleTheme = () => {
+    const isCurrentlyDark =
+      document.documentElement.classList.contains("dark") ||
+      document.documentElement.getAttribute("data-theme") === "dark" ||
+      isDark
+    const nextTheme = isCurrentlyDark ? "light" : "dark"
+
+    setTheme(nextTheme)
+    document.documentElement.setAttribute("data-theme", nextTheme)
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+    try {
+      localStorage.setItem("theme", nextTheme)
+      localStorage.setItem("kraft-theme", nextTheme)
+    } catch {}
+  }
+
   return (
     <Button
       variant="ghost"
       size="icon"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      onPress={() => setTheme(isDark ? "light" : "dark")}
+      onPress={toggleTheme}
+      onClick={toggleTheme}
     >
       {isDark ? (
-        <Sun className="size-4" aria-hidden="true" />
+        <Sun className="size-4 text-amber-400 hover:text-amber-300 transition-colors" aria-hidden="true" />
       ) : (
-        <Moon className="size-4" aria-hidden="true" />
+        <Moon className="size-4 text-slate-700 hover:text-slate-900 transition-colors" aria-hidden="true" />
       )}
       <span className="sr-only">
         {isDark ? "Switch to light theme" : "Switch to dark theme"}

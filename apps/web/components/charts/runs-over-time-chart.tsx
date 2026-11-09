@@ -23,8 +23,14 @@ import { cn } from "@/lib/utils";
 function useCssVar(name: string, fallback: string) {
   const [value, setValue] = React.useState(fallback);
   React.useLayoutEffect(() => {
-    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    if (v) React.startTransition(() => setValue(v));
+    const update = () => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      if (v) React.startTransition(() => setValue(v));
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
+    return () => observer.disconnect();
   }, [name]);
   return value;
 }

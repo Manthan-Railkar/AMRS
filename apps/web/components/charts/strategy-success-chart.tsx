@@ -46,15 +46,21 @@ export function StrategySuccessChart({
   const [tooltipBorder, setTooltipBorder] = React.useState("oklch(0.91 0.02 295)");
 
   React.useLayoutEffect(() => {
-    const style = getComputedStyle(document.documentElement);
-    const c = style.getPropertyValue("--chart-1").trim();
-    const bg = style.getPropertyValue("--card").trim();
-    const bd = style.getPropertyValue("--border").trim();
-    React.startTransition(() => {
-      if (c) setBarColor(c);
-      if (bg) setTooltipBg(bg);
-      if (bd) setTooltipBorder(bd);
-    });
+    const update = () => {
+      const style = getComputedStyle(document.documentElement);
+      const c = style.getPropertyValue("--chart-1").trim();
+      const bg = style.getPropertyValue("--card").trim();
+      const bd = style.getPropertyValue("--border").trim();
+      React.startTransition(() => {
+        if (c) setBarColor(c);
+        if (bg) setTooltipBg(bg);
+        if (bd) setTooltipBorder(bd);
+      });
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
+    return () => observer.disconnect();
   }, []);
 
   const isReducedMotion =
