@@ -17,3 +17,4 @@ Write-Host "  - Web Dashboard: http://localhost:3000" -ForegroundColor White
 Write-Host "  - Backend API:   http://localhost:8000" -ForegroundColor White
 Write-Host "  - API Swagger:   http://localhost:8000/docs" -ForegroundColor White
 Write-Host "=======================================================" -ForegroundColor Cyan
+

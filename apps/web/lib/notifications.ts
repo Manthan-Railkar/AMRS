@@ -151,6 +151,57 @@ export function useNotifications(userId?: string | null) {
   React.useEffect(() => {
     setNotifications(getStoredNotifications(userId));
 
+    // Sync permanent history from backend/Supabase into profile notifications
+    if (userId) {
+      fetch(`/api/runs?user_id=${encodeURIComponent(userId)}&limit=10`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && Array.isArray(data.runs) && data.runs.length > 0) {
+            const currentItems = getStoredNotifications(userId);
+            let hasChanges = false;
+            const updated = [...currentItems];
+
+            for (const r of data.runs) {
+              const runNotifId = `notif-run-${r.id}`;
+              const exists = updated.some((n) => n.id === runNotifId || n.runId === r.id);
+              if (!exists) {
+                hasChanges = true;
+                const verdictText =
+                  r.verdict === "accepted"
+                    ? "Recovery Succeeded"
+                    : r.verdict === "healthy_no_action"
+                      ? "Healthy (No action needed)"
+                      : r.verdict === "rolled_back"
+                        ? "Rolled back to safe weights"
+                        : "Execution finished";
+                const arch = r.arch || "Model";
+                updated.push({
+                  id: runNotifId,
+                  title: `${arch}: ${verdictText}`,
+                  description: `Run ${r.id.slice(0, 8)} finalized with verdict '${r.verdict || r.status}'.`,
+                  timestamp: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+                  type: r.verdict === "accepted" ? "completed" : r.verdict === "error" ? "error" : "strategy",
+                  runId: r.id,
+                  href: `/runs/${r.id}`,
+                  read: true,
+                  statusColor: r.verdict === "accepted" ? "emerald" : r.verdict === "error" ? "rose" : "amber",
+                  userId: userId,
+                });
+              }
+            }
+
+            if (hasChanges) {
+              updated.sort((a, b) => b.timestamp - a.timestamp);
+              saveNotifications(updated, userId);
+              setNotifications(updated);
+            }
+          }
+        })
+        .catch(() => {
+          // Ignore network errors in background notification sync
+        });
+    }
+
     const key = getNotificationStorageKey(userId);
     const onStorage = (e: StorageEvent) => {
       if (e.key === key) {

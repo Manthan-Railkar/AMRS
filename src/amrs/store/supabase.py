@@ -12,9 +12,12 @@ Leverages:
 
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import sys
+import uuid
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -22,10 +25,43 @@ import requests
 logger = logging.getLogger("amrs.supabase")
 
 
+def _load_env_files() -> None:
+    """Ensure environment variables from .env.local and .env are loaded."""
+    for env_file in (".env.local", ".env"):
+        env_path = Path(os.getcwd()) / env_file
+        if env_path.exists():
+            try:
+                for line in env_path.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k, v = k.strip(), v.strip()
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+            except Exception:
+                pass
+
+
+_load_env_files()
+
+
+def _to_uuid_str(val: Any) -> str | None:
+    """Safely convert any ID or string to a valid RFC 4122 UUID string."""
+    if not val:
+        return None
+    val_str = str(val).strip()
+    try:
+        return str(uuid.UUID(val_str))
+    except (ValueError, TypeError, AttributeError):
+        # Deterministically convert custom strings into standard UUIDs
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, val_str))
+
+
 class SupabaseSync:
     """Synchronizes AMRS files and run metadata with Supabase Storage and database."""
 
     def __init__(self) -> None:
+        _load_env_files()
         self.url = (
             os.getenv("NEXT_PUBLIC_SUPABASE_URL")
             or os.getenv("SUPABASE_URL")
@@ -36,7 +72,7 @@ class SupabaseSync:
             or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
             or ""
         )
-        # Avoid blocking network timeouts during pytest runs
+        # Avoid blocking network timeouts during pytest runs unless explicitly desired
         if "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST"):
             self.enabled = False
         else:
@@ -49,6 +85,41 @@ class SupabaseSync:
             "apikey": self.key,
             "Authorization": f"Bearer {self.key}",
         }
+
+    def check_exists(self, table: str, record_id: str) -> bool:
+        """Verify whether a record exists in a Supabase table."""
+        if not self.enabled:
+            return False
+        clean_id = _to_uuid_str(record_id)
+        if not clean_id:
+            return False
+        try:
+            url = f"{self.url}/rest/v1/{table}?id=eq.{clean_id}&select=id"
+            res = requests.get(url, headers=self.headers, timeout=4.0)
+            if res.status_code == 200:
+                data = res.json()
+                return isinstance(data, list) and len(data) > 0
+        except Exception as exc:
+            logger.debug("Check exists error on %s/%s: %s", table, record_id, exc)
+        return False
+
+    def get_run_user_id(self, run_id: str) -> str | None:
+        """Fetch the owner user_id of a recovery run from Supabase."""
+        if not self.enabled:
+            return None
+        clean_id = _to_uuid_str(run_id)
+        if not clean_id:
+            return None
+        try:
+            url = f"{self.url}/rest/v1/recovery_runs?id=eq.{clean_id}&select=user_id"
+            res = requests.get(url, headers=self.headers, timeout=4.0)
+            if res.status_code == 200:
+                data = res.json()
+                if isinstance(data, list) and len(data) > 0:
+                    return data[0].get("user_id")
+        except Exception:
+            pass
+        return None
 
     def get_first_user_id(self) -> str:
         """Retrieve an existing user ID for database foreign keys, or fallback to zero UUID."""
@@ -97,6 +168,10 @@ class SupabaseSync:
             )
         return None
 
+    # ---------------------------------------------------------------------
+    # PostgREST database operations
+    # ---------------------------------------------------------------------
+
     def postgrest_insert(self, table: str, record: dict[str, Any]) -> bool:
         """Insert or upsert a row in a Supabase table."""
         if not self.enabled:
@@ -109,9 +184,17 @@ class SupabaseSync:
                 "Prefer": "return=minimal,resolution=merge-duplicates",
             }
             res = requests.post(url, headers=hdrs, json=record, timeout=5.0)
-            return res.status_code in (200, 201, 204)
+            if res.status_code in (200, 201, 204):
+                return True
+            logger.warning(
+                "PostgREST insert to %s failed [%d]: %s",
+                table,
+                res.status_code,
+                res.text,
+            )
+            return False
         except Exception as exc:
-            logger.debug("PostgREST insert notice on %s: %s", table, exc)
+            logger.warning("PostgREST insert exception on %s: %s", table, exc)
             return False
 
     def postgrest_update(self, table: str, filter_param: str, update_data: dict[str, Any]) -> bool:
@@ -126,9 +209,18 @@ class SupabaseSync:
                 "Prefer": "return=minimal",
             }
             res = requests.patch(url, headers=hdrs, json=update_data, timeout=5.0)
-            return res.status_code in (200, 204)
+            if res.status_code in (200, 204):
+                return True
+            logger.warning(
+                "PostgREST update to %s with filter %s failed [%d]: %s",
+                table,
+                filter_param,
+                res.status_code,
+                res.text,
+            )
+            return False
         except Exception as exc:
-            logger.debug("PostgREST update notice on %s: %s", table, exc)
+            logger.warning("PostgREST update exception on %s: %s", table, exc)
             return False
 
     # ---------------------------------------------------------------------
@@ -145,14 +237,15 @@ class SupabaseSync:
         user_id: str | None = None,
     ) -> None:
         """Upload model checkpoint to Supabase Storage and record in model_uploads table."""
-        storage_path = f"{model_id}/model.pt"
+        clean_model_id = _to_uuid_str(model_id) or model_id
+        storage_path = f"{clean_model_id}/model.pt"
         pub_url = self.upload_storage_file("models", storage_path, checkpoint_bytes)
-        effective_user_id = user_id or self.get_first_user_id()
+        effective_user_id = _to_uuid_str(user_id) or self.get_first_user_id()
 
         self.postgrest_insert(
             "model_uploads",
             {
-                "id": model_id,
+                "id": clean_model_id,
                 "user_id": effective_user_id,
                 "name": name,
                 "architecture": arch,
@@ -176,14 +269,15 @@ class SupabaseSync:
         user_id: str | None = None,
     ) -> None:
         """Upload dataset file to Supabase Storage and record in dataset_uploads table."""
-        storage_path = f"{dataset_id}/data.{format_str}"
+        clean_dataset_id = _to_uuid_str(dataset_id) or dataset_id
+        storage_path = f"{clean_dataset_id}/data.{format_str}"
         pub_url = self.upload_storage_file("datasets", storage_path, file_bytes)
-        effective_user_id = user_id or self.get_first_user_id()
+        effective_user_id = _to_uuid_str(user_id) or self.get_first_user_id()
 
         self.postgrest_insert(
             "dataset_uploads",
             {
-                "id": dataset_id,
+                "id": clean_dataset_id,
                 "user_id": effective_user_id,
                 "name": name,
                 "file_path": pub_url or storage_path,
@@ -206,26 +300,47 @@ class SupabaseSync:
         user_id: str | None = None,
     ) -> None:
         """Record newly initiated recovery run in recovery_runs table."""
-        effective_user_id = user_id or self.get_first_user_id()
+        clean_run_id = _to_uuid_str(run_id) or str(uuid.uuid4())
+        effective_user_id = _to_uuid_str(user_id) or self.get_first_user_id()
+
+        # Validate foreign keys to avoid PostgreSQL constraint violation
+        valid_model_id: str | None = None
+        if model_id:
+            m_uuid = _to_uuid_str(model_id)
+            if m_uuid and self.check_exists("model_uploads", m_uuid):
+                valid_model_id = m_uuid
+
+        valid_dataset_id: str | None = None
+        if dataset_id:
+            d_uuid = _to_uuid_str(dataset_id)
+            if d_uuid and self.check_exists("dataset_uploads", d_uuid):
+                valid_dataset_id = d_uuid
+
+        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
         self.postgrest_insert(
             "recovery_runs",
             {
-                "id": run_id,
+                "id": clean_run_id,
                 "user_id": effective_user_id,
-                "model_id": model_id,
-                "dataset_id": dataset_id,
+                "model_id": valid_model_id,
+                "dataset_id": valid_dataset_id,
                 "status": "running",
                 "progress_stage": "diagnosing",
                 "progress_pct": 10.0,
                 "execution_params": {"arch": arch, "seed": seed},
+                "started_at": now_iso,
             },
         )
 
     def sync_run_stage(self, run_id: str, stage: str, pct: float) -> None:
         """Update progress stage of recovery run."""
+        clean_run_id = _to_uuid_str(run_id)
+        if not clean_run_id:
+            return
         self.postgrest_update(
             "recovery_runs",
-            f"id=eq.{run_id}",
+            f"id=eq.{clean_run_id}",
             {"progress_stage": stage, "progress_pct": pct},
         )
 
@@ -243,29 +358,42 @@ class SupabaseSync:
         duration_s: float,
         applied_strategy: str | None,
         candidate_details: list[dict[str, Any]],
+        user_id: str | None = None,
     ) -> None:
         """Update recovery_runs completion and persist recovery_results record."""
-        user_id = self.get_first_user_id()
+        clean_run_id = _to_uuid_str(run_id)
+        if not clean_run_id:
+            return
+
+        effective_user_id = _to_uuid_str(user_id) or self.get_run_user_id(clean_run_id) or self.get_first_user_id()
+        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+        # Update run status
+        status_val = "succeeded" if verdict in ("accepted", "healthy_no_action", "rolled_back") else "failed"
         self.postgrest_update(
             "recovery_runs",
-            f"id=eq.{run_id}",
+            f"id=eq.{clean_run_id}",
             {
-                "status": "succeeded",
+                "status": status_val,
                 "progress_stage": "completed",
                 "progress_pct": 100.0,
+                "completed_at": now_iso,
             },
         )
 
         delta_acc = round(rec_acc - orig_acc, 4)
         delta_ece = round(rec_ece - orig_ece, 4)
 
+        # Map verdict to allowed CHECK constraint
+        valid_verdict = verdict if verdict in ("accepted", "rolled_back", "healthy_no_action", "error") else "rolled_back"
+
         self.postgrest_insert(
             "recovery_results",
             {
-                "run_id": run_id,
-                "user_id": user_id,
-                "verdict": verdict,
-                "primary_diagnosis": diag_label,
+                "run_id": clean_run_id,
+                "user_id": effective_user_id,
+                "verdict": valid_verdict,
+                "primary_diagnosis": diag_label or "None",
                 "confidence": confidence,
                 "original_accuracy": orig_acc,
                 "recovered_accuracy": rec_acc,
@@ -276,28 +404,63 @@ class SupabaseSync:
                 "compute_units": compute_units,
                 "duration_s": duration_s,
                 "applied_strategy": applied_strategy,
-                "candidate_details": candidate_details,
+                "candidate_details": candidate_details or [],
             },
         )
 
-    def sync_artifact(self, run_id: str, name: str, artifact_type: str, file_bytes: bytes) -> None:
+    def sync_artifact(
+        self,
+        run_id: str,
+        name: str,
+        artifact_type: str,
+        file_bytes: bytes,
+        user_id: str | None = None,
+    ) -> None:
         """Upload run artifact to Supabase Storage artifacts bucket and record in run_artifacts."""
-        storage_path = f"{run_id}/{name}"
+        clean_run_id = _to_uuid_str(run_id)
+        if not clean_run_id:
+            return
+        storage_path = f"{clean_run_id}/{name}"
         pub_url = self.upload_storage_file("artifacts", storage_path, file_bytes)
-        user_id = self.get_first_user_id()
+        effective_user_id = _to_uuid_str(user_id) or self.get_run_user_id(clean_run_id) or self.get_first_user_id()
+
+        # Map artifact_type to CHECK constraint: checkpoint, report, log, chart, metrics, other
+        valid_type = artifact_type if artifact_type in ("checkpoint", "report", "log", "chart", "metrics") else "other"
 
         self.postgrest_insert(
             "run_artifacts",
             {
-                "run_id": run_id,
-                "user_id": user_id,
+                "run_id": clean_run_id,
+                "user_id": effective_user_id,
                 "name": name,
-                "artifact_type": artifact_type,
+                "artifact_type": valid_type,
                 "storage_path": pub_url or storage_path,
                 "download_url": pub_url,
                 "size_bytes": len(file_bytes),
             },
         )
+
+    def fetch_history_runs(self, user_id: str | None = None) -> list[dict[str, Any]]:
+        """Fetch historical recovery runs from Supabase history view or recovery_runs table."""
+        if not self.enabled:
+            return []
+        try:
+            url = f"{self.url}/rest/v1/history"
+            params = ["select=*"]
+            if user_id:
+                clean_user = _to_uuid_str(user_id)
+                if clean_user:
+                    params.append(f"user_id=eq.{clean_user}")
+            params.append("order=created_at.desc")
+            query_str = "&".join(params)
+            res = requests.get(f"{url}?{query_str}", headers=self.headers, timeout=5.0)
+            if res.status_code == 200:
+                data = res.json()
+                if isinstance(data, list):
+                    return data
+        except Exception as exc:
+            logger.debug("Notice fetching history from Supabase: %s", exc)
+        return []
 
 
 supabase_sync = SupabaseSync()

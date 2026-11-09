@@ -58,7 +58,9 @@ class JobCoordinator:
         job_timeout_s: float = DEFAULT_JOB_TIMEOUT_SECONDS,
         max_workers: int = 1,
     ) -> None:
-        db_path = os.getenv("AMRS_DB_PATH", ":memory:")
+        db_path = os.getenv("AMRS_DB_PATH", "data/amrs.db")
+        if db_path != ":memory:":
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self.db = db or Database(db_path)
         apply_migrations(self.db)
 
@@ -324,6 +326,11 @@ class JobCoordinator:
         run_dir = self.get_run_artifact_dir(run_id)
         arch = req.arch or getattr(req, "architecture", None) or "resnet18_cifar"
         seed = req.seed if req.seed is not None else 1234
+        job_user_id = req.user_id
+        if not job_user_id:
+            existing_run = self.run_repo.get_run(run_id)
+            if existing_run:
+                job_user_id = existing_run.user_id
 
         try:
             # Checkpoint 0: Queued -> Running
@@ -348,36 +355,37 @@ class JobCoordinator:
                 return
 
             # Determine diagnosis: either from preset scenario or automated ML multi-head diagnosis
-            if req.scenario_id == "s1_overfit":
+            sc_id = (req.scenario_id or "").lower()
+            if sc_id in ("s1", "s1_overfit"):
                 diag_label = "overfitting"
                 explanation = "Generalization gap divergence: validation loss rising while training loss falls."
                 metric_vals = {"train_acc": 0.962, "val_acc": 0.741, "generalization_gap": 0.221}
                 thresh_vals = {"gap_min": 0.10, "train_acc_min": 0.90}
-            elif req.scenario_id == "s2_miscalibration":
+            elif sc_id in ("s2", "s2_miscalibration"):
                 diag_label = "miscalibration"
                 explanation = "Elevated Expected Calibration Error (18.5% > 5.0% threshold) despite high top-1 accuracy."
                 metric_vals = {"ece": 0.185, "top1_acc": 0.882}
                 thresh_vals = {"max_ece": 0.05}
-            elif req.scenario_id == "s3_bn_drift":
+            elif sc_id in ("s3", "s3_bn_drift"):
                 diag_label = "bn_drift"
                 explanation = (
                     "BatchNorm running statistics diverge from target evaluation distribution."
                 )
                 metric_vals = {"bn_divergence": 0.342, "val_acc": 0.698}
                 thresh_vals = {"max_bn_drift": 0.12}
-            elif req.scenario_id == "s4_instability":
+            elif sc_id in ("s4", "s4_instability"):
                 diag_label = "instability"
                 explanation = "Gradient spikes and oscillatory validation loss detected during trajectory inspection."
                 metric_vals = {"gradient_variance": 4.82, "loss_oscillation_sd": 0.41}
                 thresh_vals = {"max_grad_var": 1.50}
-            elif req.scenario_id == "s5_degraded_head":
+            elif sc_id in ("s5", "s5_degraded_head"):
                 diag_label = "head_degradation"
                 explanation = (
                     "Classification head collapsed; backbone feature representations remain intact."
                 )
                 metric_vals = {"head_entropy": 2.21, "feature_acc": 0.895}
                 thresh_vals = {"min_feature_acc": 0.80}
-            elif req.scenario_id == "s6_healthy":
+            elif sc_id in ("s6", "s6_healthy"):
                 diag_label = "healthy"
                 explanation = "Nominal model trajectory: validation accuracy tracks training without anomalous gap."
                 metric_vals = {
@@ -586,17 +594,7 @@ class JobCoordinator:
                 verdict = orch_result.verdict or "healthy_no_action"
                 accepted_strategy = orch_result.accepted_strategy
 
-                # Final update
-                self.run_repo.update_run_status(
-                    run_id=run_id,
-                    status=RunStatus.SUCCEEDED.value,
-                    progress_stage="completed",
-                    progress_pct=100.0,
-                    verdict=verdict,
-                    accepted_strategy=accepted_strategy,
-                    duration_s=duration,
-                    compute_units_total=orch_result.compute_units_total or 0.0,
-                )
+                # Sync outcome to Supabase Storage and DB
                 try:
                     cand_dicts = [
                         {
@@ -623,14 +621,27 @@ class JobCoordinator:
                         duration_s=duration,
                         applied_strategy=accepted_strategy,
                         candidate_details=cand_dicts,
+                        user_id=job_user_id,
                     )
                     model_art = run_dir / "accepted_model.pt"
                     if model_art.exists():
                         supabase_sync.sync_artifact(
-                            run_id, "accepted_model.pt", "checkpoint", model_art.read_bytes()
+                            run_id, "accepted_model.pt", "checkpoint", model_art.read_bytes(), user_id=job_user_id
                         )
                 except Exception as sync_err:
                     logger.debug("Supabase outcome sync note: %s", sync_err)
+
+                # Final update in repository
+                self.run_repo.update_run_status(
+                    run_id=run_id,
+                    status=RunStatus.SUCCEEDED.value,
+                    progress_stage="completed",
+                    progress_pct=100.0,
+                    verdict=verdict,
+                    accepted_strategy=accepted_strategy,
+                    duration_s=duration,
+                    compute_units_total=orch_result.compute_units_total or 0.0,
+                )
                 return
             else:
                 diag_label = "healthy"
@@ -721,7 +732,52 @@ class JobCoordinator:
                 self._finalize_cancellation(run_id, run_dir, original_bytes)
                 return
 
-            # Transition to Succeeded
+            # Sync completion outcome and artifacts to Supabase Storage and DB
+            try:
+                cand_dicts = [
+                    {
+                        "strategy": accepted_strategy or "none",
+                        "gate_decision": "ACCEPT" if verdict == "accepted" else "REJECT",
+                        "cost_units": 150.0,
+                        "primary_metric": "accuracy",
+                        "delta_primary": 0.035 if verdict == "accepted" else 0.0,
+                    }
+                ]
+                supabase_sync.sync_run_outcome(
+                    run_id=run_id,
+                    verdict=verdict,
+                    diag_label=diag_label,
+                    confidence=0.92 if diag_label != "healthy" else 0.99,
+                    orig_acc=0.74,
+                    rec_acc=0.775 if verdict == "accepted" else 0.74,
+                    orig_ece=0.12,
+                    rec_ece=0.045 if verdict == "accepted" else 0.12,
+                    compute_units=300.0,
+                    duration_s=duration,
+                    applied_strategy=accepted_strategy,
+                    candidate_details=cand_dicts,
+                    user_id=job_user_id,
+                )
+                # Upload artifacts
+                model_artifact = run_dir / "accepted_model.pt"
+                if model_artifact.exists():
+                    supabase_sync.sync_artifact(
+                        run_id, "accepted_model.pt", "checkpoint", model_artifact.read_bytes(), user_id=job_user_id
+                    )
+                report_json = run_dir / "report.json"
+                if report_json.exists():
+                    supabase_sync.sync_artifact(
+                        run_id, "report.json", "report", report_json.read_bytes(), user_id=job_user_id
+                    )
+                report_md = run_dir / "report.md"
+                if report_md.exists():
+                    supabase_sync.sync_artifact(
+                        run_id, "report.md", "report", report_md.read_bytes(), user_id=job_user_id
+                    )
+            except Exception as sync_err:
+                logger.debug("Supabase completion sync notice: %s", sync_err)
+
+            # Transition to Succeeded in repository
             self.run_repo.update_run_status(
                 run_id=run_id,
                 status=RunStatus.SUCCEEDED.value,
@@ -732,53 +788,6 @@ class JobCoordinator:
                 duration_s=duration,
                 compute_units_total=300.0,
             )
-
-            # Sync completion outcome and artifacts to Supabase Storage and DB asynchronously
-            def _async_sync():
-                try:
-                    cand_dicts = [
-                        {
-                            "strategy": accepted_strategy or "none",
-                            "gate_decision": "ACCEPT" if verdict == "accepted" else "REJECT",
-                            "cost_units": 150.0,
-                            "primary_metric": "accuracy",
-                            "delta_primary": 0.035 if verdict == "accepted" else 0.0,
-                        }
-                    ]
-                    supabase_sync.sync_run_outcome(
-                        run_id=run_id,
-                        verdict=verdict,
-                        diag_label=diag_label,
-                        confidence=0.92 if diag_label != "healthy" else 0.99,
-                        orig_acc=0.74,
-                        rec_acc=0.775 if verdict == "accepted" else 0.74,
-                        orig_ece=0.12,
-                        rec_ece=0.045 if verdict == "accepted" else 0.12,
-                        compute_units=300.0,
-                        duration_s=duration,
-                        applied_strategy=accepted_strategy,
-                        candidate_details=cand_dicts,
-                    )
-                    # Upload artifacts
-                    model_artifact = run_dir / "accepted_model.pt"
-                    if model_artifact.exists():
-                        supabase_sync.sync_artifact(
-                            run_id, "accepted_model.pt", "checkpoint", model_artifact.read_bytes()
-                        )
-                    report_json = run_dir / "report.json"
-                    if report_json.exists():
-                        supabase_sync.sync_artifact(
-                            run_id, "report.json", "report", report_json.read_bytes()
-                        )
-                    report_md = run_dir / "report.md"
-                    if report_md.exists():
-                        supabase_sync.sync_artifact(
-                            run_id, "report.md", "report", report_md.read_bytes()
-                        )
-                except Exception as sync_err:
-                    logger.debug("Supabase completion sync notice: %s", sync_err)
-
-            threading.Thread(target=_async_sync, daemon=True).start()
 
         except Exception as exc:
             if cancel_token.is_set():
@@ -833,6 +842,91 @@ class JobCoordinator:
                 time.sleep(0.05)
         logger.info("Worker confirmed cooperative cancellation for run %s", run_id)
 
+    def _backfill_runs_from_supabase(self, user_id: str | None = None) -> None:
+        """Hydrate local SQLite repository with historical runs from Supabase."""
+        if not supabase_sync.enabled:
+            return
+        try:
+            history_rows = supabase_sync.fetch_history_runs(user_id=user_id)
+            for h in history_rows:
+                try:
+                    run_id = h.get("run_id") or h.get("id")
+                    if not run_id:
+                        continue
+                    # If run is already in repository, skip
+                    if self.run_repo.get_run(str(run_id)) is not None:
+                        continue
+                    # Construct RunDetailResponse from Supabase history view
+                    created_at = h.get("created_at") or datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    raw_verdict = h.get("verdict")
+                    verdict = raw_verdict if raw_verdict in ("accepted", "rolled_back", "healthy_no_action", "error") else None
+                    arch = h.get("architecture") or "resnet18_cifar"
+                    orig_acc = float(h.get("original_accuracy") or 0.0)
+                    rec_acc = float(h.get("recovered_accuracy") or orig_acc)
+                    orig_ece = float(h.get("original_ece") or 0.0)
+                    rec_ece = float(h.get("recovered_ece") or orig_ece)
+                    dur = float(h.get("duration_s") or 0.0)
+                    cu = float(h.get("compute_units") or 0.0)
+                    strategy = h.get("applied_strategy")
+                    diag_label = h.get("primary_diagnosis") or "healthy"
+
+                    diagnoses = [
+                        DiagnosisItem(
+                            label=diag_label,
+                            confidence=0.95,
+                            rank=1,
+                            evidence=DiagnosisEvidence(),
+                        )
+                    ]
+                    candidates = []
+                    if strategy and strategy != "None":
+                        candidates.append(
+                            CandidateSummary(
+                                id=f"cand-{str(run_id)[:8]}",
+                                run_id=str(run_id),
+                                order_idx=1,
+                                strategy=strategy,
+                                params={},
+                                cost_units=cu,
+                                wall_s=dur,
+                                primary_metric="accuracy",
+                                delta_primary=round(rec_acc - orig_acc, 4),
+                                ci_low=0.0,
+                                ci_high=0.0,
+                                retention=1.0,
+                                agreement=1.0,
+                                gate_decision="ACCEPT" if verdict == "accepted" else "REJECT",
+                                gate_reasons=[],
+                                artifact_path=None,
+                            )
+                        )
+
+                    run_record = RunDetailResponse(
+                        id=str(run_id),
+                        created_at=created_at,
+                        status=h.get("status") or "succeeded",
+                        progress_stage="completed",
+                        progress_pct=100.0,
+                        scenario_id=None,
+                        arch=arch,
+                        original_sha256="from_supabase_cloud",
+                        config_json={},
+                        seed=1234,
+                        verdict=verdict,
+                        accepted_strategy=strategy,
+                        error_message=None,
+                        duration_s=dur,
+                        compute_units_total=cu,
+                        diagnoses=diagnoses,
+                        candidates=candidates,
+                        user_id=h.get("user_id"),
+                    )
+                    self.run_repo.create_run(run_record)
+                except Exception as row_exc:
+                    logger.debug("Notice hydrading run %s: %s", h.get("id"), row_exc)
+        except Exception as exc:
+            logger.debug("Notice during backfill from Supabase: %s", exc)
+
     def list_runs(
         self,
         verdict: str | None = None,
@@ -841,16 +935,29 @@ class JobCoordinator:
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[RunSummary], int]:
-        return self.run_repo.list_runs(
+        runs, total = self.run_repo.list_runs(
             verdict=verdict,
             scenario_id=scenario_id,
             user_id=user_id,
             limit=limit,
             offset=offset,
         )
+        if total == 0 and supabase_sync.enabled:
+            self._backfill_runs_from_supabase(user_id)
+            runs, total = self.run_repo.list_runs(
+                verdict=verdict,
+                scenario_id=scenario_id,
+                user_id=user_id,
+                limit=limit,
+                offset=offset,
+            )
+        return runs, total
 
     def get_run(self, run_id: str) -> RunDetailResponse:
         run = self.run_repo.get_run(run_id)
+        if not run and supabase_sync.enabled:
+            self._backfill_runs_from_supabase()
+            run = self.run_repo.get_run(run_id)
         if not run:
             raise NotFoundError(
                 message=f"Run '{run_id}' not found",
