@@ -6,29 +6,32 @@ import { useTheme } from 'next-themes';
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const isTogglingRef = React.useRef(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  const isDark = mounted
-    ? resolvedTheme === 'dark' || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
-    : false;
+  const isDark = mounted ? resolvedTheme === 'dark' : false;
 
   const toggleTheme = () => {
-    const isCurrentlyDark =
-      (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) ||
-      (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark') ||
-      isDark;
-    const nextTheme = isCurrentlyDark ? 'light' : 'dark';
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+    setTimeout(() => {
+      isTogglingRef.current = false;
+    }, 150);
+
+    const nextTheme = isDark ? 'light' : 'dark';
 
     setTheme(nextTheme);
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', nextTheme);
       if (nextTheme === 'dark') {
         document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
       } else {
         document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
       }
     }
     try {

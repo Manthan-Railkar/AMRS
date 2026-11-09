@@ -1,6 +1,7 @@
 "use client"
 
 import { useTheme } from "next-themes"
+import * as React from "react"
 import { useSyncExternalStore } from "react"
 import { Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ function useHasMounted() {
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
   const mounted = useHasMounted()
+  const isTogglingRef = React.useRef(false)
 
   if (!mounted) {
     // Render a same-size invisible placeholder to prevent layout shift
@@ -38,18 +40,25 @@ export function ThemeToggle() {
   const isDark = resolvedTheme === "dark"
 
   const toggleTheme = () => {
-    const isCurrentlyDark =
-      document.documentElement.classList.contains("dark") ||
-      document.documentElement.getAttribute("data-theme") === "dark" ||
-      isDark
-    const nextTheme = isCurrentlyDark ? "light" : "dark"
+    // Prevent duplicate triggers if both press and click events fire
+    if (isTogglingRef.current) return
+    isTogglingRef.current = true
+    setTimeout(() => {
+      isTogglingRef.current = false
+    }, 150)
+
+    const nextTheme = isDark ? "light" : "dark"
 
     setTheme(nextTheme)
-    document.documentElement.setAttribute("data-theme", nextTheme)
-    if (nextTheme === "dark") {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", nextTheme)
+      if (nextTheme === "dark") {
+        document.documentElement.classList.add("dark")
+        document.documentElement.classList.remove("light")
+      } else {
+        document.documentElement.classList.remove("dark")
+        document.documentElement.classList.add("light")
+      }
     }
     try {
       localStorage.setItem("theme", nextTheme)
@@ -63,7 +72,6 @@ export function ThemeToggle() {
       size="icon"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       onPress={toggleTheme}
-      onClick={toggleTheme}
     >
       {isDark ? (
         <Sun className="size-4 text-amber-400 hover:text-amber-300 transition-colors" aria-hidden="true" />
