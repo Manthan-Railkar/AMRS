@@ -85,7 +85,41 @@ export async function signUpAction(formData: {
         });
 
       if (createErr) {
-        return { success: false, error: createErr.message };
+        if (
+          createErr.message.toLowerCase().includes("already") ||
+          createErr.message.toLowerCase().includes("exists")
+        ) {
+          // Fallback: locate the user and update credentials so they can log in immediately
+          const { data: retryList } = await admin.auth.admin.listUsers({
+            page: 1,
+            perPage: 1000,
+          });
+          const retryUser = retryList?.users?.find(
+            (u) => u.email?.toLowerCase() === email
+          );
+          if (retryUser) {
+            const { error: retryUpdateErr } =
+              await admin.auth.admin.updateUserById(retryUser.id, {
+                password,
+                email_confirm: true,
+                user_metadata: {
+                  first_name:
+                    firstName || retryUser.user_metadata?.first_name || "",
+                  last_name:
+                    lastName || retryUser.user_metadata?.last_name || "",
+                  full_name: fullName,
+                },
+              });
+            if (retryUpdateErr) {
+              return { success: false, error: retryUpdateErr.message };
+            }
+            userId = retryUser.id;
+          } else {
+            return { success: false, error: createErr.message };
+          }
+        } else {
+          return { success: false, error: createErr.message };
+        }
       }
       if (!createData.user) {
         return { success: false, error: "Failed to create user account." };
@@ -280,19 +314,23 @@ export async function getCurrentUserAction(): Promise<UserProfile | null> {
 }
 
 /**
- * Generates Google OAuth redirect URL using server-side client.
+ * Generates Google OAuth redirect URL using server-side client with PKCE cookies.
  */
 export async function getGoogleOAuthUrlAction(
   redirectTo?: string
 ): Promise<{ url?: string; error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { data, error } = await admin.auth.signInWithOAuth({
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo:
           redirectTo ||
           `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback`,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
       },
     });
 

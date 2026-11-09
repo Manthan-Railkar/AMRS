@@ -41,8 +41,20 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Entrance orchestration
+  // Entrance orchestration and URL error check
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("error");
+      if (err) {
+        if (err === "auth_callback_failed") {
+          setErrorMsg("Authentication failed. Please try again.");
+        } else {
+          setErrorMsg(decodeURIComponent(err));
+        }
+      }
+    }
+
     const mm = gsap.matchMedia();
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -137,6 +149,9 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
         setLoading(false);
       } else if (res.url) {
         window.location.href = res.url;
+      } else {
+        setErrorMsg("Failed to generate Google login URL.");
+        setLoading(false);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to initiate Google sign in.";
