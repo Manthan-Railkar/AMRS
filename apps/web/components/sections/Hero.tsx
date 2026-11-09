@@ -2,6 +2,15 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
+const PLACEHOLDER_PHRASES = [
+  "Describe your model's performance issue or upload a trained model...",
+  "ResNet-18 accuracy degraded by 14% after distribution shift...",
+  "BatchNorm running statistics drifting across validation batches...",
+  "Validation loss diverging after epoch 40 due to learning rate...",
+  "Classifier outputs overconfident with high calibration error (ECE)...",
+  "Upload a PyTorch model (.pt) to auto-diagnose and restore performance...",
+];
+
 export function Hero() {
   const heroRef = useRef<HTMLElement>(null);
   const blobDarkRef = useRef<HTMLDivElement>(null);
@@ -16,6 +25,60 @@ export function Hero() {
   const [caption, setCaption] = useState(
     'Supports PyTorch models · Intelligent diagnosis · Verified recovery'
   );
+
+  const [placeholderText, setPlaceholderText] = useState(PLACEHOLDER_PHRASES[0]);
+  const [cursorVisible, setCursorVisible] = useState(true);
+
+  // Blinking cursor effect for typewriter placeholder
+  useEffect(() => {
+    const cursorInterval = setInterval(() => {
+      setCursorVisible((prev) => !prev);
+    }, 530);
+    return () => clearInterval(cursorInterval);
+  }, []);
+
+  // Typewriter animation cycle across model diagnostic prompts
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    let phraseIndex = 0;
+    let charIndex = PLACEHOLDER_PHRASES[0].length;
+    let isDeleting = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const tick = () => {
+      const currentPhrase = PLACEHOLDER_PHRASES[phraseIndex];
+
+      if (isDeleting) {
+        charIndex -= 1;
+        setPlaceholderText(currentPhrase.substring(0, charIndex));
+
+        if (charIndex <= 0) {
+          isDeleting = false;
+          phraseIndex = (phraseIndex + 1) % PLACEHOLDER_PHRASES.length;
+          timeoutId = setTimeout(tick, 450);
+          return;
+        }
+        timeoutId = setTimeout(tick, 25);
+      } else {
+        charIndex += 1;
+        setPlaceholderText(currentPhrase.substring(0, charIndex));
+
+        if (charIndex >= currentPhrase.length) {
+          isDeleting = true;
+          timeoutId = setTimeout(tick, 2400);
+          return;
+        }
+        timeoutId = setTimeout(tick, 45);
+      }
+    };
+
+    // Initial delay before starting deletion of the first placeholder
+    timeoutId = setTimeout(tick, 2800);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   const toggleTag = (tag: string) => {
     setActiveTags((prev) =>
@@ -208,7 +271,7 @@ export function Hero() {
             id="prompt"
             name="prompt"
             rows={2}
-            placeholder="Describe your model's performance issue or upload a trained model..."
+            placeholder={`${placeholderText}${cursorVisible ? '|' : ' '}`}
             autoComplete="off"
             value={promptValue}
             onChange={(e) => setPromptValue(e.target.value)}
