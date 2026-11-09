@@ -38,8 +38,8 @@ RUN useradd -m -u 10001 amrs && \
 
 USER amrs
 
-# Expose backend port 8000
-EXPOSE 8000
+# Expose backend port 8000 and optional web port 3000
+EXPOSE 8000 3000
 
 ENV PORT=8000
 
