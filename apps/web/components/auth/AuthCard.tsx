@@ -173,34 +173,32 @@ export default function AuthCard({ initialMode = "signup", onClose, isModal = fa
       )}
 
       {/* Left panel: Promo Video with AMRS brand logo and navigation */}
-      <section className="relative h-[360px] w-full shrink-0 overflow-hidden rounded-[20px] bg-[#0c0818] lg:h-full lg:w-[49%]">
+      <section className="relative flex items-center justify-center h-[460px] sm:h-[540px] w-full shrink-0 overflow-hidden rounded-[20px] bg-[#0c0818] p-3 sm:p-4 lg:h-full lg:w-[49%]">
         <video
           src="/assets/promo.mp4"
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover"
+          className="h-full w-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
         />
-        {/* Subtle gradient vignette to maintain contrast for top brand logo and navigation */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/30 pointer-events-none z-10" />
 
         {/* Top-Left: AMRS Brand Logo */}
-        <div className="absolute left-[28px] sm:left-[32px] top-[26px] sm:top-[30px] z-20 flex items-center">
+        <div className="absolute left-[20px] sm:left-[24px] top-[18px] sm:top-[22px] z-20 flex items-center pointer-events-none">
           <Image
             src="/assets/img/amrs-logo.png"
             alt="AMRS"
             width={112}
             height={38}
             priority
-            className="h-[26px] sm:h-[30px] w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]"
+            className="h-[26px] sm:h-[28px] w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
           />
         </div>
 
         {/* Top-Right: Back to website pill */}
         <Link
           href="/"
-          className="absolute right-[16px] sm:right-[26px] top-[18px] sm:top-[26px] z-20 flex h-[32px] sm:h-[34px] items-center gap-1.5 sm:gap-2 rounded-full bg-white/[0.14] px-3 sm:px-[16px] text-[12px] sm:text-[14px] font-medium text-white backdrop-blur-md border border-white/10 transition-colors hover:bg-white/25 shadow-sm"
+          className="absolute right-[14px] sm:right-[20px] top-[14px] sm:top-[18px] z-20 flex h-[32px] sm:h-[34px] items-center gap-1.5 sm:gap-2 rounded-full bg-black/40 px-3 sm:px-[15px] text-[12px] sm:text-[13px] font-medium text-white backdrop-blur-md border border-white/10 transition-colors hover:bg-black/60 shadow-sm"
         >
           <span>Back to website</span>
           <svg
