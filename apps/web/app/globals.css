@@ -169,8 +169,7 @@ body {
 }
 img, svg { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-button:not([class*="p-"]):not([class*="pl-"]):not([class*="px-"]):not([class*="py-"]) { padding: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 ul { list-style: none; margin: 0; padding: 0; }
 h1, h2, h3, p, blockquote, figure, dl, dd { margin: 0; }
 svg use { pointer-events: none; }
@@ -1078,24 +1077,84 @@ svg use { pointer-events: none; }
 /* =========================================================
    FAQ
    ========================================================= */
-.faq { margin-top: 60px; padding-top: 60px; padding-bottom: 60px; border-top: 1px solid var(--line); }
-.faq__grid { display: grid; grid-template-columns: 1fr 480px; gap: 60px; align-items: start; }
+.faq { margin-top: 80px; padding-top: 80px; padding-bottom: 80px; border-top: 1px solid var(--line); }
+.faq .wrap { width: min(1240px, calc(100% - 48px)); }
+.faq__grid { display: grid; grid-template-columns: 1fr minmax(480px, 760px); gap: 64px; align-items: start; }
 .faq__title {
   position: static;
   will-change: transform;
   opacity: 1 !important;
   visibility: visible !important;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+  line-height: 1.18;
+  letter-spacing: -.035em;
 }
-.faq__list { display: grid; gap: 8px; }
-.faq__item { background: var(--surface); border-radius: 10px; transition: background .4s; }
-.faq__item button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; text-align: left; font-size: 14.5px; font-weight: 500; letter-spacing: -.005em; color: #1c1826; }
-.faq__item button svg { width: 12px; height: 12px; flex: none; transition: transform .5s var(--ease); }
-.faq__item[data-open="true"] button svg { transform: rotate(45deg); }
-.faq__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .55s var(--ease); }
-.faq__panel > div { overflow: hidden; }
-.faq__panel p { padding: 0 22px 22px; font-size: 13.5px; line-height: 1.5; color: #77777f; opacity: 0; filter: blur(6px); transition: opacity .5s ease, filter .5s ease; }
-.faq__item[data-open="true"] .faq__panel { grid-template-rows: 1fr; }
-.faq__item[data-open="true"] .faq__panel p { opacity: 1; filter: blur(0); transition-delay: .1s; }
+.faq__list { display: grid; gap: 15px; }
+.faq__item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: background .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+.faq__item:hover {
+  border-color: rgba(91, 91, 230, .25);
+}
+.faq__item button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 32px;
+  min-height: 80px;
+  box-sizing: border-box;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: #1c1826;
+  cursor: pointer;
+}
+.faq__item button svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--muted);
+  transition: transform .45s var(--ease), color .3s ease;
+}
+.faq__item button:hover svg {
+  color: var(--text);
+}
+.faq__item[data-open="true"] button svg {
+  transform: rotate(45deg);
+  color: var(--text);
+}
+.faq__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .45s var(--ease);
+}
+.faq__panel > div {
+  overflow: hidden;
+}
+.faq__panel p {
+  padding: 0 32px 28px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #77777f;
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity .45s ease, filter .45s ease;
+}
+.faq__item[data-open="true"] .faq__panel {
+  grid-template-rows: 1fr;
+}
+.faq__item[data-open="true"] .faq__panel p {
+  opacity: 1;
+  filter: blur(0);
+  transition-delay: .08s;
+}
 
 /* =========================================================
    CTA
@@ -1279,7 +1338,11 @@ html.dark,
 [data-theme="dark"] .plan__panel li { color: #e4e0f3; }
 [data-theme="dark"] .btn--dark { background: #f2f2f6; color: #0b0b0e; }
 [data-theme="dark"] .faq__title { color: #f2f2f6 !important; }
+[data-theme="dark"] .faq__item { background: #141418; border-color: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .faq__item:hover { background: #17171d; border-color: rgba(255, 255, 255, 0.12); }
 [data-theme="dark"] .faq__item button { color: #f2f2f6; }
+[data-theme="dark"] .faq__item button svg { color: #8b8b99; }
+[data-theme="dark"] .faq__item[data-open="true"] button svg { color: #ffffff; }
 [data-theme="dark"] .faq__panel p { color: #9b9ba8; }
 [data-theme="dark"] .cta__card { background: linear-gradient(90deg, #141418 0%, #141418 36%, #1b1a2a 55%, #2b2850 100%); box-shadow: none; }
 [data-theme="dark"] .cta__card > p, [data-theme="dark"] .cta__note { color: #9b9ba8; }
@@ -1297,12 +1360,16 @@ html.dark,
 
 @media (max-width: 900px) {
   .charts { grid-template-columns: 1fr; gap: 36px; }
-  .faq__grid { grid-template-columns: 1fr; gap: 28px; }
+  .faq__grid { grid-template-columns: 1fr; gap: 36px; }
   .faq__title { position: static; }
   .preset-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
 }
 
 @media (max-width: 768px) {
+  .faq__list { gap: 12px; }
+  .faq__item { border-radius: 14px; }
+  .faq__item button { padding: 22px 24px; min-height: 68px; font-size: 15px; }
+  .faq__panel p { padding: 0 24px 22px; font-size: 14px; }
   .gallery { --k: calc(100vw / 640); margin-top: 80px; }
   .nav__links { display: none; }
   .menu-btn { display: inline-flex; }
@@ -1327,6 +1394,9 @@ html.dark,
 }
 
 @media (max-width: 480px) {
+  .faq__item { border-radius: 12px; }
+  .faq__item button { padding: 18px 20px; min-height: 60px; font-size: 14px; gap: 16px; }
+  .faq__panel p { padding: 0 20px 20px; font-size: 13.5px; }
   .hero { min-height: max(100svh, 560px); padding-top: clamp(80px, 16vh, 120px); }
   .hero__foot { bottom: 24px; gap: 14px; }
   .hero__foot p { font-size: 10px; line-height: 1.4; max-width: 200px; }
