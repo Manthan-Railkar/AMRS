@@ -51,7 +51,6 @@ export const workspaceNavItems: NavItemConfig[] = [
 
 export const generalNavItems: NavItemConfig[] = [
   { id: "notifications", name: "Notifications", href: "#notifications", icon: Bell },
-  { id: "settings", name: "Settings", href: "#settings", icon: Settings },
   { id: "feedback", name: "Feedback", href: "/feedback", icon: Megaphone },
 ];
 
@@ -459,14 +458,18 @@ export function Sidebar({
                     onClick={() => handleNavClick(item.href)}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "group relative z-10 flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors outline-none",
-                      "focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                      "group relative z-10 w-full flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-sidebar-ring text-left",
                       !isCollapsed ? "pl-9 pr-3" : "justify-center px-0 size-10 mx-auto",
                       isActive
                         ? "text-sidebar-primary font-semibold"
                         : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
                     )}
-                    style={!isCollapsed ? { paddingLeft: "2.25rem", paddingRight: "0.75rem" } : undefined}
+                    style={
+                      !isCollapsed
+                        ? { paddingLeft: "2.25rem", paddingRight: "0.75rem", paddingTop: "0.5rem", paddingBottom: "0.5rem", minHeight: "2.5rem" }
+                        : { minHeight: "2.5rem" }
+                    }
                   >
                     {/* Curved branch arm reaching from trunk to the item */}
                     {!isCollapsed && (
@@ -562,9 +565,6 @@ export function Sidebar({
                   if (item.id === "notifications") {
                     e.preventDefault();
                     setIsNotificationsOpen(true);
-                  } else if (item.id === "settings") {
-                    e.preventDefault();
-                    router.push("/dashboard");
                   }
                 };
 
@@ -585,8 +585,8 @@ export function Sidebar({
                 );
 
                 const itemStyle = !isCollapsed
-                  ? { paddingLeft: "2.25rem", paddingRight: "0.75rem" }
-                  : undefined;
+                  ? { paddingLeft: "2.25rem", paddingRight: "0.75rem", paddingTop: "0.5rem", paddingBottom: "0.5rem", minHeight: "2.5rem" }
+                  : { minHeight: "2.5rem" };
 
                 const linkInner = (
                   <>
