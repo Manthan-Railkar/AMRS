@@ -875,7 +875,14 @@ class JobCoordinator:
                             label=diag_label,
                             confidence=0.95,
                             rank=1,
-                            evidence=DiagnosisEvidence(),
+                            evidence=DiagnosisEvidence(
+                                metric_values={
+                                    "original_accuracy": orig_acc,
+                                    "recovered_accuracy": rec_acc,
+                                    "original_ece": orig_ece,
+                                    "recovered_ece": rec_ece,
+                                }
+                            ),
                         )
                     ]
                     candidates = []
