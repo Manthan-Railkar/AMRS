@@ -88,15 +88,25 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
     )
 
-    # Narrow CORS configuration for local testing and same-origin proxy
+    # Configurable CORS for production deployment and local development
+    cors_env = os.getenv("AMRS_CORS_ORIGINS", "")
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    if cors_env:
+        for origin_item in cors_env.split(","):
+            origin_item = origin_item.strip()
+            if origin_item and origin_item not in allowed_origins:
+                allowed_origins.append(origin_item)
+
+    is_wildcard = "*" in allowed_origins
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-        ],
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_origins=["*"] if is_wildcard else allowed_origins,
+        allow_credentials=not is_wildcard,
+        allow_methods=["*"],
         allow_headers=["*"],
     )
 

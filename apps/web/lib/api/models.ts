@@ -67,6 +67,7 @@ export async function uploadModel(
     method: "POST",
     body: formData,
     headers: userId ? { "X-User-ID": userId } : {},
+    timeoutMs: 180000,
   });
 }
 
@@ -84,6 +85,7 @@ export async function uploadDataset(
     method: "POST",
     body: formData,
     headers: userId ? { "X-User-ID": userId } : {},
+    timeoutMs: 180000,
   });
 }
 

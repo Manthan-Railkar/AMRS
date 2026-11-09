@@ -38,12 +38,14 @@ RUN useradd -m -u 10001 amrs && \
 
 USER amrs
 
-# Expose backend port 8000 and optional web port 3000
-EXPOSE 8000 3000
+# Expose backend port 8000
+EXPOSE 8000
+
+ENV PORT=8000
 
 # Container healthcheck on standardized health endpoint
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+    CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
 
-# Start Uvicorn ASGI server bound to internal container network
-CMD ["uvicorn", "amrs.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Start Uvicorn ASGI server bound to internal container network (respects cloud $PORT)
+CMD ["sh", "-c", "uvicorn amrs.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]

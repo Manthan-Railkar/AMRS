@@ -64,7 +64,8 @@ class JobCoordinator:
         self.db = db or Database(db_path)
         apply_migrations(self.db)
 
-        self.artifacts_root = Path(artifacts_root)
+        resolved_artifacts = os.getenv("AMRS_ARTIFACTS_ROOT", str(artifacts_root))
+        self.artifacts_root = Path(resolved_artifacts)
         self.artifacts_root.mkdir(parents=True, exist_ok=True)
 
         self.job_timeout_s = job_timeout_s
@@ -205,10 +206,14 @@ class JobCoordinator:
             uploads_root = Path(os.getenv("AMRS_UPLOADS_ROOT", "uploads")).resolve()
             upload_model_path = uploads_root / req.model_upload_id / "model.pt"
             if not upload_model_path.exists() or not upload_model_path.is_file():
-                raise NotFoundError(
-                    message=f"Model upload '{req.model_upload_id}' not found.",
-                    details={"model_upload_id": req.model_upload_id},
-                )
+                # Attempt hydration from Supabase Cloud Storage if not cached on local disk
+                from amrs.store.supabase import supabase_sync
+                downloaded = supabase_sync.download_model(req.model_upload_id, upload_model_path)
+                if not downloaded or not upload_model_path.exists():
+                    raise NotFoundError(
+                        message=f"Model upload '{req.model_upload_id}' not found.",
+                        details={"model_upload_id": req.model_upload_id},
+                    )
             original_bytes = upload_model_path.read_bytes()
             original_sha = hashlib.sha256(original_bytes).hexdigest()
             (run_dir / "original.pt").write_bytes(original_bytes)
@@ -399,6 +404,9 @@ class JobCoordinator:
                 # Execute real ML domain recovery orchestrator
                 uploads_root = Path(os.getenv("AMRS_UPLOADS_ROOT", "uploads")).resolve()
                 model_file = uploads_root / req.model_upload_id / "model.pt"
+                if not model_file.exists():
+                    from amrs.store.supabase import supabase_sync
+                    supabase_sync.download_model(req.model_upload_id, model_file)
 
                 import numpy as np
                 import torch
@@ -424,6 +432,11 @@ class JobCoordinator:
                         if candidate_ds.exists():
                             ds_path = candidate_ds
                             break
+                    if ds_path is None:
+                        from amrs.store.supabase import supabase_sync
+                        ds_path = supabase_sync.download_dataset(
+                            req.dataset_upload_id, datasets_root / req.dataset_upload_id
+                        )
 
                 if ds_path and ds_path.suffix == ".npz":
                     data = np.load(ds_path)

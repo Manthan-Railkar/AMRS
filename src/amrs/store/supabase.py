@@ -141,6 +141,23 @@ class SupabaseSync:
         # Fallback to standard deterministic UUID
         return "e4b082b8-0000-0000-0000-000000000000"
 
+    def ensure_bucket(self, bucket: str, public: bool = True) -> bool:
+        """Ensure a storage bucket exists in Supabase, creating it if needed."""
+        if not self.enabled:
+            return False
+        try:
+            url = f"{self.url}/storage/v1/bucket"
+            res = requests.post(
+                url,
+                headers=self.headers,
+                json={"id": bucket, "name": bucket, "public": public},
+                timeout=5.0,
+            )
+            return res.status_code in (200, 201, 400, 409)
+        except Exception as exc:
+            logger.debug("Ensure bucket failed for %s: %s", bucket, exc)
+            return False
+
     def upload_storage_file(
         self,
         bucket: str,
@@ -154,18 +171,66 @@ class SupabaseSync:
         try:
             upload_url = f"{self.url}/storage/v1/object/{bucket}/{path_in_bucket}"
             hdrs = {**self.headers, "Content-Type": content_type}
-            res = requests.post(upload_url, headers=hdrs, data=file_bytes, timeout=15.0)
+            res = requests.post(upload_url, headers=hdrs, data=file_bytes, timeout=30.0)
             if res.status_code in (200, 201):
                 return f"{self.url}/storage/v1/object/public/{bucket}/{path_in_bucket}"
+            elif res.status_code == 404:
+                # Bucket may not exist yet, attempt auto-creation and retry
+                self.ensure_bucket(bucket)
+                retry_res = requests.post(upload_url, headers=hdrs, data=file_bytes, timeout=30.0)
+                if retry_res.status_code in (200, 201):
+                    return f"{self.url}/storage/v1/object/public/{bucket}/{path_in_bucket}"
             elif res.status_code == 400 and "already exists" in res.text:
                 # Update/overwrite object
-                put_res = requests.put(upload_url, headers=hdrs, data=file_bytes, timeout=15.0)
+                put_res = requests.put(upload_url, headers=hdrs, data=file_bytes, timeout=30.0)
                 if put_res.status_code in (200, 201):
                     return f"{self.url}/storage/v1/object/public/{bucket}/{path_in_bucket}"
         except Exception as exc:
             logger.warning(
                 "Supabase storage upload failed for %s/%s: %s", bucket, path_in_bucket, exc
             )
+        return None
+
+    def download_storage_file(self, bucket: str, path_in_bucket: str) -> bytes | None:
+        """Download raw file bytes from Supabase Storage bucket."""
+        if not self.enabled:
+            return None
+        endpoints = [
+            f"{self.url}/storage/v1/object/authenticated/{bucket}/{path_in_bucket}",
+            f"{self.url}/storage/v1/object/{bucket}/{path_in_bucket}",
+            f"{self.url}/storage/v1/object/public/{bucket}/{path_in_bucket}",
+        ]
+        for ep in endpoints:
+            try:
+                res = requests.get(ep, headers=self.headers, timeout=45.0)
+                if res.status_code == 200 and res.content:
+                    return res.content
+            except Exception as exc:
+                logger.debug("Download from %s failed: %s", ep, exc)
+        return None
+
+    def download_model(self, model_id: str, dest_path: Path) -> bool:
+        """Retrieve model weights from Supabase Storage and cache locally."""
+        clean_id = _to_uuid_str(model_id) or model_id
+        for candidate_key in [f"{clean_id}/model.pt", f"{model_id}/model.pt"]:
+            data = self.download_storage_file("models", candidate_key)
+            if data:
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                dest_path.write_bytes(data)
+                return True
+        return False
+
+    def download_dataset(self, dataset_id: str, dest_dir: Path) -> Path | None:
+        """Retrieve dataset file from Supabase Storage and cache locally."""
+        clean_id = _to_uuid_str(dataset_id) or dataset_id
+        for ext in [".npz", ".pt", ".pth", ".csv"]:
+            for candidate_key in [f"{clean_id}/dataset{ext}", f"{clean_id}/data{ext}", f"{dataset_id}/data{ext}"]:
+                data = self.download_storage_file("datasets", candidate_key)
+                if data:
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    out_path = dest_dir / f"dataset{ext}"
+                    out_path.write_bytes(data)
+                    return out_path
         return None
 
     # ---------------------------------------------------------------------
